@@ -1,12 +1,8 @@
 // js/ui.js
-
-// ▼▼▼ auth.jsからのインポートを追加し、main.jsからの不要なインポートを削除 ▼▼▼
-import { ICONS, DOM, currentUser, escapeHTML, router } from './main.js';
+import { ICONS, DOM, currentUser, escapeHTML } from './main.js';
 import { handleLogout, goToLoginPage } from './auth.js';
-import { handleRecFollow } from './event-handlers.js';
-import { fetchTimeline } from './api.js';
-
-// (これ以降のコードは前回のままで変更ありません)
+import { handleRecFollow, handlePostSubmit, handleCtrlEnter } from './event-handlers.js';
+import { getRecommendedUsers, fetchTimeline } from './api.js';
 
 export function showLoading(show) { DOM.loadingOverlay.classList.toggle('hidden', !show); }
 export function showScreen(screenId) {
@@ -118,7 +114,6 @@ export function renderPost(post, author, container, prepend = false) {
     const postEl = document.createElement('div'); postEl.className = 'post';
     postEl.dataset.postId = post.id;
     postEl.onclick = (e) => { if (!e.target.closest('button, a')) window.location.hash = `#post/${post.id}`; };
-    
     const isLiked = currentUser?.like?.includes(post.id);
     const isStarred = currentUser?.star?.includes(post.id);
     
@@ -133,7 +128,7 @@ export function renderPost(post, author, container, prepend = false) {
         </div>` : '';
     
     postEl.innerHTML = `
-        <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.name}" class="user-icon">
+        <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.name || 'default'}" class="user-icon">
         <div class="post-main">
             ${replyHTML}
             <div class="post-header">

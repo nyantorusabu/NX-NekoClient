@@ -1,7 +1,5 @@
 // js/event-handlers.js
-
-// ▼▼▼ main.jsからのインポートを削除し、必要なものを直接ui.jsからインポート ▼▼▼
-import { DOM, currentUser } from './main.js';
+import { DOM, currentUser, setCurrentUser } from './main.js';
 import { showLoading, closePostModal, openPostModal, renderPost, renderTimeline } from './ui.js';
 import { updateUser, createPost, deletePost, togglePostLike } from './api.js';
 
@@ -60,16 +58,19 @@ export async function handleLike(button, postId) {
     const isLiked = currentUser.like?.includes(postId);
     const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
     const incrementValue = isLiked ? -1 : 1;
-    const { error: userError } = await updateUser(currentUser.id, { like: updatedLikes });
+    const { data: updatedUser, error: userError } = await updateUser(currentUser.id, { like: updatedLikes });
     if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
+    
+    currentUser = updatedUser;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
     
     const { error: postError } = await togglePostLike(postId, incrementValue);
     if (postError) {
-        await updateUser(currentUser.id, { like: currentUser.like }); // Rollback
+        // Rollback user's like array
+        const revertedLikes = isLiked ? [...currentUser.like, postId] : currentUser.like.filter(id => id !== postId);
+        await updateUser(currentUser.id, { like: revertedLikes });
         alert('いいね数の更新に失敗しました。');
     } else {
-        currentUser.like = updatedLikes;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
         countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
         button.classList.toggle('liked', !isLiked);
         iconSpan.textContent = isLiked ? '♡' : '♥';
@@ -82,9 +83,9 @@ export async function handleStar(button, postId) {
     const iconSpan = button.querySelector('.icon');
     const isStarred = currentUser.star?.includes(postId);
     const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-    const { error } = await updateUser(currentUser.id, { star: updatedStars });
+    const { data: updatedUser, error } = await updateUser(currentUser.id, { star: updatedStars });
     if (error) { alert('お気に入りの更新に失敗しました。'); } else {
-        currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        currentUser = updatedUser; localStorage.setItem('currentUser', JSON.stringify(currentUser));
         button.classList.toggle('starred', !isStarred); iconSpan.textContent = isStarred ? '☆' : '★';
     }
     button.disabled = false;
@@ -99,10 +100,10 @@ export async function handleFollowToggle(targetUserId, button, isRecButton = fal
     button.disabled = true;
     const isFollowing = currentUser.follow?.includes(targetUserId);
     const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
-    const { error } = await updateUser(currentUser.id, { follow: updatedFollows });
+    const { data: updatedUser, error } = await updateUser(currentUser.id, { follow: updatedFollows });
     if (error) { alert('フォロー状態の更新に失敗しました。');
     } else {
-        currentUser.follow = updatedFollows; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        currentUser = updatedUser; localStorage.setItem('currentUser', JSON.stringify(currentUser));
         if (isRecButton) { button.textContent = isFollowing ? 'フォロー' : 'フォロー中'; button.style.backgroundColor = isFollowing ? 'black' : 'green'; }
         else { button.textContent = !isFollowing ? 'フォロー解除' : 'フォロー'; }
         const followerCountSpan = document.querySelector('#follower-count strong');
@@ -129,7 +130,7 @@ export async function handleUpdateSettings(event) {
     if (error) { alert('設定の更新に失敗しました。'); }
     else {
         alert('設定を更新しました。');
-        window.currentUser = data; localStorage.setItem('currentUser', JSON.stringify(data));
+        currentUser = data; localStorage.setItem('currentUser', JSON.stringify(currentUser));
         window.location.hash = '';
     }
 }

@@ -1,24 +1,47 @@
 // js/auth.js
-
 import { supabase } from './api.js';
-import { setCurrentUser, router, subscribeToChanges, unsubscribeChanges } from './main.js';
+import { setCurrentUser, router } from './main.js';
 
-// --- 認証関連のページ遷移 ---
-export function goToLoginPage() {
-    window.location.href = 'login.html';
+let realtimeChannel = null;
+export function subscribeToChanges() {
+    if (realtimeChannel) return;
+    realtimeChannel = supabase.channel('nyax-feed')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
+        console.log('Realtime update received:', payload);
+        router();
+      })
+      .subscribe();
 }
+export function unsubscribeChanges() {
+    if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+        realtimeChannel = null;
+    }
+}
+
+export function goToLoginPage() { window.location.href = 'login.html'; }
 
 export function handleLogout() {
     if (!confirm("ログアウトしますか？")) return;
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
     unsubscribeChanges();
-    window.location.hash = '#'; // ログアウト後は必ずホームに戻す
+    window.location.hash = '#';
     router();
 }
 
-// --- ログインページの処理（login.html専用） ---
-// このファイルがlogin.htmlから読み込まれた場合のみ実行
+export async function checkSession() {
+    const userJson = localStorage.getItem('currentUser');
+    if (userJson) {
+        setCurrentUser(JSON.parse(userJson));
+        subscribeToChanges();
+    } else {
+        setCurrentUser(null);
+    }
+    await router();
+}
+
+// ログインページの処理（login.html専用）
 if (document.body.classList.contains('login-page')) {
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorMessageDiv = document.getElementById('error-message');
@@ -93,17 +116,4 @@ if (document.body.classList.contains('login-page')) {
         }
         return userId;
     }
-}
-
-
-// --- メインアプリのセッション管理 ---
-export async function checkSession() {
-    const userJson = localStorage.getItem('currentUser');
-    if (userJson) {
-        setCurrentUser(JSON.parse(userJson));
-        subscribeToChanges();
-    } else {
-        setCurrentUser(null);
-    }
-    await router();
 }

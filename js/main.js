@@ -1,26 +1,25 @@
 // js/main.js
 
 // --- グローバル変数をエクスポート ---
+// 他のファイルから import { currentUser } from './main.js' のように使えるようにする
 export let currentUser = null;
 export let currentTimelineTab = 'foryou';
 export let replyingTo = null;
 
 // --- 他のJSファイルをインポート ---
-// ▼▼▼ auth.jsからのインポートを修正 ▼▼▼
 import { checkSession, handleLogout, goToLoginPage, subscribeToChanges, unsubscribeChanges } from './auth.js';
 import { updateNavAndSidebars, openPostModal, closePostModal } from './ui.js';
-// ▼▼▼ event-handlers.jsからのインポートを修正 ▼▼▼
 import { handleLike, handleStar, handleReplyClick, clearReply, togglePostMenu, handleDeletePost, handleRecFollow, handleUpdateSettings, handlePostSubmit, handleCtrlEnter } from './event-handlers.js';
-// ▼▼▼ views.jsからのインポートを修正 ▼▼▼
 import { showProfileScreen, showExploreScreen, showNotificationsScreen, showLikesScreen, showStarsScreen, showSettingsScreen, showMainScreen, showPostDetail, switchTimelineTab } from './views.js';
-import { supabase } from './api.js';
 
 // --- グローバル変数のセッター関数 ---
+// 他のファイルから currentUser を変更できるようにする
 export function setCurrentUser(user) { currentUser = user; }
 export function setCurrentTimelineTab(tab) { currentTimelineTab = tab; }
 export function setReplyingTo(replyInfo) { replyingTo = replyInfo; }
 
 // --- グローバル定数とヘルパー関数をエクスポート ---
+// アプリケーション全体で共有するアイコンや便利機能
 export const ICONS = {
     home: `<svg viewBox="0 0 24 24"><g><path d="M12 1.696L.622 8.807l1.06 1.696L3 9.679V19.5C3 20.878 4.12 22 5.5 22h13c1.38 0 2.5-1.122 2.5-2.5V9.679l1.318.824 1.06-1.696L12 1.696zM12 16.5c-1.933 0-3.5-1.567-3.5-3.5s1.567-3.5 3.5-3.5 3.5 1.567 3.5 3.5-1.567 3.5-3.5 3.5z"></path></g></svg>`,
     explore: `<svg viewBox="0 0 24 24"><g><path d="M10.25 3.75c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5c1.795 0 3.418-.726 4.596-1.904 1.178-1.178 1.904-2.801 1.904-4.596 0-3.59-2.91-6.5-6.5-6.5zm-8.5 6.5c0-4.694 3.806-8.5 8.5-8.5s8.5 3.806 8.5 8.5c0 1.986-.682 3.83-1.824 5.262l4.781 4.781-1.414 1.414-4.781-4.781c-1.432 1.142-3.276 1.824-5.262 1.824-4.694 0-8.5-3.806-8.5-8.5z"></path></g></svg>`,
@@ -70,7 +69,7 @@ window.handleRecFollow = handleRecFollow;
 export async function router() {
     updateNavAndSidebars();
     const hash = window.location.hash || '#';
-    DOM.loadingOverlay.classList.remove('hidden'); // showLoading(true)
+    DOM.loadingOverlay.classList.remove('hidden');
     try {
         if (hash.startsWith('#post/')) await showPostDetail(hash.substring(7));
         else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
@@ -86,25 +85,7 @@ export async function router() {
         showScreen('main-screen');
         DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
     } finally { 
-        DOM.loadingOverlay.classList.add('hidden'); // showLoading(false)
-    }
-}
-
-// --- リアルタイム購読 ---
-let realtimeChannel = null;
-export function subscribeToChanges() {
-    if (realtimeChannel) return;
-    realtimeChannel = supabase.channel('nyax-feed')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
-        console.log('Realtime update received:', payload);
-        router();
-      })
-      .subscribe();
-}
-export function unsubscribeChanges() {
-    if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-        realtimeChannel = null;
+        DOM.loadingOverlay.classList.add('hidden');
     }
 }
 

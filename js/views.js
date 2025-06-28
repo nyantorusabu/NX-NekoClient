@@ -1,10 +1,8 @@
 // js/views.js
-import { DOM, currentUser, escapeHTML, router } from './main.js';
+import { DOM, currentUser, escapeHTML, router, setCurrentTimelineTab } from './main.js';
 import { showScreen, showLoading, renderPost, renderTimeline } from './ui.js';
-import { fetchUser, fetchFollowerCount, fetchPostsByIds, fetchUsers } from './api.js';
-import { handleFollowToggle, handleUpdateSettings } from './event-handlers.js';
-
-let currentTimelineTab = 'foryou';
+import { fetchUser, fetchFollowerCount, fetchPostsByIds, fetchUsers, fetchPostDetail } from './api.js';
+import { handleFollowToggle, handleUpdateSettings, handlePostSubmit, handleCtrlEnter } from './event-handlers.js';
 
 export async function showMainScreen() {
     DOM.pageTitle.textContent = "ホーム"; showScreen('main-screen');
@@ -18,9 +16,12 @@ export async function showMainScreen() {
                     <div class="post-form-actions"><button id="post-submit-button">ポスト</button></div>
                 </div>
             </div>`;
+        const textarea = document.getElementById('post-content');
+        textarea.addEventListener('keydown', handleCtrlEnter);
+        DOM.postFormContainer.querySelector('#post-submit-button').addEventListener('click', () => handlePostSubmit(false));
     } else { DOM.postFormContainer.innerHTML = ''; }
     document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
-    await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
+    await switchTimelineTab(currentUser ? window.currentTimelineTab : 'foryou');
 }
 
 export async function showExploreScreen() {
@@ -64,17 +65,13 @@ export async function showProfileScreen(userId) {
     DOM.pageTitle.textContent = "プロフィール"; showScreen('profile-screen');
     const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
     profileHeader.innerHTML = '<div class="spinner"></div>'; profileTabs.innerHTML = '';
-    
     const { data: user, error: userError } = await fetchUser(userId);
     if (userError || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
-    
     const { count: followerCount } = await fetchFollowerCount(userId);
-    
     profileHeader.innerHTML = `
         <div id="follow-button-container" class="follow-button"></div><h2>${escapeHTML(user.name)}</h2>
         <div class="user-id">#${user.id}</div><p class="user-me">${escapeHTML(user.me || '')}</p>
         <div class="user-stats"><span><strong>${user.follow?.length || 0}</strong> フォロー</span><span id="follower-count"><strong>${followerCount || 0}</strong> フォロワー</span></div>`;
-    
     if (currentUser && userId !== currentUser.id) {
         const followButton = document.createElement('button');
         const isFollowing = currentUser.follow?.includes(userId);
@@ -82,7 +79,6 @@ export async function showProfileScreen(userId) {
         followButton.onclick = () => handleFollowToggle(userId, followButton);
         profileHeader.querySelector('#follow-button-container').appendChild(followButton);
     }
-    
     profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー</button>`;
     profileTabs.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => loadProfileTabContent(user, button.dataset.tab)));
     await loadProfileTabContent(user, 'posts');
@@ -150,7 +146,7 @@ async function loadAndRenderPostsByIds(ids, container, emptyMessage) {
 
 export async function switchTimelineTab(tab) {
     if (tab === 'following' && !currentUser) return;
-    currentTimelineTab = tab;
+    setCurrentTimelineTab(tab);
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
     await renderTimeline(tab, DOM.timeline);
 }
