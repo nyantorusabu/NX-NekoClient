@@ -1,9 +1,10 @@
-// ▼▼▼ 全体をDOMContentLoadedでラップしてエラーを解消 ▼▼▼
 window.addEventListener('DOMContentLoaded', () => {
+    // --- 1. 初期設定 & グローバル変数 ---
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // --- 2. DOM要素 ---
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorMessageDiv = document.getElementById('error-message');
     const getCodeBtn = document.getElementById('get-code-btn');
@@ -14,6 +15,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentUsername = '';
     let currentCode = '';
 
+    // --- 3. UI操作関数 ---
     function showLoading(show) { loadingOverlay.classList.toggle('hidden', !show); }
     function showMessage(message, isError = true) {
         errorMessageDiv.textContent = message;
@@ -21,6 +23,7 @@ window.addEventListener('DOMContentLoaded', () => {
         errorMessageDiv.style.color = isError ? '#f44336' : '#4caf50';
     }
 
+    // --- 4. イベントリスナー ---
     getCodeBtn.addEventListener('click', async () => {
         currentUsername = usernameInput.value.trim();
         if (!currentUsername) return showMessage('ユーザー名を入力してください。');
@@ -53,18 +56,25 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- 5. 認証成功時の処理 ---
     async function handleSuccessfulLogin(scratchUser) {
-        const { data: existingUser } = await supabase.from('user').select('*').eq('scid', String(scratchUser.id)).single();
+        // ▼▼▼ scid (Scratchユーザー名) で既存ユーザーを検索 ▼▼▼
+        const { data: existingUser } = await supabase.from('user').select('*').eq('scid', scratchUser.name).single();
         let finalUser = existingUser;
+        
         if (!existingUser) {
             const newUserId = await generateUniqueUserId();
-            const { data: createdUser, error } = await supabase.from('user').insert({
-                id: newUserId, name: scratchUser.name, scid: String(scratchUser.id),
-                settings: { show_follow: true, show_star: true, show_scid: true }
-            }).select().single();
+            const newUserPayload = {
+                id: newUserId,
+                name: scratchUser.name, // NyaXの初期表示名もScratchユーザー名に
+                scid: scratchUser.name, // scidにScratchのユーザー名を保存
+                settings: { show_like: true, show_follow: true, show_star: true, show_scid: true }
+            };
+            const { data: createdUser, error } = await supabase.from('user').insert(newUserPayload).select().single();
             if(error) throw error;
             finalUser = createdUser;
         }
+        
         localStorage.setItem('currentUser', JSON.stringify(finalUser));
         window.location.href = 'index.html';
     }
