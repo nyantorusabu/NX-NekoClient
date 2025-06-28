@@ -18,7 +18,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .nav-item-post { background-color: var(--primary-color); color: white; width: 90%; justify-content: center; font-size: 1.1rem; font-weight: 700; padding: 1rem; margin-top: 1rem; }
 .nav-item-post:hover { background-color: var(--primary-hover-color); }
 #nav-menu-bottom { padding-bottom: 1rem; }
-#nav-menu-bottom .nav-item { width: 100%; font-size: 1rem; }
+.account-button { width: 100%; font-size: 1rem; justify-content: flex-start; gap: 0.8rem; }
+.account-button img { width: 40px; height: 40px; border-radius: 50%; }
+.account-info { display: flex; flex-direction: column; align-items: flex-start; }
+.account-info .name { font-weight: 700; }
+.account-info .id { color: var(--secondary-text-color); }
+#login-button { width: 100%; justify-content: center; background-color: var(--primary-color); color: white; font-weight: 700; }
 
 /* 中央メインコンテンツ */
 #main-content { flex-shrink: 0; width: 600px; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
@@ -30,26 +35,29 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
 .timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
 
-/* ポストフォーム (共通) */
-.post-form { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; }
-.post-form textarea { width: 100%; min-height: 100px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
+/* ポストフォーム */
+.post-form { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; gap: 0.5rem; }
+.post-form .user-icon { width: 48px; height: 48px; border-radius: 50%; }
+.post-form .form-content { flex-grow: 1; }
+.post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
 .post-form-actions { display: flex; justify-content: flex-end; align-items: center; padding-top: 0.5rem; }
 .post-form-actions button { padding: 0.5rem 1rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; cursor: pointer; }
 .post-form-actions button:disabled { background-color: #8ecdf8; cursor: not-allowed; }
 
-/* ポスト表示 (共通) */
-.post { padding: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; }
-.post:hover { background-color: var(--bg-color); }
+/* ポスト表示 */
+.post { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; gap: 0.5rem; }
+.post .user-icon { width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; }
+.post-main { flex-grow: 1; }
 .post-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; position: relative; }
 .post-author { font-weight: bold; color: var(--text-color); text-decoration: none; }
 .post-author:hover { text-decoration: underline; }
 .post-time { font-size: 0.9rem; color: var(--secondary-text-color); }
-.post-content { margin-bottom: 1rem; white-space: pre-wrap; word-wrap: break-word; font-size: 1rem; }
-.post-actions { display: flex; gap: 3rem; align-items: center; }
-.post-actions button { background: none; border: none; color: var(--secondary-text-color); padding: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+.post-content { margin-bottom: 1rem; white-space: pre-wrap; word-wrap: break-word; font-size: 1rem; cursor: pointer; }
+.post-actions { display: flex; justify-content: space-around; align-items: center; max-width: 425px; }
+.post-actions button { background: none; border: none; color: var(--secondary-text-color); padding: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .like-button:hover, .like-button.liked { color: var(--like-color); }
 .star-button:hover, .star-button.starred { color: var(--star-color); }
-.like-button .icon, .star-button .icon { font-size: 1.2rem; }
+.post-actions .icon { font-size: 1.2rem; }
 .post-menu-btn { position: absolute; top: 0; right: 0; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--secondary-text-color); }
 .post-menu { position: absolute; right: 0; top: 25px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; }
 .post-menu button { width: 100%; padding: 0.8rem 1.2rem; text-align: left; }
@@ -75,10 +83,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #banner-signup-button { background: transparent; color: white; border: 1px solid white; }
 #banner-signup-button:hover { background-color: rgba(255,255,255,0.1); }
 
-/* ローディング */
-#loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s ease infinite; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+/* ポスト用モーダル */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-start; z-index: 1001; padding-top: 5vh; }
+.modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; position: relative; }
+.modal-close-btn { position: absolute; top: 1rem; left: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
 
 /* 設定画面のスタイル調整 */
 #settings-form { padding: 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
@@ -88,31 +96,4 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #settings-form fieldset legend { font-weight: 700; padding: 0 0.5rem; }
 #settings-form fieldset label { font-weight: 400; }
 #settings-form button[type="submit"] { align-self: flex-end; padding: 0.6rem 1.2rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; cursor: pointer; }
-
-/* ポスト用モーダル */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-start; z-index: 1001; padding-top: 5vh; }
-.modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; position: relative; }
-.modal-close-btn { position: absolute; top: 1rem; left: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-
-/* プロフィール, 設定画面 */
-#profile-header { padding: 1rem; border-bottom: 1px solid var(--border-color); }
-#profile-header h2 { margin-top: 0; }
-#profile-header .user-id { color: var(--secondary-text-color); margin-bottom: 1rem; }
-#profile-header .user-stats { display: flex; gap: 1rem; margin: 1rem 0; }
-#profile-header .follow-button { float: right; }
-#profile-header .follow-button button { padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #ccc; background-color: white; color: black; font-weight: 700; cursor: pointer; }
-#profile-header .follow-button button:hover { background-color: var(--bg-color); }
-#profile-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
-.tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; }
-.tab-button:hover { background-color: var(--bg-color); }
-.tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
-.tab-button.active { color: var(--text-color); font-weight: 700; }
-.profile-card { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-#settings-form { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
-#settings-form input[type="text"], #settings-form textarea { padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 5px; }
-#settings-form fieldset { border: 1px solid var(--border-color); padding: 1rem; }
-
-/* レスポンシブ */
-@media (max-width: 1280px) { #right-sidebar { display: none; } }
-@media (max-width: 1000px) { #left-nav { width: 88px; } #left-nav .nav-item span { display: none; } .nav-item-post span { display: block !important; } }
-@media (max-width: 680px) { .app-container { flex-direction: column; padding-bottom: 50px; } #left-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; height: auto; flex-direction: row; justify-content: space-around; background-color: white; border-top: 1px solid var(--border-color); z-index: 100; padding: 0; } #nav-menu-top { flex-direction: row; justify-content: space-around; width: 100%; } .nav-item-post, #nav-menu-bottom { display: none; } #main-content { border: none; } #login-banner { flex-direction: column; text-align: center; gap: 1rem; } }
+.replying-to a { color: var(--primary-color); text-decoration: none; }
