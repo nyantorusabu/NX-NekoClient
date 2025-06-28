@@ -19,17 +19,16 @@
         <main id="main-content">
             <header id="page-header"><h2 id="page-title">ホーム</h2></header>
             <div id="content-area">
+                <!-- 各画面のコンテナ (前回のまま) -->
                 <div id="main-screen" class="screen hidden">
                     <div class="timeline-tabs">
-                        <!-- ▼▼▼ 「おすすめ」を「すべて」に変更 ▼▼▼ -->
                         <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
                         <button class="timeline-tab-button" data-tab="following">フォロー中</button>
                     </div>
                     <div class="post-form-container"></div>
                     <div id="timeline"></div>
                 </div>
-                <!-- (他のscreen要素は前回のまま) -->
-                 <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
+                <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
                 <div id="notifications-screen" class="screen hidden"><div id="notifications-content"></div></div>
                 <div id="likes-screen" class="screen hidden"><div id="likes-content"></div></div>
                 <div id="stars-screen" class="screen hidden"><div id="stars-content"></div></div>
@@ -37,6 +36,10 @@
                     <div id="profile-header"></div><div id="profile-tabs"></div><div id="profile-content"></div>
                 </div>
                 <div id="settings-screen" class="screen hidden"></div>
+                <!-- ▼▼▼ ポスト詳細表示用の画面を追加 ▼▼▼ -->
+                <div id="post-detail-screen" class="screen hidden">
+                    <div id="post-detail-content"></div>
+                </div>
             </div>
         </main>
         <!-- 右側サイドバー -->
@@ -51,6 +54,13 @@
         <div class="login-banner-actions">
             <button id="banner-login-button">ログイン</button>
             <button id="banner-signup-button">参加</button>
+        </div>
+    </div>
+    <!-- ▼▼▼ ポスト用モーダルウィンドウを追加 ▼▼▼ -->
+    <div id="post-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="modal-close-btn">×</button>
+            <div class="post-form-container-modal"></div>
         </div>
     </div>
     <!-- ローディングオーバーレイ -->
