@@ -1,7 +1,12 @@
 // js/ui.js
-import { ICONS, DOM, currentUser, escapeHTML, router, handleLogout, goToLoginPage } from './main.js';
-import { handleFollowToggle, handleRecFollow } from './event-handlers.js';
-import { loadTimeline, loadPostsByIds } from './api.js';
+
+// ▼▼▼ auth.jsからのインポートを追加し、main.jsからの不要なインポートを削除 ▼▼▼
+import { ICONS, DOM, currentUser, escapeHTML, router } from './main.js';
+import { handleLogout, goToLoginPage } from './auth.js';
+import { handleRecFollow } from './event-handlers.js';
+import { fetchTimeline } from './api.js';
+
+// (これ以降のコードは前回のままで変更ありません)
 
 export function showLoading(show) { DOM.loadingOverlay.classList.toggle('hidden', !show); }
 export function showScreen(screenId) {

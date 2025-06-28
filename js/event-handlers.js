@@ -1,5 +1,7 @@
 // js/event-handlers.js
+
 import { DOM, currentUser } from './main.js';
+// ▼▼▼ ui.jsからのインポートを追加 ▼▼▼
 import { showLoading, closePostModal, renderPost, renderTimeline } from './ui.js';
 import { updateUser, createPost, deletePost, togglePostLike } from './api.js';
 
@@ -46,7 +48,7 @@ export async function handleDeletePost(postId) {
     try {
         const { error } = await deletePost(postId);
         if (error) throw error;
-        window.location.hash = '#'; // ホームに戻って再描画
+        window.location.hash = '#';
     } catch(e) { alert('削除に失敗しました。'); }
     finally { showLoading(false); }
 }
@@ -131,3 +133,8 @@ export async function handleUpdateSettings(event) {
         window.location.hash = '';
     }
 }
+export const handleCtrlEnter = (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.target.closest('.post-form').querySelector('button').click();
+    }
+};
