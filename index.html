@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NyaX</title>
-    <!-- ▼▼▼ favicon.png を参照するように変更 ▼▼▼ -->
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,69 +12,47 @@
     <div class="app-container">
         <!-- 左側ナビゲーションメニュー -->
         <nav id="left-nav">
-            <div id="nav-menu-top">
-                <!-- メニュー項目はJSで動的に生成 -->
-            </div>
-            <div id="nav-menu-bottom">
-                <!-- アカウント管理ボタンはJSで動的に生成 -->
-            </div>
+            <div id="nav-menu-top"></div>
+            <div id="nav-menu-bottom"></div>
         </nav>
-
         <!-- 中央メインコンテンツ -->
         <main id="main-content">
-            <header id="page-header">
-                <h2 id="page-title">ホーム</h2>
-            </header>
-
+            <header id="page-header"><h2 id="page-title">ホーム</h2></header>
             <div id="content-area">
-                <!-- Main/Timeline Screen -->
                 <div id="main-screen" class="screen hidden">
                     <div class="timeline-tabs">
                         <button class="timeline-tab-button active" data-tab="foryou">おすすめ</button>
                         <button class="timeline-tab-button" data-tab="following">フォロー中</button>
                     </div>
-                    <div class="post-form-container">
-                        <!-- ポストフォームはJSで動的に生成 -->
-                    </div>
+                    <div class="post-form-container"></div>
                     <div id="timeline"></div>
                 </div>
-                
-                <!-- Explore Screen -->
-                <div id="explore-screen" class="screen hidden">
-                     <div id="explore-timeline"></div>
-                </div>
-
-                <!-- Profile Screen -->
+                <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
+                <div id="notifications-screen" class="screen hidden"><div id="notifications-content"></div></div>
+                <div id="likes-screen" class="screen hidden"><div id="likes-content"></div></div>
+                <div id="stars-screen" class="screen hidden"><div id="stars-content"></div></div>
                 <div id="profile-screen" class="screen hidden">
-                    <div id="profile-header"></div>
-                    <div id="profile-tabs"></div>
-                    <div id="profile-content"></div>
+                    <div id="profile-header"></div><div id="profile-tabs"></div><div id="profile-content"></div>
                 </div>
-        
-                <!-- Settings Screen -->
-                <div id="settings-screen" class="screen hidden">
-                    <!-- 設定フォームはJSで動的に生成 -->
-                </div>
+                <div id="settings-screen" class="screen hidden"></div>
             </div>
         </main>
+        <!-- 右側サイドバー -->
+        <aside id="right-sidebar">
+            <div id="search-widget-container"></div>
+            <div id="recommendations-widget-container"></div>
+        </aside>
     </div>
-
     <!-- 未ログイン時用ボトムバナー -->
     <div id="login-banner" class="hidden">
-        <div class="login-banner-content">
-            <h3>NyaXはScratchのアカウントがあれば誰でも参加できます</h3>
-        </div>
+        <div class="login-banner-content"><h3>NyaXはScratchのアカウントがあれば誰でも参加できます</h3></div>
         <div class="login-banner-actions">
             <button id="banner-login-button">ログイン</button>
-            <button id="banner-signup-button">参加(アカウント作成)</button>
+            <button id="banner-signup-button">参加</button>
         </div>
     </div>
-
     <!-- ローディングオーバーレイ -->
-    <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-    </div>
-
+    <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <script src="main.js"></script>
 </body>
 </html>
