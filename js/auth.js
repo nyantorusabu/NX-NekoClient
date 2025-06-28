@@ -1,9 +1,25 @@
-// js/auth.js (login.html専用)
-window.addEventListener('DOMContentLoaded', () => {
-    const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// js/auth.js
 
+import { supabase } from './api.js';
+import { setCurrentUser, router, subscribeToChanges, unsubscribeChanges } from './main.js';
+
+// --- 認証関連のページ遷移 ---
+export function goToLoginPage() {
+    window.location.href = 'login.html';
+}
+
+export function handleLogout() {
+    if (!confirm("ログアウトしますか？")) return;
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    unsubscribeChanges();
+    window.location.hash = '#'; // ログアウト後は必ずホームに戻す
+    router();
+}
+
+// --- ログインページの処理（login.html専用） ---
+// このファイルがlogin.htmlから読み込まれた場合のみ実行
+if (document.body.classList.contains('login-page')) {
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorMessageDiv = document.getElementById('error-message');
     const getCodeBtn = document.getElementById('get-code-btn');
@@ -77,4 +93,17 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         return userId;
     }
-});
+}
+
+
+// --- メインアプリのセッション管理 ---
+export async function checkSession() {
+    const userJson = localStorage.getItem('currentUser');
+    if (userJson) {
+        setCurrentUser(JSON.parse(userJson));
+        subscribeToChanges();
+    } else {
+        setCurrentUser(null);
+    }
+    await router();
+}
