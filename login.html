@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyaXにログイン</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="login.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="logo">NyaX</h1>
+        <h2>Scratchアカウントでログイン</h2>
+
+        <div class="login-tabs">
+            <button class="tab-button active" data-tab="password">パスワード</button>
+            <button class="tab-button" data-tab="code">認証コード</button>
+            <button class="tab-button" data-tab="redirect">Scratchサイト</button>
+        </div>
+
+        <div id="password-form" class="login-form">
+            <input type="text" id="username-pass" placeholder="Scratchのユーザー名" required>
+            <input type="password" id="password" placeholder="Scratchのパスワード" required>
+            <button id="login-pass-btn">ログイン</button>
+            <p class="note">パスワードはNyaXには保存されません。</p>
+        </div>
+
+        <div id="code-form" class="login-form hidden">
+            <!-- Step 1: Get Code -->
+            <div id="code-step1">
+                <input type="text" id="username-code" placeholder="Scratchのユーザー名">
+                <button id="get-code-btn">認証コードを取得</button>
+            </div>
+            <!-- Step 2: Verify Code -->
+            <div id="code-step2" class="hidden">
+                <p>あなたの認証コード:</p>
+                <p id="verification-code" class="verification-code"></p>
+                <p class="note">このコードをあなたのScratchプロフィールに貼り付けて、「確認」を押してください。</p>
+                <button id="verify-code-btn">確認</button>
+            </div>
+        </div>
+        
+        <div id="redirect-form" class="login-form hidden">
+             <p class="note">Scratchの公式サイトで認証し、NyaXに戻ってきます。</p>
+            <button id="redirect-btn">Scratchサイトでログイン</button>
+        </div>
+
+        <div id="error-message" class="error-message hidden"></div>
+    </div>
+    
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+</html>
