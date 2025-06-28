@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyaX</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ScratchAuth Client -->
+    <script src="https://cdn.jsdelivr.net/gh/ScratchAuth/ScratchAuth-min.js@1.1/build/scratch-auth.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1><a href="#" id="logo-link">NyaX</a></h1>
+        <div id="user-info" class="hidden">
+            <span id="current-username"></span>
+            <button id="settings-button">設定</button>
+            <button id="logout-button">ログアウト</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen">
+            <h2>ScratchアカウントでNyaXへようこそ！</h2>
+            <button id="login-button">Scratchでログイン/新規登録</button>
+        </div>
+
+        <!-- Main/Timeline Screen -->
+        <div id="main-screen" class="screen hidden">
+            <div class="post-form">
+                <h3>いまどうしてる？</h3>
+                <textarea id="post-content" placeholder="投稿内容..." maxlength="280"></textarea>
+                <button id="post-submit-button">ポスト</button>
+            </div>
+            <div id="timeline">
+                <!-- Posts will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profile-screen" class="screen hidden">
+            <div id="profile-header"></div>
+            <div id="profile-tabs"></div>
+            <div id="profile-content"></div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen hidden">
+            <h2>設定</h2>
+            <form id="settings-form">
+                <label for="setting-username">ユーザー名:</label>
+                <input type="text" id="setting-username" required>
+                
+                <label for="setting-me">自己紹介:</label>
+                <textarea id="setting-me"></textarea>
+
+                <fieldset>
+                    <legend>公開設定</legend>
+                    <input type="checkbox" id="setting-show-follow">
+                    <label for="setting-show-follow">フォローしている人を公開する</label>
+                    <br>
+                    <input type="checkbox" id="setting-show-star">
+                    <label for="setting-show-star">お気に入りを付けたポストを公開する</label>
+                    <br>
+                    <input type="checkbox" id="setting-show-scid">
+                    <label for="setting-show-scid">ScratchアカウントIDを公開する</label>
+                </fieldset>
+
+                <p><strong>注意:</strong> ログインに使用するScratchアカウントの変更は、一度ログアウトし、別のアカウントで再度ログインすることで行えます。</p>
+
+                <button type="submit">設定を保存</button>
+            </form>
+        </div>
+
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+</body>
+</html>
