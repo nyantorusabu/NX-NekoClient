@@ -1,8 +1,8 @@
 // js/views.js
-import { DOM, currentUser, escapeHTML } from './main.js';
+import { DOM, currentUser, escapeHTML, router } from './main.js';
 import { showScreen, showLoading, renderPost, renderTimeline } from './ui.js';
-import { fetchUser, fetchFollowerCount, fetchPostsByIds, fetchUsers, updateUser } from './api.js';
-import { handleFollowToggle } from './event-handlers.js';
+import { fetchUser, fetchFollowerCount, fetchPostsByIds, fetchUsers } from './api.js';
+import { handleFollowToggle, handleUpdateSettings } from './event-handlers.js';
 
 let currentTimelineTab = 'foryou';
 
@@ -88,7 +88,7 @@ export async function showProfileScreen(userId) {
     await loadProfileTabContent(user, 'posts');
 }
 
-async function showSettingsScreen() {
+export async function showSettingsScreen() {
     if (!currentUser) return router();
     DOM.pageTitle.textContent = "設定"; showScreen('settings-screen');
     document.getElementById('settings-screen').innerHTML = `
@@ -105,6 +105,7 @@ async function showSettingsScreen() {
             </fieldset>
             <button type="submit">設定を保存</button>
         </form>`;
+    document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
 }
 
 async function loadProfileTabContent(user, tab) {
@@ -147,7 +148,7 @@ async function loadAndRenderPostsByIds(ids, container, emptyMessage) {
     } catch (err) { container.innerHTML = `<p class="error-message">ポストの読み込みに失敗しました。</p>`; }
 }
 
-async function switchTimelineTab(tab) {
+export async function switchTimelineTab(tab) {
     if (tab === 'following' && !currentUser) return;
     currentTimelineTab = tab;
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));

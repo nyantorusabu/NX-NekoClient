@@ -6,10 +6,12 @@ export let currentTimelineTab = 'foryou';
 export let replyingTo = null;
 
 // --- 他のJSファイルをインポート ---
-// ▼▼▼ auth.jsからのインポート内容を修正 ▼▼▼
-import { checkSession } from './auth.js';
-import { updateNavAndSidebars } from './ui.js';
-import { handleLike, handleStar, handleReplyClick, clearReply, togglePostMenu, handleDeletePost, handleRecFollow } from './event-handlers.js';
+// ▼▼▼ auth.jsからのインポートを修正 ▼▼▼
+import { checkSession, handleLogout, goToLoginPage, subscribeToChanges, unsubscribeChanges } from './auth.js';
+import { updateNavAndSidebars, openPostModal, closePostModal } from './ui.js';
+// ▼▼▼ event-handlers.jsからのインポートを修正 ▼▼▼
+import { handleLike, handleStar, handleReplyClick, clearReply, togglePostMenu, handleDeletePost, handleRecFollow, handleUpdateSettings, handlePostSubmit, handleCtrlEnter } from './event-handlers.js';
+// ▼▼▼ views.jsからのインポートを修正 ▼▼▼
 import { showProfileScreen, showExploreScreen, showNotificationsScreen, showLikesScreen, showStarsScreen, showSettingsScreen, showMainScreen, showPostDetail, switchTimelineTab } from './views.js';
 import { supabase } from './api.js';
 

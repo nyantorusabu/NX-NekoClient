@@ -1,8 +1,8 @@
 // js/event-handlers.js
 
+// ▼▼▼ main.jsからのインポートを削除し、必要なものを直接ui.jsからインポート ▼▼▼
 import { DOM, currentUser } from './main.js';
-// ▼▼▼ ui.jsからのインポートを追加 ▼▼▼
-import { showLoading, closePostModal, renderPost, renderTimeline } from './ui.js';
+import { showLoading, closePostModal, openPostModal, renderPost, renderTimeline } from './ui.js';
 import { updateUser, createPost, deletePost, togglePostLike } from './api.js';
 
 export async function handlePostSubmit(isModal = false) {
