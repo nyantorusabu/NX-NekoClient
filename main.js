@@ -47,14 +47,14 @@ async function router() {
         if (userId) {
             await showProfileScreen(userId);
         } else {
-            window.location.hash = ''; // 不正なIDならホームへ
-            showMainScreen();
+            window.location.hash = '';
+            await showMainScreen();
         }
     } else if (hash === '#settings') {
         showSettingsScreen();
     } else {
-        window.location.hash = ''; // デフォルトはホーム
-        showMainScreen();
+        if (hash) window.location.hash = '';
+        await showMainScreen();
     }
 }
 
@@ -191,26 +191,34 @@ function checkSession() {
 }
 
 // --- 5. メイン画面 (タイムライン) ---
-function showMainScreen() {
+// ▼▼▼▼▼▼▼▼▼▼▼ この関数を堅牢な形に修正しました ▼▼▼▼▼▼▼▼▼▼▼
+async function showMainScreen() {
     showScreen('main-screen');
-    loadTimeline();
+    showLoading(true);
+    try {
+        await loadTimeline();
+    } catch (error) {
+        console.error("Failed to load timeline:", error);
+        timelineDiv.innerHTML = '<p class="error-message">タイムラインの読み込み中にエラーが発生しました。</p>';
+    } finally {
+        showLoading(false);
+    }
 }
+// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
 async function loadTimeline() {
-    timelineDiv.innerHTML = '<div class="spinner"></div>';
+    timelineDiv.innerHTML = ''; // 先に中身をクリア
     const { data: posts, error } = await supabase.from('post').select('*, user(id, name)').order('time', { ascending: false }).limit(50);
     
     if (error) {
         console.error('Error loading posts:', error);
-        timelineDiv.innerHTML = '<p class="error-message">投稿の読み込みに失敗しました。</p>';
-        return;
+        throw new Error('投稿の読み込みに失敗しました。');
     }
     if (posts.length === 0) {
         timelineDiv.innerHTML = '<p>まだ投稿がありません。最初の投稿をしてみましょう！</p>';
         return;
     }
     
-    timelineDiv.innerHTML = '';
     posts.forEach(post => {
         const author = post.user || { name: '不明なユーザー', id: post.userid };
         renderPost(post, author, timelineDiv, 'append');
@@ -249,119 +257,130 @@ async function showProfileScreen(userId) {
     profileTabs.innerHTML = '';
     profileContent.innerHTML = '';
 
-    const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
-    if (error || !user) {
-        profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
-        profileContent.innerHTML = '';
-        showLoading(false);
-        return;
-    }
-    
-    const { count: followerCount } = await supabase.from('user').select('id', { count: 'exact', head: true }).contains('follow', [userId]);
+    try {
+        const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
+        if (error || !user) {
+            throw new Error('ユーザーが見つかりません');
+        }
+        
+        const { count: followerCount } = await supabase.from('user').select('id', { count: 'exact', head: true }).contains('follow', [userId]);
 
-    profileHeader.innerHTML = `
-        <div id="follow-button-container" class="follow-button"></div>
-        <h2>${escapeHTML(user.name)}</h2>
-        <div class="user-id">#${user.id} ${user.settings.show_scid ? `(Scratch ID: ${user.scid})` : ''}</div>
-        <p class="user-me">${escapeHTML(user.me || '')}</p>
-        <div class="user-stats">
-            <span><strong>${user.follow?.length || 0}</strong> フォロー</span>
-            <span id="follower-count"><strong>${followerCount || 0}</strong> フォロワー</span>
-        </div>
-    `;
-    
-    if (userId !== currentUser.id) {
-        const followButton = document.createElement('button');
-        const isFollowing = currentUser.follow?.includes(userId);
-        followButton.textContent = isFollowing ? 'フォロー中' : 'フォロー';
-        followButton.onclick = () => handleFollowToggle(userId, followButton);
-        document.getElementById('follow-button-container').appendChild(followButton);
-    }
+        profileHeader.innerHTML = `
+            <div id="follow-button-container" class="follow-button"></div>
+            <h2>${escapeHTML(user.name)}</h2>
+            <div class="user-id">#${user.id} ${user.settings.show_scid ? `(Scratch ID: ${user.scid})` : ''}</div>
+            <p class="user-me">${escapeHTML(user.me || '')}</p>
+            <div class="user-stats">
+                <span><strong>${user.follow?.length || 0}</strong> フォロー</span>
+                <span id="follower-count"><strong>${followerCount || 0}</strong> フォロワー</span>
+            </div>
+        `;
+        
+        if (userId !== currentUser.id) {
+            const followButton = document.createElement('button');
+            const isFollowing = currentUser.follow?.includes(userId);
+            followButton.textContent = isFollowing ? 'フォロー中' : 'フォロー';
+            followButton.onclick = () => handleFollowToggle(userId, followButton);
+            document.getElementById('follow-button-container').appendChild(followButton);
+        }
 
-    profileTabs.innerHTML = `
-        <button class="tab-button active" data-tab="posts">投稿</button>
-        <button class="tab-button" data-tab="stars">Star</button>
-        <button class="tab-button" data-tab="follows">フォロー</button>
-    `;
+        profileTabs.innerHTML = `
+            <button class="tab-button active" data-tab="posts">投稿</button>
+            <button class="tab-button" data-tab="stars">Star</button>
+            <button class="tab-button" data-tab="follows">フォロー</button>
+        `;
 
-    profileTabs.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', async () => {
-            profileTabs.querySelector('.active').classList.remove('active');
-            button.classList.add('active');
-            await loadProfileTabContent(user, button.dataset.tab);
+        profileTabs.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', async () => {
+                profileTabs.querySelector('.active').classList.remove('active');
+                button.classList.add('active');
+                await loadProfileTabContent(user, button.dataset.tab);
+            });
         });
-    });
 
-    await loadProfileTabContent(user, 'posts');
-    showLoading(false);
+        await loadProfileTabContent(user, 'posts');
+    } catch(err) {
+        console.error(err);
+        profileHeader.innerHTML = `<h2>${err.message}</h2>`;
+    } finally {
+        showLoading(false);
+    }
 }
 
 async function loadProfileTabContent(user, tab) {
     const contentDiv = document.getElementById('profile-content');
     contentDiv.innerHTML = '<div class="spinner"></div>';
     
-    switch(tab) {
-        case 'posts':
-            const { data: posts } = await supabase.from('post').select('*, user(id, name)').eq('userid', user.id).order('time', { ascending: false });
-            contentDiv.innerHTML = '';
-            if (posts && posts.length > 0) {
-                posts.forEach(p => renderPost(p, user, contentDiv));
-            } else {
-                contentDiv.innerHTML = '<p class="empty-message">まだ投稿がありません。</p>';
-            }
-            break;
-        case 'stars':
-            if (!user.settings.show_star && user.id !== currentUser.id) {
-                contentDiv.innerHTML = '<p class="locked">🔒 このユーザーのStarは非公開です。</p>';
-                break;
-            }
-            if (!user.star || user.star.length === 0) {
-                contentDiv.innerHTML = '<p class="empty-message">Starを付けた投稿はありません。</p>';
-                break;
-            }
-            const { data: starredPosts } = await supabase.from('post').select('*, user(id, name)').in('id', user.star).order('time', { ascending: false });
-            contentDiv.innerHTML = '';
-            starredPosts?.forEach(p => renderPost(p, p.user, contentDiv));
-            break;
-        case 'follows':
-            if (!user.settings.show_follow && user.id !== currentUser.id) {
-                contentDiv.innerHTML = '<p class="locked">🔒 このユーザーのフォローリストは非公開です。</p>';
-                break;
-            }
-            if (!user.follow || user.follow.length === 0) {
-                contentDiv.innerHTML = '<p class="empty-message">誰もフォローしていません。</p>';
-                break;
-            }
-            const { data: followUsers } = await supabase.from('user').select('id, name, me').in('id', user.follow);
-            contentDiv.innerHTML = '';
-            followUsers?.forEach(u => {
-                const userCard = document.createElement('div');
-                userCard.className = 'profile-card';
-                userCard.innerHTML = `
-                    <div class="profile-card-info">
-                        <a href="#profile/${u.id}">
-                            <span class="name">${escapeHTML(u.name)}</span>
-                            <span class="id">#${u.id}</span>
-                            <p class="me">${escapeHTML(u.me)}</p>
-                        </a>
-                    </div>
-                    ${u.id !== currentUser.id ? `<div id="follow-btn-${u.id}" class="follow-button-in-list"></div>` : ''}
-                `;
-                contentDiv.appendChild(userCard);
-
-                if (u.id !== currentUser.id) {
-                    const followButtonContainer = userCard.querySelector(`#follow-btn-${u.id}`);
-                    const followButton = document.createElement('button');
-                    const isFollowing = currentUser.follow?.includes(u.id);
-                    followButton.textContent = isFollowing ? 'フォロー中' : 'フォロー';
-                    followButton.onclick = (e) => {
-                        e.stopPropagation();
-                        handleFollowToggle(u.id, followButton);
-                    };
-                    followButtonContainer.appendChild(followButton);
+    try {
+        switch(tab) {
+            case 'posts':
+                const { data: posts, error: postsError } = await supabase.from('post').select('*, user(id, name)').eq('userid', user.id).order('time', { ascending: false });
+                if(postsError) throw postsError;
+                contentDiv.innerHTML = '';
+                if (posts && posts.length > 0) {
+                    posts.forEach(p => renderPost(p, user, contentDiv));
+                } else {
+                    contentDiv.innerHTML = '<p class="empty-message">まだ投稿がありません。</p>';
                 }
-            });
-            break;
+                break;
+            case 'stars':
+                if (!user.settings.show_star && user.id !== currentUser.id) {
+                    contentDiv.innerHTML = '<p class="locked">🔒 このユーザーのStarは非公開です。</p>';
+                    break;
+                }
+                if (!user.star || user.star.length === 0) {
+                    contentDiv.innerHTML = '<p class="empty-message">Starを付けた投稿はありません。</p>';
+                    break;
+                }
+                const { data: starredPosts, error: starredError } = await supabase.from('post').select('*, user(id, name)').in('id', user.star).order('time', { ascending: false });
+                if(starredError) throw starredError;
+                contentDiv.innerHTML = '';
+                starredPosts?.forEach(p => renderPost(p, p.user, contentDiv));
+                break;
+            case 'follows':
+                if (!user.settings.show_follow && user.id !== currentUser.id) {
+                    contentDiv.innerHTML = '<p class="locked">🔒 このユーザーのフォローリストは非公開です。</p>';
+                    break;
+                }
+                if (!user.follow || user.follow.length === 0) {
+                    contentDiv.innerHTML = '<p class="empty-message">誰もフォローしていません。</p>';
+                    break;
+                }
+                const { data: followUsers, error: followsError } = await supabase.from('user').select('id, name, me').in('id', user.follow);
+                if(followsError) throw followsError;
+                contentDiv.innerHTML = '';
+                followUsers?.forEach(u => {
+                    const userCard = document.createElement('div');
+                    userCard.className = 'profile-card';
+                    userCard.innerHTML = `
+                        <div class="profile-card-info">
+                            <a href="#profile/${u.id}">
+                                <span class="name">${escapeHTML(u.name)}</span>
+                                <span class="id">#${u.id}</span>
+                                <p class="me">${escapeHTML(u.me || '')}</p>
+                            </a>
+                        </div>
+                        ${u.id !== currentUser.id ? `<div id="follow-btn-${u.id}" class="follow-button-in-list"></div>` : ''}
+                    `;
+                    contentDiv.appendChild(userCard);
+
+                    if (u.id !== currentUser.id) {
+                        const followButtonContainer = userCard.querySelector(`#follow-btn-${u.id}`);
+                        const followButton = document.createElement('button');
+                        const isFollowing = currentUser.follow?.includes(u.id);
+                        followButton.textContent = isFollowing ? 'フォロー中' : 'フォロー';
+                        followButton.onclick = (e) => {
+                            e.stopPropagation();
+                            handleFollowToggle(u.id, followButton);
+                        };
+                        followButtonContainer.appendChild(followButton);
+                    }
+                });
+                break;
+        }
+    } catch(err) {
+        console.error(err);
+        contentDiv.innerHTML = `<p class="error-message">コンテンツの読み込みに失敗しました。</p>`;
     }
 }
 
@@ -474,22 +493,12 @@ function subscribeToChanges() {
 }
 
 // --- 10. ヘルパー関数 & グローバル関数 ---
-
-// ▼▼▼▼▼▼▼▼▼▼▼ この関数を最終版の、絶対に壊れない方式に変更しました ▼▼▼▼▼▼▼▼▼▼▼
 function escapeHTML(str) {
     if (typeof str !== 'string') return '';
-    
-    // 一時的なDOM要素を作成
     const div = document.createElement('div');
-    
-    // textContentに設定することで、HTML特殊文字をただのテキストとして安全に代入
     div.textContent = str;
-    
-    // innerHTMLとして取り出すと、ブラウザが自動で特殊文字をエスケープした文字列を返してくれる
     return div.innerHTML;
 }
-// ▲▲▲▲▲▲▲▲▲▲▲ これで問題は完全に解決します ▲▲▲▲▲▲▲▲▲▲▲
-
 
 window.handleLike = async function(postId, button) {
     if (!currentUser) return alert('ログインしてください。');
