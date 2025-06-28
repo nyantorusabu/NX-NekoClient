@@ -2,9 +2,7 @@
 const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null;
-let realtimeChannel = null;
-let currentTimelineTab = 'foryou';
+let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
 
 // --- 2. DOM要素 ---
 const navMenuTop = document.getElementById('nav-menu-top');
@@ -41,7 +39,6 @@ async function router() {
         }
     } catch (error) {
         console.error("Routing error:", error);
-        // エラー発生時のUI処理（例: エラーメッセージ表示）
     } finally {
         showLoading(false);
     }
@@ -50,103 +47,29 @@ async function router() {
 // --- 4. ナビゲーションメニュー管理 ---
 function updateNavMenu() {
     const hash = window.location.hash || '#';
-    // 上部メニュー
     let topMenuHTML = `
         <a href="#" class="nav-item ${hash === '#' ? 'active' : ''}"><span>ホーム</span></a>
-        <a href="#explore" class="nav-item ${hash === '#explore' ? 'active' : ''}"><span>発見</span></a>
-    `;
+        <a href="#explore" class="nav-item ${hash === '#explore' ? 'active' : ''}"><span>発見</span></a>`;
     if (currentUser) {
         topMenuHTML += `
             <a href="#profile/${currentUser.id}" class="nav-item ${hash.startsWith('#profile/') ? 'active' : ''}"><span>プロフィール</span></a>
-            <a href="#settings" class="nav-item ${hash === '#settings' ? 'active' : ''}"><span>設定</span></a>
-        `;
+            <a href="#settings" class="nav-item ${hash === '#settings' ? 'active' : ''}"><span>設定</span></a>`;
     }
     navMenuTop.innerHTML = topMenuHTML;
 
-    // 下部アカウントボタン
-    let bottomMenuHTML = '';
-    if (currentUser) {
-        bottomMenuHTML = `<button id="account-button" class="nav-item"><span>${escapeHTML(currentUser.name)}#${currentUser.id}</span></button>`;
-    } else {
-        bottomMenuHTML = `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
-    }
+    let bottomMenuHTML = currentUser ?
+        `<button id="account-button" class="nav-item"><span>${escapeHTML(currentUser.name)}#${currentUser.id}</span></button>` :
+        `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
     navMenuBottom.innerHTML = bottomMenuHTML;
     
     loginBanner.classList.toggle('hidden', !!currentUser);
 
-    // イベントリスナー再設定
-    navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
-        link.addEventListener('click', (e) => { e.preventDefault(); window.location.hash = link.getAttribute('href'); });
-    });
+    navMenuTop.querySelectorAll('a.nav-item').forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); window.location.hash = link.getAttribute('href'); }));
     navMenuBottom.querySelector('button')?.addEventListener('click', currentUser ? handleLogout : goToLoginPage);
 }
 
 // --- 5. 認証 ---
 function goToLoginPage() { window.location.href = 'login.html'; }
-
-async function handleAuthCallback() {
-    const params = new URLSearchParams(window.location.search);
-    const privateCode = params.get('privateCode');
-    if (localStorage.getItem('isLoggingIn') !== 'true' || !privateCode) {
-        localStorage.removeItem('isLoggingIn'); return;
-    }
-    
-    showLoading(true);
-    localStorage.removeItem('isLoggingIn');
-    try {
-        const { data: authData, error } = await supabase.functions.invoke('scratch-auth-handler', { body: { type: 'session', privateCode } });
-        if (error || authData.error) throw new Error(authData.error || 'Authentication failed');
-        await findOrCreateUser(authData.user);
-        window.history.replaceState({}, document.title, 'index.html');
-    } catch (err) {
-        console.error(err);
-        alert('認証に失敗しました。');
-    } finally {
-        showLoading(false);
-    }
-}
-
-async function findOrCreateUser(scratchUser) {
-    const scid = String(scratchUser.id);
-    let { data: user, error } = await supabase.from('user').select('*').eq('scid', scid).single();
-    if (error && error.code !== 'PGRST116') throw new Error('ユーザー情報の取得に失敗しました。');
-
-    if (user) {
-        setCurrentUser(user);
-    } else {
-        const newUserId = await generateUniqueUserId();
-        const newUser = {
-            id: newUserId,
-            name: scratchUser.name,
-            scid: scid,
-            settings: { show_follow: true, show_star: true, show_scid: true }
-        };
-        const { data: createdUser, error: createError } = await supabase.from('user').insert(newUser).select().single();
-        if (createError) throw new Error('アカウントの作成に失敗しました。');
-        setCurrentUser(createdUser);
-    }
-}
-
-async function generateUniqueUserId() {
-    let userId, isUnique = false;
-    while (!isUnique) {
-        userId = Math.floor(1000 + Math.random() * 9000);
-        const { count } = await supabase.from('user').select('id', { count: 'exact', head: true }).eq('id', userId);
-        if (count === 0) isUnique = true;
-    }
-    return userId;
-}
-
-function setCurrentUser(user) {
-    currentUser = user;
-    if(user) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        subscribeToChanges();
-    } else {
-        localStorage.removeItem('currentUser');
-    }
-}
-
 function handleLogout() {
     if(!confirm("ログアウトしますか？")) return;
     currentUser = null;
@@ -154,15 +77,11 @@ function handleLogout() {
     if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
     router();
 }
-
-async function checkSession() {
-    showLoading(true);
+function checkSession() {
     const userJson = localStorage.getItem('currentUser');
     currentUser = userJson ? JSON.parse(userJson) : null;
     if(currentUser) subscribeToChanges();
-    if (localStorage.getItem('isLoggingIn')) await handleAuthCallback();
-    await router();
-    showLoading(false);
+    router();
 }
 
 // --- 6. 各画面の表示ロジック ---
@@ -172,19 +91,72 @@ async function showMainScreen() {
     if (currentUser) {
         postFormContainer.innerHTML = `<div class="post-form"><textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea><button id="post-submit-button">ポスト</button></div>`;
         postFormContainer.querySelector('#post-submit-button').addEventListener('click', handlePostSubmit);
-    } else {
-        postFormContainer.innerHTML = '';
-    }
+    } else { postFormContainer.innerHTML = ''; }
+    
     document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
     await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
 }
-
 async function showExploreScreen() {
     pageTitle.textContent = "発見";
     showScreen('explore-screen');
     await loadTimeline('foryou', exploreTimelineDiv);
 }
+async function showProfileScreen(userId) { /* (前回のコードから変更なし) */ }
+async function showSettingsScreen() { /* (前回のコードから変更なし) */ }
 
+// --- 7. コンテンツ読み込み & レンダリング ---
+async function switchTimelineTab(tab) {
+    if (tab === 'following' && !currentUser) return;
+    currentTimelineTab = tab;
+    document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    await loadTimeline(tab, timelineDiv);
+}
+async function loadTimeline(tab, container) {
+    showLoading(true);
+    container.innerHTML = '';
+    try {
+        let query = supabase.from('post').select('*, user(id, name)').order('time', { ascending: false }).limit(50);
+        if (tab === 'following') {
+            if (!currentUser?.follow?.length) { container.innerHTML = '<p>まだ誰もフォローしていません。</p>'; return; }
+            query = query.in('userid', currentUser.follow);
+        }
+        const { data: posts, error } = await query;
+        if (error) throw new Error('投稿の読み込みに失敗しました。');
+        if (!posts?.length) { container.innerHTML = '<p>まだ投稿がありません。</p>'; return; }
+        posts.forEach(post => renderPost(post, post.user || {}, container));
+    } catch(err) {
+        container.innerHTML = `<p class="error-message">${err.message}</p>`;
+    } finally {
+        showLoading(false);
+    }
+}
+function renderPost(post, author, container) { /* (前回のコードから変更なし) */ }
+async function loadProfileTabContent(user, tab) { /* (前回のコードから変更なし) */ }
+async function loadTimelineForUser(userId, container) { /* (前回のコードから変更なし) */ }
+
+// --- 8. ユーザーアクション ---
+window.handleLike = async (button, postId) => alert('いいね機能は現在開発中です！');
+window.handleStar = async (button, postId) => { /* (前回のコードから変更なし) */ };
+async function handlePostSubmit() { /* (前回のコードから変更なし) */ }
+async function handleFollowToggle(targetUserId, button) { /* (前回のコードから変更なし) */ }
+async function handleUpdateSettings(event) { /* (前回のコードから変更なし) */ }
+
+// --- 9. Supabaseリアルタイム購読 ---
+function subscribeToChanges() { /* (前回のコードから変更なし) */ }
+
+// --- 10. ヘルパー関数 ---
+function escapeHTML(str) { /* (前回のコードから変更なし) */ }
+
+// --- 11. イベントリスナー & 初期化処理 ---
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
+    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
+    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
+    window.addEventListener('hashchange', router);
+    checkSession();
+});
+
+// (ここに前回のコードの変更なし関数群をペースト)
 async function showProfileScreen(userId) {
     pageTitle.textContent = "プロフィール";
     showScreen('profile-screen');
@@ -210,7 +182,6 @@ async function showProfileScreen(userId) {
     profileTabs.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => loadProfileTabContent(user, button.dataset.tab)));
     await loadProfileTabContent(user, 'posts');
 }
-
 async function showSettingsScreen() {
     if (!currentUser) return router();
     pageTitle.textContent = "設定";
@@ -231,36 +202,10 @@ async function showSettingsScreen() {
         </form>`;
     document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
 }
-
-// --- 7. コンテンツ読み込み & レンダリング ---
-async function switchTimelineTab(tab) {
-    if (tab === 'following' && !currentUser) return;
-    currentTimelineTab = tab;
-    document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-    showLoading(true);
-    try { await loadTimeline(tab, timelineDiv); } 
-    catch (error) { timelineDiv.innerHTML = `<p class="error-message">${error.message}</p>`; } 
-    finally { showLoading(false); }
-}
-
-async function loadTimeline(tab, container) {
-    container.innerHTML = '<div class="spinner"></div>';
-    let query = supabase.from('post').select('*, user(id, name)').order('time', { ascending: false }).limit(50);
-    if (tab === 'following') {
-        if (!currentUser?.follow?.length) { container.innerHTML = '<p>まだ誰もフォローしていません。</p>'; return; }
-        query = query.in('userid', currentUser.follow);
-    }
-    const { data: posts, error } = await query;
-    container.innerHTML = '';
-    if (error) throw new Error('投稿の読み込みに失敗しました。');
-    if (!posts?.length) { container.innerHTML = '<p>まだ投稿がありません。</p>'; return; }
-    posts.forEach(post => renderPost(post, post.user || {}, container));
-}
-
 function renderPost(post, author, container) {
     const postEl = document.createElement('div');
     postEl.className = 'post';
-    const isLiked = false; // Like機能は未実装
+    const isLiked = false;
     const isStarred = currentUser?.star?.includes(post.id);
     const actionsHTML = currentUser ? `
         <div class="post-actions">
@@ -270,16 +215,13 @@ function renderPost(post, author, container) {
     postEl.innerHTML = `<div class="post-header"><a href="#profile/${author.id}" class="post-author">${escapeHTML(author.name || '不明')}#${author.id || '????'}</a><span class="post-time">${new Date(post.time).toLocaleString('ja-JP')}</span></div><div class="post-content"><p>${escapeHTML(post.content)}</p></div>${actionsHTML}`;
     container.appendChild(postEl);
 }
-
 async function loadProfileTabContent(user, tab) {
     document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
     const contentDiv = document.getElementById('profile-content');
     contentDiv.innerHTML = '<div class="spinner"></div>';
     try {
         switch(tab) {
-            case 'posts':
-                await loadTimelineForUser(user.id, contentDiv);
-                break;
+            case 'posts': await loadTimelineForUser(user.id, contentDiv); break;
             case 'stars':
                 if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p>🔒 このユーザーのStarは非公開です。</p>'; break; }
                 if (!user.star?.length) { contentDiv.innerHTML = '<p>Starを付けた投稿はありません。</p>'; break; }
@@ -301,7 +243,6 @@ async function loadProfileTabContent(user, tab) {
         }
     } catch(err) { contentDiv.innerHTML = `<p>コンテンツの読み込みに失敗しました。</p>`; }
 }
-
 async function loadTimelineForUser(userId, container) {
     const { data: posts, error } = await supabase.from('post').select('*, user(id, name)').eq('userid', userId).order('time', { ascending: false });
     if(error) throw error;
@@ -309,10 +250,6 @@ async function loadTimelineForUser(userId, container) {
     if (posts?.length) posts.forEach(p => renderPost(p, p.user, container));
     else container.innerHTML = '<p>まだ投稿がありません。</p>';
 }
-
-// --- 8. ユーザーアクション ---
-window.handleLike = async (button, postId) => alert('いいね機能は現在開発中です！');
-
 window.handleStar = async (button, postId) => {
     if (!currentUser) return alert("ログインが必要です。");
     button.disabled = true;
@@ -320,10 +257,8 @@ window.handleStar = async (button, postId) => {
     const isStarred = currentUser.star?.includes(postId);
     const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
     const incrementValue = isStarred ? -1 : 1;
-    
     const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
     if (userError) { alert('Starの更新に失敗しました。'); button.disabled = false; return; }
-    
     const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
     if (postError) {
         await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
@@ -336,7 +271,6 @@ window.handleStar = async (button, postId) => {
     }
     button.disabled = false;
 };
-
 async function handlePostSubmit() {
     if (!currentUser) return alert("ログインが必要です。");
     const contentEl = document.getElementById('post-content'), content = contentEl.value.trim();
@@ -353,7 +287,6 @@ async function handlePostSubmit() {
     } catch(e) { alert('投稿に失敗しました。'); }
     finally { button.disabled = false; button.textContent = 'ポスト'; }
 }
-
 async function handleFollowToggle(targetUserId, button) {
     if (!currentUser) return alert("ログインが必要です。");
     button.disabled = true;
@@ -372,7 +305,6 @@ async function handleFollowToggle(targetUserId, button) {
     }
     button.disabled = false;
 }
-
 async function handleUpdateSettings(event) {
     event.preventDefault();
     if (!currentUser) return;
@@ -391,8 +323,6 @@ async function handleUpdateSettings(event) {
     if (error) { alert('設定の更新に失敗しました。'); }
     else { alert('設定を更新しました。'); setCurrentUser(data); window.location.hash = ''; }
 }
-
-// --- 9. Supabaseリアルタイム購読 ---
 function subscribeToChanges() {
     if (realtimeChannel) return;
     realtimeChannel = supabase.channel('public:post').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async payload => {
@@ -402,20 +332,9 @@ function subscribeToChanges() {
         }
     }).subscribe();
 }
-
-// --- 10. ヘルパー関数 ---
 function escapeHTML(str) {
     if (typeof str !== 'string') return '';
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
-
-// --- 11. イベントリスナー & 初期化処理 ---
-window.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
-    window.addEventListener('hashchange', router);
-    checkSession();
-});
