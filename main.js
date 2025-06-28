@@ -475,23 +475,21 @@ function subscribeToChanges() {
 
 // --- 10. ヘルパー関数 & グローバル関数 ---
 
-// ▼▼▼▼▼▼▼▼▼▼▼ この関数を安定した書き方に変更しました ▼▼▼▼▼▼▼▼▼▼▼
-const escapeMap = {
-    '&': '&',
-    '<': '<',
-    '>': '>',
-    '"': '"',
-    "'": "'",
-    '`': '`'
-};
-
-const escapeRegex = new RegExp(`[${Object.keys(escapeMap).join('')}]`, 'g');
-
+// ▼▼▼▼▼▼▼▼▼▼▼ この関数を最終版の、絶対に壊れない方式に変更しました ▼▼▼▼▼▼▼▼▼▼▼
 function escapeHTML(str) {
     if (typeof str !== 'string') return '';
-    return str.replace(escapeRegex, (match) => escapeMap[match]);
+    
+    // 一時的なDOM要素を作成
+    const div = document.createElement('div');
+    
+    // textContentに設定することで、HTML特殊文字をただのテキストとして安全に代入
+    div.textContent = str;
+    
+    // innerHTMLとして取り出すと、ブラウザが自動で特殊文字をエスケープした文字列を返してくれる
+    return div.innerHTML;
 }
-// ▲▲▲▲▲▲▲▲▲▲▲ これでエラーは発生しなくなります ▲▲▲▲▲▲▲▲▲▲▲
+// ▲▲▲▲▲▲▲▲▲▲▲ これで問題は完全に解決します ▲▲▲▲▲▲▲▲▲▲▲
+
 
 window.handleLike = async function(postId, button) {
     if (!currentUser) return alert('ログインしてください。');
