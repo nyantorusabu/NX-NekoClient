@@ -337,7 +337,6 @@ async function loadProfileTabContent(user, tab) {
             followUsers?.forEach(u => {
                 const userCard = document.createElement('div');
                 userCard.className = 'profile-card';
-                // ▼▼▼▼▼▼▼▼▼▼▼ ここがエラーの原因でした ▼▼▼▼▼▼▼▼▼▼▼
                 userCard.innerHTML = `
                     <div class="profile-card-info">
                         <a href="#profile/${u.id}">
@@ -348,7 +347,6 @@ async function loadProfileTabContent(user, tab) {
                     </div>
                     ${u.id !== currentUser.id ? `<div id="follow-btn-${u.id}" class="follow-button-in-list"></div>` : ''}
                 `;
-                // ▲▲▲▲▲▲▲▲▲▲▲ 修正済みです ▲▲▲▲▲▲▲▲▲▲▲
                 contentDiv.appendChild(userCard);
 
                 if (u.id !== currentUser.id) {
@@ -476,10 +474,24 @@ function subscribeToChanges() {
 }
 
 // --- 10. ヘルパー関数 & グローバル関数 ---
+
+// ▼▼▼▼▼▼▼▼▼▼▼ この関数を安定した書き方に変更しました ▼▼▼▼▼▼▼▼▼▼▼
+const escapeMap = {
+    '&': '&',
+    '<': '<',
+    '>': '>',
+    '"': '"',
+    "'": "'",
+    '`': '`'
+};
+
+const escapeRegex = new RegExp(`[${Object.keys(escapeMap).join('')}]`, 'g');
+
 function escapeHTML(str) {
     if (typeof str !== 'string') return '';
-    return str.replace(/[&<>"']/g, match => ({ '&': '&', '<': '<', '>': '>', '"': '"', "'": ''' }[match]));
+    return str.replace(escapeRegex, (match) => escapeMap[match]);
 }
+// ▲▲▲▲▲▲▲▲▲▲▲ これでエラーは発生しなくなります ▲▲▲▲▲▲▲▲▲▲▲
 
 window.handleLike = async function(postId, button) {
     if (!currentUser) return alert('ログインしてください。');
