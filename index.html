@@ -5,81 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NyaX</title>
     
-    <!-- ▼▼▼ NとXを重ねた新しいアイコン ▼▼▼ -->
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48c3R5bGU+Lm57Zm9udDpib2xkIDg1cHggc2Fucy1zZXJpZjtmaWxsOiMxREFBRjI7fS54e2ZvbnQ6Ym9sZCA5NXB4IHNhbnMtc2VyaWY7ZmlsbDojZmZmZmZmO3N0cm9rZTojMUREQUYyO3N0cm9rZS13aWR0aDo4O308L3N0eWxlPjx0ZXh0IHg9IjUwIiB5PSI4NyIgdGV4dC1hbGNob3I9Im1pZGRsZSIgY2xhc3M9IngiPlg8L3RleHQ+PHRleHQgeD0iNTAiIHk9Ijg1IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBjbGFzcz0ibiI+TjwvdGV4dD48L3N2Zz4=">
+    <!-- ▼▼▼ ご指定の新しいアイコン ▼▼▼ -->
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAdCAYAAAC0T3x2AAAAAXNSR0IArs4c6QAAAsJJREFUSEutlkvIj0EUxn+fsJBLIqVEycIlShJyFwvqI+RScu8rkoVQFtiQhVAiLGzIZSG5S0giuSXlsiIiEiF3RS7z5Ewd0/t+7/h/zub/f2fmzDNnznmeM3X8sVPABPsff54BfYF3yXhjn8uBTcmCE8DEOhvcA8wp2GEzsCITqAdwCeicrN8LzK0C+haiHQjcqQBrDuwCFhasywKS31VgJPC9EbBxwBmgWVOA5NsA7C4BagcoD8NL5ksj+gXEK42+b4A+wMuCzRYBO924iqiL+y4Feg48tOvy+8phHqCDREsLQHOqupU5QE9D8qcAF4C2zuFHqKoxVlkaVgFsAxRRtEPAAeBILtBgYKpt5KO6BwwJJf/JcnIeaGkLXgOjgO7A8Rygt8Awu74rVt4ebB2wETiZXK/Jt7V5wJ9Cdc2IjjcAvoD19ypBaj5LcBqh37ZAN7XCqS9lFxJi7efjjMi9VhAYLKaIpJjG0C56VpQ2hraCixz1VgzUDzl0QLmiwajAXEnWpOAFNVdoFsS1ROgt+XtvwCl7Pd464E1bmA8cDqnvH3Vab2k5yLQsSRHKgbx7rbNDzBSt7LvUgnyQC2A/cA0B/LISOlxbwJDTeFrApoBHHQiK5AFofMeDqrRIYkwEvafgaTU54CebsPZwL6g4ouBHQnQR6CfHUCdNuvqVLLzE8GU5EwHvgYSt7aEpz1IB1tlOVWlyhrNkWReyhw7pvIm5b7uohhkSY+iGqeWWpuIBC8F0okfGz+is0p4bdKL1Bw3WAT+Fj8EoM/ukVIKpLeBqi3afYvmVUF5d7I3hVpDmWU9TiSekxPZTzecZI0ubf9xXRaQOuasiheQotdmM0tCqgSKHVNXV2V6O9wISt6+YOFfQMf0bC0hYBVInF8SZGp7wWLRol73qtAfJMos3RKX1DFzTdw6a28K7/MC6PUbY2vPLftSPZAAAAAASUVORK5CYII=">
     
     <link rel="stylesheet" href="style.css">
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <header>
-        <h1><a href="#" id="logo-link">NyaX</a></h1>
-        <div id="user-info" class="hidden">
-            <span id="current-username"></span>
-            <button id="settings-button">設定</button>
-            <button id="logout-button">ログアウト</button>
-        </div>
-    </header>
+    <div class="app-container">
+        <!-- 左側ナビゲーションメニュー -->
+        <nav id="left-nav">
+            <!-- メニュー項目はJSで動的に生成されます -->
+        </nav>
 
-    <main>
-        <!-- Login Screen -->
-        <div id="login-screen" class="screen">
-            <h2>NyaXへようこそ!</h2>
-            <button id="login-button">Scratchでログイン/新規登録</button>
-        </div>
+        <!-- 中央メインコンテンツ -->
+        <main id="main-content">
+            <header id="page-header">
+                <h2 id="page-title">ホーム</h2>
+            </header>
 
-        <!-- Main/Timeline Screen -->
-        <div id="main-screen" class="screen hidden">
-            <div class="post-form">
-                <h3>いまどうしてる？</h3>
-                <textarea id="post-content" placeholder="投稿内容..." maxlength="280"></textarea>
-                <button id="post-submit-button">ポスト</button>
+            <div id="content-area">
+                <!-- Login Screen -->
+                <div id="login-screen" class="screen hidden">
+                    <h2>NyaXへようこそ!</h2>
+                    <p>すべての機能を利用するにはログインしてください。</p>
+                    <button id="redirect-login-button">Scratchでログイン/新規登録</button>
+                </div>
+        
+                <!-- Main/Timeline Screen -->
+                <div id="main-screen" class="screen hidden">
+                    <div class="post-form">
+                        <h3>いまどうしてる？</h3>
+                        <textarea id="post-content" placeholder="投稿内容..." maxlength="280"></textarea>
+                        <button id="post-submit-button">ポスト</button>
+                    </div>
+                    <div id="timeline">
+                        <!-- Posts will be loaded here -->
+                    </div>
+                </div>
+        
+                <!-- Profile Screen -->
+                <div id="profile-screen" class="screen hidden">
+                    <div id="profile-header"></div>
+                    <div id="profile-tabs"></div>
+                    <div id="profile-content"></div>
+                </div>
+        
+                <!-- Settings Screen -->
+                <div id="settings-screen" class="screen hidden">
+                    <form id="settings-form">
+                        <label for="setting-username">ユーザー名:</label>
+                        <input type="text" id="setting-username" required>
+                        
+                        <label for="setting-me">自己紹介:</label>
+                        <textarea id="setting-me"></textarea>
+        
+                        <fieldset>
+                            <legend>公開設定</legend>
+                            <input type="checkbox" id="setting-show-follow">
+                            <label for="setting-show-follow">フォローしている人を公開する</label>
+                            <br>
+                            <input type="checkbox" id="setting-show-star">
+                            <label for="setting-show-star">お気に入りを付けたポストを公開する</label>
+                            <br>
+                            <input type="checkbox" id="setting-show-scid">
+                            <label for="setting-show-scid">ScratchアカウントIDを公開する</label>
+                        </fieldset>
+        
+                        <p><strong>注意:</strong> ログインに使用するScratchアカウントの変更は、一度ログアウトし、別のアカウントで再度ログインすることで行えます。</p>
+        
+                        <button type="submit">設定を保存</button>
+                    </form>
+                </div>
             </div>
-            <div id="timeline">
-                <!-- Posts will be loaded here -->
-            </div>
-        </div>
+        </main>
+    </div>
 
-        <!-- Profile Screen -->
-        <div id="profile-screen" class="screen hidden">
-            <div id="profile-header"></div>
-            <div id="profile-tabs"></div>
-            <div id="profile-content"></div>
-        </div>
-
-        <!-- Settings Screen -->
-        <div id="settings-screen" class="screen hidden">
-            <h2>設定</h2>
-            <form id="settings-form">
-                <label for="setting-username">ユーザー名:</label>
-                <input type="text" id="setting-username" required>
-                
-                <label for="setting-me">自己紹介:</label>
-                <textarea id="setting-me"></textarea>
-
-                <fieldset>
-                    <legend>公開設定</legend>
-                    <input type="checkbox" id="setting-show-follow">
-                    <label for="setting-show-follow">フォローしている人を公開する</label>
-                    <br>
-                    <input type="checkbox" id="setting-show-star">
-                    <label for="setting-show-star">お気に入りを付けたポストを公開する</label>
-                    <br>
-                    <input type="checkbox" id="setting-show-scid">
-                    <label for="setting-show-scid">ScratchアカウントIDを公開する</label>
-                </fieldset>
-
-                <p><strong>注意:</strong> ログインに使用するScratchアカウントの変更は、一度ログアウトし、別のアカウントで再度ログインすることで行えます。</p>
-
-                <button type="submit">設定を保存</button>
-            </form>
-        </div>
-
-        <div id="loading-overlay" class="hidden">
-            <div class="spinner"></div>
-        </div>
-    </main>
+    <!-- ローディングオーバーレイ -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
 
     <script src="main.js"></script>
 </body>
