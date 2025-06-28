@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NyaX</title>
-    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAdCAYAAAC0T3x2AAAAAXNSR0IArs4c6QAAAsJJREFUSEutlkvIj0EUxn+fsJBLIqVEycIlShJyFwvqI+RScu8rkoVQFtiQhVAiLGzIZSG5S0giuSXlsiIiEiF3RS7z5Ewd0/t+7/h/zub/f2fmzDNnznmeM3X8sVPABPsff54BfYF3yXhjn8uBTcmCE8DEOhvcA8wp2GEzsCITqAdwCeicrN8LzK0C+haiHQjcqQBrDuwCFhasywKS31VgJPC9EbBxwBmgWVOA5NsA7C4BagcoD8NL5ksj+gXEK42+b4A+wMuCzRYBO924iqiL+y4Feg48tOvy+8phHqCDREsLQHOqupU5QE9D8qcAF4C2zuFHqKoxVlkaVgFsAxRRtEPAAeBILtBgYKpt5KO6BwwJJf/JcnIeaGkLXgOjgO7A8Rygt8Awu74rVt4ebB2wETiZXK/Jt7V5wJ9Cdc2IjjcAvoD19ypBaj5LcBqh37ZAN7XCqS9lFxJi7efjjMi9VhAYLKaIpJjG0C56VpQ2hraCixz1VgzUDzl0QLmiwajAXEnWpOAFNVdoFsS1ROgt+XtvwCl7Pd464E1bmA8cDqnvH3Vab2k5yLQsSRHKgbx7rbNDzBSt7LvUgnyQC2A/cA0B/LISOlxbwJDTeFrApoBHHQiK5AFofMeDqrRIYkwEvafgaTU54CebsPZwL6g4ouBHQnQR6CfHUCdNuvqVLLzE8GU5EwHvgYSt7aEpz1IB1tlOVWlyhrNkWReyhw7pvIm5b7uohhkSY+iGqeWWpuIBC8F0okfGz+is0p4bdKL1Bw3WAT+Fj8EoM/ukVIKpLeBqi3afYvmVUF5d7I3hVpDmWU9TiSekxPZTzecZI0ubf9xXRaQOuasiheQotdmM0tCqgSKHVNXV2V6O9wISt6+YOFfQMf0bC0hYBVInF8SZGp7wWLRol73qtAfJMos3RKX1DFzTdw6a28K7/MC6PUbY2vPLftSPZAAAAAASUVORK5CYII=">
+    <!-- ▼▼▼ favicon.png を参照するように変更 ▼▼▼ -->
+    <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -38,7 +39,12 @@
                     </div>
                     <div id="timeline"></div>
                 </div>
-        
+                
+                <!-- Explore Screen -->
+                <div id="explore-screen" class="screen hidden">
+                     <div id="explore-timeline"></div>
+                </div>
+
                 <!-- Profile Screen -->
                 <div id="profile-screen" class="screen hidden">
                     <div id="profile-header"></div>
@@ -60,8 +66,8 @@
             <h3>NyaXはScratchのアカウントがあれば誰でも参加できます</h3>
         </div>
         <div class="login-banner-actions">
-            <button id="banner-signup-button">参加 (アカウント作成)</button>
             <button id="banner-login-button">ログイン</button>
+            <button id="banner-signup-button">参加(アカウント作成)</button>
         </div>
     </div>
 
