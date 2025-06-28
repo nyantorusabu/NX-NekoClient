@@ -21,13 +21,15 @@
             <div id="content-area">
                 <div id="main-screen" class="screen hidden">
                     <div class="timeline-tabs">
-                        <button class="timeline-tab-button active" data-tab="foryou">おすすめ</button>
+                        <!-- ▼▼▼ 「おすすめ」を「すべて」に変更 ▼▼▼ -->
+                        <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
                         <button class="timeline-tab-button" data-tab="following">フォロー中</button>
                     </div>
                     <div class="post-form-container"></div>
                     <div id="timeline"></div>
                 </div>
-                <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
+                <!-- (他のscreen要素は前回のまま) -->
+                 <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
                 <div id="notifications-screen" class="screen hidden"><div id="notifications-content"></div></div>
                 <div id="likes-screen" class="screen hidden"><div id="likes-content"></div></div>
                 <div id="stars-screen" class="screen hidden"><div id="stars-content"></div></div>
