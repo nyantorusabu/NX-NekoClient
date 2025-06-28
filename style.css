@@ -1,12 +1,8 @@
 :root {
-    --primary-color: #1d9bf0;
-    --primary-hover-color: #1a8cd8;
-    --like-color: #f91880;
-    --star-color: #ffad1f;
-    --border-color: #eff3f4;
-    --bg-color: #f7f9f9;
-    --text-color: #0f1419;
-    --secondary-text-color: #536471;
+    --primary-color: #1d9bf0; --primary-hover-color: #1a8cd8;
+    --like-color: #f91880; --star-color: #ffad1f;
+    --border-color: #eff3f4; --bg-color: #f7f9f9;
+    --text-color: #0f1419; --secondary-text-color: #536471;
 }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -15,13 +11,7 @@ body {
 .app-container { display: flex; max-width: 1265px; margin: 0 auto; min-height: 100vh; }
 .hidden { display: none !important; }
 
-/* 左側ナビゲーション */
-#left-nav {
-    position: sticky; top: 0; height: 100vh; width: 275px;
-    padding: 1rem; box-sizing: border-box; display: flex;
-    flex-direction: column; justify-content: space-between;
-}
-#nav-menu-top { display: flex; flex-direction: column; align-items: flex-start; }
+/* 左側ナビゲーション & ボタン共通スタイル */
 .nav-item {
     display: flex; align-items: center; gap: 1rem; width: fit-content;
     padding: 0.8rem 1.2rem; font-size: 1.25rem; font-weight: 400;
@@ -31,7 +21,21 @@ body {
 }
 .nav-item:hover { background-color: var(--bg-color); }
 .nav-item.active { font-weight: 700; }
-#nav-menu-bottom .nav-item { width: 100%; font-size: 1rem; }
+#left-nav {
+    position: sticky; top: 0; height: 100vh; width: 275px;
+    padding: 1rem; box-sizing: border-box; display: flex;
+    flex-direction: column; justify-content: space-between;
+}
+#nav-menu-top { display: flex; flex-direction: column; align-items: flex-start; }
+#nav-menu-bottom .nav-item { width: 100%; font-size: 1rem; justify-content: center; }
+
+/* ポストボタン */
+.post-form-container button {
+    padding: 0.6rem 1.2rem; border-radius: 9999px; border: none;
+    background-color: var(--primary-color); color: white;
+    font-weight: bold; cursor: pointer; font-size: 1rem;
+}
+.post-form-container button:disabled { background-color: #8ecdf8; cursor: not-allowed; }
 
 /* 中央メインコンテンツ */
 #main-content {
@@ -46,22 +50,13 @@ body {
 }
 #page-header h2 { margin: 0; font-size: 1.25rem; }
 
-/* タイムラインタブ */
+/* (タイムライン、ポスト表示等のスタイルは前回のまま) */
 .timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
-.timeline-tab-button {
-    flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem;
-    cursor: pointer; color: var(--secondary-text-color); font-weight: 500;
-}
+.timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; }
 .timeline-tab-button:hover { background-color: var(--bg-color); }
-.timeline-tab-button.active {
-    border-bottom: 2px solid var(--primary-color);
-    color: var(--primary-color); font-weight: 700;
-}
-
-/* ポストフォーム & ポスト表示 (前回のまま) */
+.timeline-tab-button.active { border-bottom: 2px solid var(--primary-color); color: var(--primary-color); font-weight: 700; }
 .post-form { padding: 1rem; border-bottom: 10px solid var(--bg-color); }
 .post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.2rem; outline: none; }
-.post-form button { float: right; padding: 0.5rem 1rem; border-radius: 20px; border: none; background-color: var(--primary-color); color: white; font-weight: bold; cursor: pointer; }
 .post { padding: 1rem; border-bottom: 1px solid var(--border-color); }
 .post-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
 .post-author { font-weight: bold; color: var(--text-color); text-decoration: none; }
@@ -72,14 +67,14 @@ body {
 .like-button:hover, .like-button.liked { color: var(--like-color); }
 .star-button:hover, .star-button.starred { color: var(--star-color); }
 
-/* ▼▼▼ 未ログイン時バナーのボタンスタイルを修正 ▼▼▼ */
+/* ▼▼▼ 未ログイン時バナーのスタイルを修正・確定 ▼▼▼ */
 #login-banner {
     position: fixed; bottom: 0; left: 0; right: 0;
     background-color: var(--primary-color); color: white;
     padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;
     z-index: 100;
 }
-#login-banner-content h3 { margin: 0; font-weight: 500; }
+#login-banner-content h3 { margin: 0; font-weight: 500; font-size: 1.1rem; }
 #login-banner-actions button {
     margin-left: 1rem; padding: 0.6rem 1.2rem; border-radius: 9999px;
     font-weight: bold; cursor: pointer; font-size: 0.9rem;
@@ -90,8 +85,8 @@ body {
 #banner-signup-button { background: transparent; color: white; border: 1px solid white; }
 #banner-signup-button:hover { background-color: rgba(255,255,255,0.1); }
 
-/* その他 (前回のまま) */
-#loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+/* (ローディング、レスポンシブスタイルは前回のまま) */
+#loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s ease infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 /* (レスポンシブスタイルも前回のまま) */
