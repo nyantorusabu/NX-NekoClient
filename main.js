@@ -6,16 +6,18 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
 
-    // --- 2. アイコンSVG定義 ---
+    // --- 2. アイコンSVG定義 ▼▼▼ [修正点7] 枠線のみのアイコンに変更 ▼▼▼ ---
     const ICONS = {
-        home: `<svg viewBox="0 0 24 24"><g><path d="M12 1.696L.622 8.807l1.06 1.696L3 9.679V19.5C3 20.878 4.12 22 5.5 22h13c1.38 0 2.5-1.122 2.5-2.5V9.679l1.318.824 1.06-1.696L12 1.696zM12 16.5c-1.933 0-3.5-1.567-3.5-3.5s1.567-3.5 3.5-3.5 3.5 1.567 3.5 3.5-1.567 3.5-3.5 3.5z"></path></g></svg>`,
-        explore: `<svg viewBox="0 0 24 24"><g><path d="M10.25 3.75c-3.59 0-6.5 2.91-6.5 6.5s2.91 6.5 6.5 6.5c1.795 0 3.418-.726 4.596-1.904 1.178-1.178 1.904-2.801 1.904-4.596 0-3.59-2.91-6.5-6.5-6.5zm-8.5 6.5c0-4.694 3.806-8.5 8.5-8.5s8.5 3.806 8.5 8.5c0 1.986-.682 3.83-1.824 5.262l4.781 4.781-1.414 1.414-4.781-4.781c-1.432 1.142-3.276 1.824-5.262 1.824-4.694 0-8.5-3.806-8.5-8.5z"></path></g></svg>`,
-        notifications: `<svg viewBox="0 0 24 24"><g><path d="M21.697 16.468c-.02-.016-2.14-1.64-2.14-6.335 0-4.506-3.655-8.13-8.13-8.13S3.297 5.627 3.297 10.133c0 4.696-2.12 6.32-2.14 6.335-.14.108-.22.28-.22.463v1.5c0 .552.447 1 1 1h4.07c.54 2.6 2.87 4.5 5.59 4.5s5.05-1.9 5.59-4.5h4.07c.553 0 1-.448 1-1v-1.5c0-.183-.08-.355-.22-.463z"></path></g></svg>`,
-        likes: `<svg viewBox="0 0 24 24" fill="currentColor"><g><path d="M12 21.638h-.014C9.403 21.59 1.95 14.856 1.95 8.478c0-3.064 2.525-5.754 5.403-5.754 2.29 0 3.83 1.58 4.646 2.73.814-1.148 2.354-2.73 4.645-2.73 2.88 0 5.404 2.69 5.404 5.755 0 6.376-7.454 13.11-10.037 13.157H12z"></path></g></svg>`,
-        stars: `<svg viewBox="0 0 24 24"><g><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2.25l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873L12 17.75z"></path></g></svg>`,
-        profile: `<svg viewBox="0 0 24 24"><g><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path></g></svg>`,
-        settings: `<svg viewBox="0 0 24 24"><g><path d="M19.88 18.23c.36.02.65.32.65.68v1.1c0 .37-.29.67-.66.68H4.13c-.37-.01-.66-.31-.66-.68v-1.1c0-.36.29-.66.65-.68h.01c.36-.02.65-.32.65-.68s-.29-.66-.65-.68h-.01c-.36-.02-.65-.32-.65-.68v-1.1c0-.37.29-.67.66-.68h.01c.37.01.66.31.66.68s-.29.67-.66-.68h-.01c-.37.01-.66-.31-.66-.68v-1.1c0-.37.29-.67.66-.68h15.75c.37.01.66.31.66.68v1.1c0 .37-.29.67-.66.68h-.01c-.37-.01-.66-.31-.66-.68s.29-.67.66-.68h.01zm-3.26-9.28L12 3.63 7.38 8.95c-.38.41-.35 1.05.06 1.42.4.37 1.04.34 1.41-.06L11 8.43V15c0 .55.45 1 1 1s1-.45 1-1V8.43l2.15 1.88c.37.33.92.31 1.28-.05.37-.36.39-.96.05-1.33z"></path></g></svg>`,
+        home: `<svg viewBox="0 0 24 24"><g><path d="M12 2.148L2.735 8.163v11.233h18.53V8.163L12 2.148zM19.998 18.06V8.625l-7.998-5.332-7.999 5.332v9.435h15.997z"></path><path d="M9.458 11.22c0 1.406 1.14 2.544 2.542 2.544s2.542-1.138 2.542-2.544-1.14-2.543-2.542-2.543-2.542 1.137-2.542 2.543z"></path></g></svg>`, // Home (feather: home)
+        explore: `<svg viewBox="0 0 24 24"><g><path d="M11 4C7.13 4 4 7.13 4 11s3.13 7 7 7c1.76 0 3.39-.7 4.6-1.85L19 20.24l1.24-1.24-3.44-3.44C17.3 14.39 18 12.76 18 11c0-3.87-3.13-7-7-7zm0 2c2.76 0 5 2.24 5 5s-2.24 5-5 5-5-2.24-5-5 2.24-5 5-5z"></path></g></svg>`, // Search (feather: search)
+        notifications: `<svg viewBox="0 0 24 24"><g><path d="M18 16.7L19.46 20H4.53L6 16.7V10c0-3.24 2.12-5.96 5-6.7V2h2v1.3c2.88.74 5 3.5 5 6.7v6.7zM12 22c1.33 0 2.42-1.08 2.42-2.42H9.58C9.58 20.92 10.67 22 12 22z"></path></g></svg>`, // Bell (feather: bell)
+        likes: `<svg viewBox="0 0 24 24"><g><path d="M20.88 5.61a5.55 5.55 0 0 0-7.83 0L12 6.66l-1.05-1.05a5.55 5.55 0 0 0-7.83 0 5.63 5.63 0 0 0 0 7.86L12 21.46l8.88-8.88a5.63 5.63 0 0 0 0-7.86z"></path></g></svg>`, // Heart (feather: heart)
+        stars: `<svg viewBox="0 0 24 24"><g><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.27l-6.18 3.25 1.18-6.88-5-4.87 6.91-1.01L12 2z"></path></g></svg>`, // Star (feather: star)
+        profile: `<svg viewBox="0 0 24 24"><g><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></g></svg>`, // User (feather: user)
+        settings: `<svg viewBox="0 0 24 24"><g><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></g></svg>`, // Settings (feather: settings)
     };
+    // ▲▲▲ [修正点7] ここまで ▲▲▲
+
     // --- 3. DOM要素の取得 ---
     const DOM = {
         navMenuTop: document.getElementById('nav-menu-top'),
@@ -30,11 +32,13 @@ window.addEventListener('DOMContentLoaded', () => {
         likesContent: document.getElementById('likes-content'),
         starsContent: document.getElementById('stars-content'),
         postDetailContent: document.getElementById('post-detail-content'),
-        searchResultsContent: document.getElementById('search-results-screen'), // search-results-contentではなくscreen
+        searchResultsScreen: document.getElementById('search-results-screen'), // search-results-contentではなくscreen
+        searchResultsContent: document.getElementById('search-results-content'), // コンテンツ表示用
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
-            recommendations: document.getElementById('recommendations-widget-container')
+            recommendations: document.getElementById('recommendations-widget-container'),
+            searchWidget: document.getElementById('right-sidebar-search-widget-container') // ▼▼▼ [修正点8] 右サイドバー検索ウィジェット用コンテナ ▼▼▼
         }
     };
 
@@ -46,19 +50,63 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
-    // ▼▼▼ [修正点5, 6] フォローボタンの状態を更新するヘルパー関数 ▼▼▼
+    // ▼▼▼ [修正点6] フォローボタンの状態を更新するヘルパー関数 ▼▼▼
     function updateFollowButtonState(buttonElement, isFollowing) {
-        buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
+        buttonElement.classList.remove('follow-button-not-following', 'follow-button-following', 'follow-button-unfollow-hover');
         if (isFollowing) {
             buttonElement.textContent = 'フォロー中';
             buttonElement.classList.add('follow-button-following');
+            // ホバー時に「フォロー解除」を表示するロジック
+            buttonElement.onmouseenter = () => {
+                buttonElement.textContent = 'フォロー解除';
+                buttonElement.classList.add('follow-button-unfollow-hover');
+            };
+            buttonElement.onmouseleave = () => {
+                buttonElement.textContent = 'フォロー中';
+                buttonElement.classList.remove('follow-button-unfollow-hover');
+            };
         } else {
             buttonElement.textContent = 'フォロー';
             buttonElement.classList.add('follow-button-not-following');
+            // フォローしていない場合はホバー時の特殊な挙動をリセット
+            buttonElement.onmouseenter = null;
+            buttonElement.onmouseleave = null;
         }
         buttonElement.disabled = false;
     }
-    // ▲▲▲ [修正点5, 6] ここまで ▲▲▲
+    // ▲▲▲ [修正点6] ここまで ▲▲▲
+
+    // ▼▼▼ [修正点3] 通知を送信する関数 ▼▼▼
+    async function sendNotification(recipientId, message) {
+        if (!recipientId || !message || recipientId === currentUser.id) return; // 自分自身への通知は送らない
+        try {
+            // 受信者の現在の通知リストを取得
+            const { data: userData, error: fetchError } = await supabase.from('user')
+                .select('notice')
+                .eq('id', recipientId)
+                .single();
+
+            if (fetchError || !userData) {
+                console.error('通知受信者の情報取得に失敗:', fetchError);
+                return;
+            }
+
+            // 新しい通知を先頭に追加（最大通知数を考慮するならここで制御）
+            const currentNotices = userData.notice || [];
+            const updatedNotices = [message, ...currentNotices].slice(0, 50); // 最新50件まで保持
+
+            const { error: updateError } = await supabase.from('user')
+                .update({ notice: updatedNotices })
+                .eq('id', recipientId);
+
+            if (updateError) {
+                console.error('通知の更新に失敗:', updateError);
+            }
+        } catch (e) {
+            console.error('通知送信中にエラー発生:', e);
+        }
+    }
+    // ▲▲▲ [修正点3] ここまで ▲▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -121,6 +169,22 @@ window.addEventListener('DOMContentLoaded', () => {
         loadRightSidebar();
     }
     async function loadRightSidebar() {
+        // ▼▼▼ [修正点8] 右サイドバーに検索バーを追加 ▼▼▼
+        DOM.rightSidebar.searchWidget.innerHTML = `
+            <div class="sidebar-search-widget">
+                ${ICONS.explore}
+                <input type="search" id="sidebar-search-input" placeholder="検索">
+            </div>`;
+        document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const query = e.target.value.trim();
+                if (query) {
+                    window.location.hash = `#search/${encodeURIComponent(query)}`;
+                }
+            }
+        });
+        // ▲▲▲ [修正点8] ここまで ▼▼▼
+
         const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
         if (error || !data || data.length === 0) { DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
@@ -144,24 +208,16 @@ window.addEventListener('DOMContentLoaded', () => {
         }).join('');
         DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
 
-        // ▼▼▼ [修正点5] おすすめユーザーのフォローボタンのイベントリスナー ▼▼▼
         DOM.rightSidebar.recommendations.querySelectorAll('.recommend-user button').forEach(button => {
-            const userId = parseInt(button.dataset.userId); // data-user-idから取得
+            const userId = parseInt(button.dataset.userId);
             if (!isNaN(userId)) {
+                // ▼▼▼ [修正点5,6] updateFollowButtonStateを呼び出し、一貫した挙動にする ▼▼▼
+                const isFollowing = currentUser?.follow?.includes(userId);
+                updateFollowButtonState(button, isFollowing); // 初期状態をセット
                 button.onclick = () => handleFollowToggle(userId, button);
-                button.onmouseenter = () => {
-                    if (currentUser && currentUser.follow?.includes(userId)) {
-                        button.textContent = 'フォロー解除';
-                    }
-                };
-                button.onmouseleave = () => {
-                    if (currentUser && currentUser.follow?.includes(userId)) {
-                        button.textContent = 'フォロー中';
-                    }
-                };
+                // ▲▲▲ [修正点5,6] ここまで ▼▼▼
             }
         });
-        // ▲▲▲ [修正点5] ここまで ▲▲▲
     }
 
     // --- 7. 認証とセッション ---
@@ -229,8 +285,16 @@ window.addEventListener('DOMContentLoaded', () => {
         button.disabled = true; button.textContent = '投稿中...';
         try {
             const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null };
-            const { error } = await supabase.from('post').insert(postData);
+            const { data: newPost, error } = await supabase.from('post').insert(postData).select().single(); // 投稿したポスト情報を取得
             if(error) throw error;
+            
+            // ▼▼▼ [修正点3] 返信の場合に通知を送信 ▼▼▼
+            if (newPost.reply_id && newPost.reply_to?.user?.id) {
+                const parentPostAuthorId = newPost.reply_to.user.id;
+                sendNotification(parentPostAuthorId, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
+            }
+            // ▲▲▲ [修正点3] ここまで ▼▼▼
+
             // 投稿成功後、リアルタイム更新が走るので、ここではUIを直接更新しない
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
@@ -239,13 +303,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, container, prepend = false) {
+        if (!post || !author) return; // 無効なポストやユーザーデータをスキップ
         const postEl = document.createElement('div'); postEl.className = 'post';
         postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
         const menuHTML = currentUser?.id === post.userid ? `<button class="post-menu-btn" onclick="event.stopPropagation(); window.togglePostMenu('${post.id}')">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" onclick="window.deletePost('${post.id}')">削除</button></div>` : '';
-        // count: 'exact'を使う場合、selectの第2引数で指定
         const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
 
@@ -285,7 +349,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showExploreScreen() {
-        // ▼▼▼ [修正点1] 検索ボタンをアイコン化 ▼▼▼
         DOM.pageHeader.innerHTML = `
             <div class="header-search-bar">
                 <input type="search" id="search-input" placeholder="検索">
@@ -293,41 +356,97 @@ window.addEventListener('DOMContentLoaded', () => {
                     ${ICONS.explore}
                 </button>
             </div>`;
-        // ▲▲▲ [修正点1] ここまで ▲▲▲
         document.getElementById('search-button').onclick = () => performSearch();
         document.getElementById('search-input').onkeydown = (e) => { if(e.key === 'Enter') performSearch(); };
         showScreen('explore-screen');
         await loadTimeline('foryou', DOM.exploreContent); // 発見ページでは「すべて」を表示
     }
 
+    // ▼▼▼ [修正点1, 2] 検索機能の拡張（ユーザーとポストの部分一致検索） ▼▼▼
     async function performSearch() {
-        const query = document.getElementById('search-input').value.trim();
+        const query = document.getElementById('search-input').value.trim() || document.getElementById('sidebar-search-input').value.trim();
         if (!query) return;
         window.location.hash = `#search/${encodeURIComponent(query)}`;
     }
+
     async function showSearchResults(query) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">検索結果: ${escapeHTML(query)}</h2>`;
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">検索結果: "${escapeHTML(query)}"</h2>`;
         showScreen('search-results-screen');
         const contentDiv = DOM.searchResultsContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
         try {
-            const { data, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').textSearch('content', `'${query}'`, {type: 'websearch'}).order('time', { ascending: false });
-            if (error || !data.length) { contentDiv.innerHTML = `<p style="padding:2rem; text-align:center;">「${escapeHTML(query)}」に一致するポストは見つかりませんでした。</p>`; return; }
-            contentDiv.innerHTML = '';
-            for (const post of data) { await renderPost(post, post.user, contentDiv); }
-        } catch (e) { contentDiv.innerHTML = `<p class="error-message">検索結果の読み込みに失敗しました。</p>`; console.error(e); }
+            let resultsHTML = '';
+
+            // ユーザー検索
+            const { data: users, error: userError } = await supabase.from('user')
+                .select('*')
+                .or(`name.ilike.%${query}%,me.ilike.%${query}%`) // 部分一致検索
+                .order('id', { ascending: true }) // ユーザーIDでソート
+                .limit(10); // 上位10件など、表示数を制限
+
+            if (userError) console.error("ユーザー検索エラー:", userError);
+            if (users && users.length > 0) {
+                resultsHTML += `<h3>ユーザー (${users.length}件)</h3>`;
+                resultsHTML += users.map(u => `
+                    <div class="profile-card widget-item">
+                        <div class="profile-card-info" style="display:flex; align-items:center; gap:0.8rem;">
+                            <a href="#profile/${u.id}" style="display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;">
+                                <img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
+                                <div>
+                                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span>
+                                    <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
+                                    <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>`).join('');
+            } else {
+                resultsHTML += `<p style="padding:1rem; text-align:center;">ユーザーは見つかりませんでした。</p>`;
+            }
+
+            // ポスト検索
+            const { data: posts, error: postError } = await supabase.from('post')
+                .select('*, user(*), reply_to:reply_id(*, user(*))')
+                .ilike('content', `%${query}%`) // 部分一致検索
+                .order('time', { ascending: false });
+
+            if (postError) console.error("ポスト検索エラー:", postError);
+            if (posts && posts.length > 0) {
+                resultsHTML += `<h3>ポスト (${posts.length}件)</h3>`;
+                contentDiv.innerHTML = resultsHTML; // ユーザー結果を先に表示
+                for (const post of posts) {
+                    await renderPost(post, post.user, contentDiv);
+                }
+            } else {
+                resultsHTML += `<p style="padding:1rem; text-align:center;">ポストは見つかりませんでした。</p>`;
+                contentDiv.innerHTML = resultsHTML; // ポストがない場合も表示を更新
+            }
+
+            if ((!users || users.length === 0) && (!posts || posts.length === 0)) {
+                contentDiv.innerHTML = `<p style="padding:2rem; text-align:center;">「${escapeHTML(query)}」に一致する結果は見つかりませんでした。</p>`;
+            }
+
+        } catch (e) {
+            contentDiv.innerHTML = `<p class="error-message">検索結果の読み込みに失敗しました。</p>`;
+            console.error("検索結果表示エラー:", e);
+        }
     }
+    // ▲▲▲ [修正点1, 2] ここまで ▼▼▼
+
     async function showNotificationsScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
         showScreen('notifications-screen');
         const contentDiv = DOM.notificationsContent; contentDiv.innerHTML = '';
+        
+        // ▼▼▼ [修正点4] 通知表示を最新順にし、空の場合のメッセージを追加 ▼▼▼
         if (currentUser.notice?.length) {
-            currentUser.notice.forEach(n => {
+            currentUser.notice.reverse().forEach(n => { // 最新の通知を上に表示するためreverse()
                 const noticeEl = document.createElement('div'); noticeEl.className = 'widget-item';
                 noticeEl.textContent = n;
                 contentDiv.appendChild(noticeEl);
             });
         } else { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知はまだありません。</p>'; }
+        // ▲▲▲ [修正点4] ここまで ▼▼▼
     }
     async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(currentUser.like, DOM.likesContent, "いいねしたポストはまだありません。"); }
     async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(currentUser.star, DOM.starsContent, "お気に入りに登録したポストはまだありません。"); }
@@ -362,7 +481,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     await renderPost(reply, reply.user, contentDiv);
                 }
             }
-            // ▲▲▲ [修正点3] ここまで ▲▲▲
+            // ▲▲▲ [修正点3] ここまで ▼▼▼
         } catch (err) { contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`; }
     }
     
@@ -393,7 +512,7 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             // ▼▼▼ [修正点4] is('reply_id', null) を削除し、返信も表示対象にする ▼▼▼
             let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').order('time', { ascending: false }).limit(50);
-            // ▲▲▲ [修正点4] ここまで ▲▲▲
+            // ▲▲▲ [修正点4] ここまで ▼▼▼
             if (tab === 'following' && currentUser?.follow?.length) {
                 query = query.in('userid', currentUser.follow);
             }
@@ -428,6 +547,12 @@ window.addEventListener('DOMContentLoaded', () => {
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('liked', !isLiked);
             iconSpan.textContent = isLiked ? '♡' : '♥';
+            // ▼▼▼ [修正点3] いいねの通知を送信 ▼▼▼
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
+            }
+            // ▲▲▲ [修正点3] ここまで ▼▼▼
         }
         button.disabled = false;
     };
@@ -449,6 +574,12 @@ window.addEventListener('DOMContentLoaded', () => {
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('starred', !isStarred);
             iconSpan.textContent = isStarred ? '★' : '☆'; // アイコンの表示も更新
+            // ▼▼▼ [修正点3] お気に入りの通知を送信 ▼▼▼
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
+            }
+            // ▲▲▲ [修正点3] ここまで ▼▼▼
         }
         button.disabled = false;
     };
@@ -468,7 +599,13 @@ window.addEventListener('DOMContentLoaded', () => {
             
             // ▼▼▼ [修正点5, 6] updateFollowButtonState を呼び出し、ボタンのスタイルとテキストを更新 ▼▼▼
             updateFollowButtonState(button, !isFollowing);
-            // ▲▲▲ [修正点5, 6] ここまで ▲▲▲
+            // ▲▲▲ [修正点5, 6] ここまで ▼▼▼
+
+            // ▼▼▼ [修正点3] フォロー/アンフォローの通知を送信 ▼▼▼
+            if (!isFollowing) { // フォローした場合のみ通知
+                sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`);
+            }
+            // ▲▲▲ [修正点3] ここまで ▼▼▼
 
             // フォロワー数表示の更新（RPC関数を再呼び出しして正確な数を取得）
             const followerCountSpan = document.querySelector('#follower-count strong');
@@ -494,10 +631,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
         if (error || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
         
-        // ▼▼▼ [修正点7] フォロワー数取得をRPC関数に修正 ▼▼▼
+        // フォロワー数取得をRPC関数に修正
         const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
         const followerCount = countError ? '?' : followerCountData;
-        // ▲▲▲ [修正点7] ここまで ▼▼▼
 
         profileHeader.innerHTML = `
             <div class="header-top">
@@ -519,22 +655,8 @@ window.addEventListener('DOMContentLoaded', () => {
             
             // ▼▼▼ [修正点6] プロフィールフォローボタンの初期状態とホバーイベントを設定 ▼▼▼
             const isFollowing = currentUser.follow?.includes(userId);
-            updateFollowButtonState(followButton, isFollowing);
+            updateFollowButtonState(followButton, isFollowing); // 初期状態をセット
 
-            followButton.onmouseenter = () => {
-                if (currentUser.follow?.includes(userId)) {
-                    followButton.textContent = 'フォロー解除';
-                    followButton.classList.remove('follow-button-following');
-                    followButton.classList.add('follow-button-unfollow-hover'); // ホバー時の赤背景を適用
-                }
-            };
-            followButton.onmouseleave = () => {
-                if (currentUser.follow?.includes(userId)) {
-                    followButton.textContent = 'フォロー中';
-                    followButton.classList.remove('follow-button-unfollow-hover');
-                    followButton.classList.add('follow-button-following'); // 通常の白背景に戻す
-                }
-            };
             followButton.onclick = () => handleFollowToggle(userId, followButton);
             profileHeader.querySelector('#follow-button-container').appendChild(followButton);
             // ▲▲▲ [修正点6] ここまで ▼▼▼
@@ -617,9 +739,12 @@ window.addEventListener('DOMContentLoaded', () => {
         realtimeChannel = supabase.channel('nyax-feed')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
                 const mainScreenVisible = !document.getElementById('main-screen').classList.contains('hidden');
-                if ((payload.eventType === 'INSERT' || payload.eventType === 'DELETE') && mainScreenVisible) {
+                // ▼▼▼ [修正点4] 通知画面もリアルタイム更新の対象にする ▼▼▼
+                const notificationsScreenVisible = !document.getElementById('notifications-screen').classList.contains('hidden');
+                if ((payload.eventType === 'INSERT' || payload.eventType === 'DELETE') && (mainScreenVisible || notificationsScreenVisible)) {
                     router(); // 変更があったら再描画
                 }
+                // ▲▲▲ [修正点4] ここまで ▼▼▼
             }).subscribe();
     }
     
