@@ -36,15 +36,26 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 9999px;
-    padding: 0.5rem 1rem;
+    border-radius: 9999px; /* 丸いボタンにする */
+    width: 40px; /* アイコンの大きさに合わせる */
+    height: 40px; /* アイコンの大きさに合わせる */
+    padding: 0; /* 余分なパディングをなくす */
+    display: flex; /* アイコンを中央配置 */
+    align-items: center; /* アイコンを中央配置 */
+    justify-content: center; /* アイコンを中央配置 */
     font-weight: 700;
     cursor: pointer;
     margin-left: 0.5rem;
     transition: background-color 0.2s;
+    flex-shrink: 0; /* サイズが縮まないようにする */
 }
 .header-search-bar button:hover {
     background-color: var(--primary-hover-color);
+}
+.header-search-bar button svg {
+    fill: white; /* SVGアイコンの色を白にする */
+    width: 20px; /* アイコンのサイズ */
+    height: 20px; /* アイコンのサイズ */
 }
 /* ▲▲▲ [修正点1] ここまで ▲▲▲ */
 .timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
@@ -91,7 +102,41 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .search-widget input { width: 100%; background-color: #e7e7e8; border: none; padding: 0.75rem 1rem; box-sizing: border-box; border-radius: 9999px; }
 .recommend-user { display: flex; justify-content: space-between; align-items: center; }
 .recommend-user span { font-weight: 700; }
-.recommend-user button { padding: 0.5rem 1rem; border-radius: 9999px; border: none; background-color: var(--text-color); color: white; font-weight: 700; cursor: pointer; }
+/* ▼▼▼ [修正点5, 6] おすすめユーザー・プロフィールフォローボタンのスタイル ▼▼▼ */
+.recommend-user button,
+#profile-header .follow-button button {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s; /* ホバー時の変化を滑らかに */
+    white-space: nowrap; /* テキストの折り返しを防ぐ */
+}
+
+/* フォローしていない状態 (おすすめユーザー、プロフィール共通) */
+.follow-button-not-following {
+    background-color: var(--text-color); /* 黒 */
+    color: white;
+    border: 1px solid var(--text-color);
+}
+.follow-button-not-following:hover {
+    background-color: #272c30; /* 少し濃い黒 */
+    border-color: #272c30;
+}
+
+/* フォローしている状態 (おすすめユーザー、プロフィール共通) */
+.follow-button-following {
+    background-color: white; /* 白 */
+    color: var(--text-color); /* 黒文字 */
+    border: 1px solid var(--border-color); /* 薄いグレーの枠線 */
+}
+.follow-button-following:hover {
+    /* フォロー解除時のホバーエフェクト */
+    background-color: #fce8ec; /* 薄い赤 */
+    color: var(--like-color); /* 赤文字 */
+    border-color: var(--like-color); /* 赤い枠線 */
+}
+/* ▲▲▲ [修正点5, 6] ここまで ▲▲▲ */
 
 /* 未ログイン時バナー */
 #login-banner { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--primary-color); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
@@ -111,8 +156,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #profile-header { padding: 1rem; border-bottom: 1px solid var(--border-color); }
 #profile-header .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
 #profile-header .user-icon-large { width: 128px; height: 128px; border-radius: 50%; }
-#profile-header .follow-button button { padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #ccc; background-color: white; color: black; font-weight: 700; cursor: pointer; }
-#profile-header .follow-button button:hover { background-color: var(--bg-color); }
+/* #profile-header .follow-button button { /* 共通化したため削除 */
+/*     padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #ccc; background-color: white; color: black; font-weight: 700; cursor: pointer; } */
+/* #profile-header .follow-button button:hover { background-color: var(--bg-color); } */
 #profile-header .profile-info { margin-top: 1rem; }
 #profile-header h2 { margin: 0; }
 #profile-header .user-id { color: var(--secondary-text-color); margin-bottom: 1rem; }
