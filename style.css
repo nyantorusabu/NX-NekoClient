@@ -29,6 +29,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #main-content { flex-shrink: 0; width: 600px; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
 #page-header { position: sticky; top: 0; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); padding: 1rem; border-bottom: 1px solid var(--border-color); z-index: 10; }
 #page-header h2 { margin: 0; font-size: 1.25rem; }
+.header-search-bar { display: flex; align-items: center; background-color: var(--bg-color); border-radius: 9999px; padding: 0.5rem 1rem; }
+.header-search-bar input { flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem; }
 .timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
 .timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; }
 .timeline-tab-button:hover { background-color: var(--bg-color); }
@@ -95,6 +97,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #profile-header .user-icon-large { width: 128px; height: 128px; border-radius: 50%; }
 #profile-header .follow-button button { padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #ccc; background-color: white; color: black; font-weight: 700; cursor: pointer; }
 #profile-header .follow-button button:hover { background-color: var(--bg-color); }
+#profile-header .profile-info { margin-top: 1rem; }
 #profile-header h2 { margin: 0; }
 #profile-header .user-id { color: var(--secondary-text-color); margin-bottom: 1rem; }
 #profile-header .user-stats { display: flex; gap: 1rem; margin-top: 1rem; }

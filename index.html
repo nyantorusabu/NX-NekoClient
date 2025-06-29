@@ -17,7 +17,10 @@
         </nav>
         <!-- 中央メインコンテンツ -->
         <main id="main-content">
-            <header id="page-header"><h2 id="page-title">ホーム</h2></header>
+            <!-- ▼▼▼ ヘッダーを動的コンテンツエリアの外に移動 ▼▼▼ -->
+            <header id="page-header">
+                <!-- ヘッダー内容はJSで動的に生成されます -->
+            </header>
             <div id="content-area">
                 <div id="main-screen" class="screen hidden">
                     <div class="timeline-tabs">
@@ -35,18 +38,17 @@
                     <div id="profile-header"></div><div id="profile-tabs"></div><div id="profile-content"></div>
                 </div>
                 <div id="settings-screen" class="screen hidden"></div>
-                <div id="post-detail-screen" class="screen hidden">
-                    <div id="post-detail-content"></div>
-                </div>
+                <div id="post-detail-screen" class="screen hidden"><div id="post-detail-content"></div></div>
+                <!-- ▼▼▼ 検索結果表示用の画面を追加 ▼▼▼ -->
+                <div id="search-results-screen" class="screen hidden"><div id="search-results-content"></div></div>
             </div>
         </main>
-        <!-- 右側サイドバー -->
+        <!-- 右側サイドバー (変更なし) -->
         <aside id="right-sidebar">
-            <div id="search-widget-container"></div>
             <div id="recommendations-widget-container"></div>
         </aside>
     </div>
-    <!-- 未ログイン時用ボトムバナー -->
+    <!-- (他の要素は前回のまま) -->
     <div id="login-banner" class="hidden">
         <div class="login-banner-content"><h3>NyaXはScratchのアカウントがあれば誰でも参加できます</h3></div>
         <div class="login-banner-actions">
@@ -54,14 +56,12 @@
             <button id="banner-signup-button">参加</button>
         </div>
     </div>
-    <!-- ポスト用モーダルウィンドウ -->
     <div id="post-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="modal-close-btn">×</button>
             <div class="post-form-container-modal"></div>
         </div>
     </div>
-    <!-- ローディングオーバーレイ -->
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <script src="main.js"></script>
 </body>
