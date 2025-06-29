@@ -189,6 +189,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: posts, error } = await query;
             if (error) throw new Error('ポストの読み込みに失敗しました。');
             if (!posts?.length) { container.innerHTML = `<p style="padding: 2rem; text-align: center;">${tab === 'following' ? 'まだ誰もフォローしていません。' : 'すべてのポストを読んだようです！'}</p>`; return; }
+            container.innerHTML = '';
             for (const post of posts) { await renderPost(post, post.user || {}, container, false); }
         } catch(err) { container.innerHTML = `<p class="error-message">${err.message}</p>`; }
         finally { showLoading(false); }
@@ -273,7 +274,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
         if (postError) { await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id); alert('いいね数の更新に失敗しました。'); } 
-        else { currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('liked', !isLiked); iconSpan.textContent = isLiked ? '♡' : '♥'; }
+        else { currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('liked'); iconSpan.textContent = isLiked ? '♡' : '♥'; }
         button.disabled = false;
     };
     window.handleStar = async (button, postId) => {
@@ -286,7 +287,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
         if (postError) { await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id); alert('お気に入り数の更新に失敗しました。'); } 
-        else { currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('starred', !isStarred); iconSpan.textContent = isStarred ? '☆' : '★'; }
+        else { currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('starred'); iconSpan.textContent = isStarred ? '☆' : '★'; }
         button.disabled = false;
     };
     window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.textContent = '...'; button.disabled = true; await handleFollowToggle(userId, button, true); };
@@ -306,6 +307,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if(error) throw error;
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
+            // Realtime will handle the update, no need to manually render
         } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
         finally { button.disabled = false; button.textContent = 'ポスト'; }
     }
@@ -336,7 +338,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (error) { alert('設定の更新に失敗しました。'); }
         else { alert('設定を更新しました。'); currentUser = data; localStorage.setItem('currentUser', JSON.stringify(currentUser)); window.location.hash = ''; }
     }
-    
+
     async function showProfileScreen(userId) {
         DOM.pageTitle.textContent = "プロフィール"; showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
@@ -425,7 +427,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }).subscribe();
     }
-
+    
     // --- 初期化処理 ---
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
