@@ -12,12 +12,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #left-nav { position: sticky; top: 0; height: 100vh; width: 275px; padding: 0 1rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
 #nav-menu-top { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem; }
 .nav-item { display: flex; align-items: center; gap: 1.2rem; padding: 0.75rem; font-size: 1.25rem; font-weight: 400; text-decoration: none; color: var(--text-color); border-radius: 9999px; cursor: pointer; background: none; border: none; text-align: left; transition: background-color 0.2s; }
-.nav-item svg { width: 1.75rem; height: 1.75rem; /* ▼▼▼ [修正点7] 枠線アイコン対応 ▼▼▼ */ fill: none; stroke: currentColor; stroke-width: 2; /* stroke-linecap: round; stroke-linejoin: round; */ /* ▲▲▲ [修正点7] ここまで ▼▼▼ */ }
+/* ▼▼▼ [修正点2] 左メニューアイコンを枠線のみに ▼▼▼ */
+.nav-item svg {
+    width: 1.75rem;
+    height: 1.75rem;
+    fill: none; /* 塗りつぶしをなくす */
+    stroke: currentColor; /* 枠線色をテキスト色に合わせる */
+    stroke-width: 2; /* 枠線の太さ */
+    /* stroke-linecap: round; */ /* 角を丸くしたい場合 */
+    /* stroke-linejoin: round; */ /* 角を丸くしたい場合 */
+}
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .nav-item:hover { background-color: var(--bg-color); }
 .nav-item.active { font-weight: 700; }
-/* ▼▼▼ [修正点7] アクティブアイコンの塗りつぶし状態を調整 ▼▼▼ */
-.nav-item.active svg { fill: currentColor; stroke: none; }
-/* ▲▲▲ [修正点7] ここまで ▼▼▼ */
+/* ▼▼▼ [修正点2] アクティブ時のアイコンは塗りつぶしに戻す ▼▼▼ */
+.nav-item.active svg {
+    fill: currentColor;
+    stroke: none;
+}
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .nav-item-post { background-color: var(--primary-color); color: white; width: 90%; justify-content: center; font-size: 1.1rem; font-weight: 700; padding: 1rem; margin-top: 1rem; }
 .nav-item-post:hover { background-color: var(--primary-hover-color); }
 #nav-menu-bottom { padding-bottom: 1rem; }
@@ -39,27 +52,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 9999px; /* 丸いボタンにする */
-    width: 40px; /* アイコンの大きさに合わせる */
-    height: 40px; /* アイコンの大きさに合わせる */
-    padding: 0; /* 余分なパディングをなくす */
-    display: flex; /* アイコンを中央配置 */
-    align-items: center; /* アイコンを中央配置 */
-    justify-content: center; /* アイコンを中央配置 */
+    border-radius: 9999px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: 700;
     cursor: pointer;
     margin-left: 0.5rem;
     transition: background-color 0.2s;
-    flex-shrink: 0; /* サイズが縮まないようにする */
+    flex-shrink: 0;
 }
 .header-search-bar button:hover {
     background-color: var(--primary-hover-color);
 }
 .header-search-bar button svg {
-    fill: white; /* SVGアイコンの色を白にする */
-    width: 20px; /* アイコンのサイズ */
-    height: 20px; /* アイコンのサイズ */
+    fill: white;
+    width: 20px;
+    height: 20px;
+    /* ▼▼▼ [修正点2] 検索アイコンの色を白に固定するため、strokeも白に ▼▼▼ */
+    stroke: white;
 }
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
 .timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; }
 .timeline-tab-button:hover { background-color: var(--bg-color); }
@@ -90,9 +106,38 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .star-button:hover, .star-button.starred { color: var(--star-color); }
 .post-actions .icon { font-size: 1.2rem; }
 .post-menu-btn { position: absolute; top: 0; right: 0; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--secondary-text-color); }
-.post-menu { position: absolute; right: 0; top: 25px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; }
-.post-menu button { width: 100%; padding: 0.8rem 1.2rem; text-align: left; }
-.post-menu .delete-btn { color: #f4212e; font-weight: bold; }
+/* ▼▼▼ [修正点1] ポストメニューのスタイル ▼▼▼ */
+.post-menu {
+    position: absolute;
+    right: 0;
+    top: 25px; /* ボタンのすぐ下に表示 */
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+    min-width: 150px; /* メニューの最小幅 */
+    overflow: hidden; /* 角丸と合わせるため */
+}
+.post-menu button {
+    width: 100%;
+    padding: 0.8rem 1.2rem;
+    text-align: left;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.post-menu button:hover {
+    background-color: var(--bg-color);
+}
+.post-menu .delete-btn {
+    color: #f4212e;
+    font-weight: bold;
+}
+/* ▲▲▲ [修正点1] ここまで ▼▼▼ */
 .replying-to a { color: var(--primary-color); text-decoration: none; }
 
 /* 右側サイドバー */
@@ -117,9 +162,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     outline: none;
     font-size: 1rem;
 }
+.sidebar-search-widget svg {
+    width: 20px; /* アイコンのサイズ */
+    height: 20px; /* アイコンのサイズ */
+    fill: var(--secondary-text-color); /* 検索アイコンの色 */
+    margin-right: 0.5rem;
+    /* ▼▼▼ [修正点2] 右サイドバー検索アイコンは枠線にするため stroke も指定 ▼▼▼ */
+    stroke: var(--secondary-text-color);
+    stroke-width: 2;
+}
 /* ▲▲▲ [修正点8] ここまで ▼▼▼ */
 
-/* .search-widget input { width: 100%; background-color: #e7e7e8; border: none; padding: 0.75rem 1rem; box-sizing: border-box; border-radius: 9999px; } */
 .recommend-user { display: flex; justify-content: space-between; align-items: center; }
 .recommend-user span { font-weight: 700; }
 /* おすすめユーザー・プロフィールフォローボタンのスタイル */
@@ -150,14 +203,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     color: var(--text-color); /* 黒文字 */
     border: 1px solid var(--border-color); /* 薄いグレーの枠線 */
 }
-.follow-button-following:hover {
-    /* フォロー解除時のホバーエフェクト */
-    background-color: #fce8ec; /* 薄い赤 */
-    color: var(--like-color); /* 赤文字 */
-    border-color: var(--like-color); /* 赤い枠線 */
-}
-/* ▼▼▼ [修正点6] プロフィールのフォロー解除ホバー時のクラス ▼▼▼ */
-.follow-button-unfollow-hover {
+/* ▼▼▼ [修正点6] プロフィールのフォロー解除ホバー時のクラス（背景色を赤に） ▼▼▼ */
+.follow-button-following:hover.follow-button-unfollow-hover {
     background-color: #f4212e !important; /* 強制的に赤 */
     color: white !important; /* 白文字 */
     border-color: #f4212e !important; /* 赤い枠線 */

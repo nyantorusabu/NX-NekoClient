@@ -17,7 +17,6 @@
         </nav>
         <!-- 中央メインコンテンツ -->
         <main id="main-content">
-            <!-- ▼▼▼ ヘッダーを動的コンテンツエリアの外に移動 ▼▼▼ -->
             <header id="page-header">
                 <!-- ヘッダー内容はJSで動的に生成されます -->
             </header>
@@ -39,16 +38,17 @@
                 </div>
                 <div id="settings-screen" class="screen hidden"></div>
                 <div id="post-detail-screen" class="screen hidden"><div id="post-detail-content"></div></div>
-                <!-- ▼▼▼ 検索結果表示用の画面を追加 ▼▼▼ -->
                 <div id="search-results-screen" class="screen hidden"><div id="search-results-content"></div></div>
             </div>
         </main>
-        <!-- 右側サイドバー (変更なし) -->
+        <!-- 右側サイドバー -->
         <aside id="right-sidebar">
+            <!-- ▼▼▼ [修正点8] 右サイドバーの検索ウィジェットコンテナを追加 ▼▼▼ -->
+            <div id="right-sidebar-search-widget-container"></div>
+            <!-- ▲▲▲ [修正点8] ここまで ▼▼▼ -->
             <div id="recommendations-widget-container"></div>
         </aside>
     </div>
-    <!-- (他の要素は前回のまま) -->
     <div id="login-banner" class="hidden">
         <div class="login-banner-content"><h3>NyaXはScratchのアカウントがあれば誰でも参加できます</h3></div>
         <div class="login-banner-actions">
