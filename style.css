@@ -102,7 +102,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .post-form .form-content { flex-grow: 1; }
 .post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
 .post-form-actions { display: flex; justify-content: flex-end; align-items: center; padding-top: 0.5rem; }
-/* ▼▼▼ [修正点2] ファイル添付ボタンの背景色をなくす ▼▼▼ */
 .post-form-actions button[type="submit"] {
     padding: 0.5rem 1rem;
     border-radius: 9999px;
@@ -115,8 +114,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .post-form-actions button[type="submit"]:disabled { background-color: #8ecdf8; cursor: not-allowed; }
 
 .attach-file-button {
-    background: none; /* 背景色なし */
-    border: none; /* 枠線なし */
+    background: none;
+    border: none;
     color: var(--primary-color);
     cursor: pointer;
     padding: 0.5rem;
@@ -132,8 +131,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     stroke: currentColor;
     stroke-width: 2;
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
-/* 添付ファイルのプレビューエリアのスタイル */
 .attachment-preview-container {
     display: flex;
     flex-wrap: wrap;
@@ -254,25 +251,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* モーダル共通スタイル */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 1001; }
 .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; position: relative; }
-/* ▼▼▼ [修正点3] ポスト作成モーダル内の閉じるボタンのスタイルを再定義 ▼▼▼ */
+/* ▼▼▼ [修正点4] ポスト作成モーダル内の閉じるボタンのスタイルを修正 ▼▼▼ */
 .modal-close-btn {
     position: absolute; /* モーダルコンテンツに対して絶対位置 */
     top: 1rem;
-    left: 1rem;
+    right: 1rem; /* 右端に配置 */
     background: none;
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
-    color: var(--secondary-text-color); /* 色を調整 */
-    z-index: 1; /* 手前に表示 */
+    color: var(--secondary-text-color);
+    z-index: 1;
 }
-/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
-/* ▼▼▼ [修正点4] モーダル外に配置する閉じるボタンのスタイル（画像プレビュー用） ▼▼▼ */
+/* ▲▲▲ [修正点4] ここまで ▼▼▼ */
+/* モーダル外に配置する閉じるボタンのスタイル（画像プレビュー用） */
 .modal-close-btn-outer {
     position: fixed;
     top: 10px;
     right: 10px;
-    background: rgba(0,0,0,0.5); /* 半透明の背景 */
+    background: rgba(0,0,0,0.5);
     color: white;
     border-radius: 50%;
     width: 32px;
@@ -286,7 +283,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     line-height: 1;
     z-index: 1002;
 }
-/* ▲▲▲ [修正点4] ここまで ▼▼▼ */
 
 /* 画像プレビューモーダル専用スタイル */
 .modal-content.image-content {

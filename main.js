@@ -136,25 +136,21 @@ window.addEventListener('DOMContentLoaded', () => {
         return formattedText;
     }
 
-    // ▼▼▼ [修正点1] ファイルアップロード関数を修正 ▼▼▼
+    // ▼▼▼ [修正点1] ファイルアップロード関数を修正 (apikey ヘッダー追加) ▼▼▼
     async function uploadFile(file) {
         showLoading(true);
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            // SupabaseプロジェクトのURLからFunctionsのエンドポイントを動的に構築
             const supabaseProjectRef = SUPABASE_URL.split('://')[1].split('.')[0];
             const functionUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/upload-handler`;
 
             const response = await fetch(functionUrl, {
                 method: 'POST',
-                // FormDataを使う場合、ブラウザが自動でContent-Type: multipart/form-data; boundary=... を設定するため、
-                // 手動で'Content-Type'ヘッダーを設定すると問題が起きることがあります。
-                // ここではContent-Typeは含めません。
                 headers: {
                     'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    // 'x-supabase-oauth-token': 'YOUR_JWT_IF_AUTHENTICATED_USER_IS_REQUIRED_IN_FUNCTION' // 必要なら
+                    'apikey': SUPABASE_ANON_KEY // APIキーを追加
                 },
                 body: formData,
             });
@@ -165,7 +161,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     const errorData = await response.json();
                     errorDetails = errorData.error || errorData.message || errorDetails;
                 } catch (parseError) {
-                    // レスポンスがJSONではない場合
                     console.error("Failed to parse error response as JSON:", parseError);
                     errorDetails += ` (Response was not JSON: ${await response.text().catch(() => '')})`;
                 }
