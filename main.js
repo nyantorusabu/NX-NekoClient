@@ -4,7 +4,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // ▼▼▼ [修正点3] ファイルアップロード用サービスキーと、関連するグローバル変数 ▼▼▼
+    // ▼▼▼ ファイルアップロード用サービスキーと、関連するグローバル変数 ▼▼▼
     // 【【【 警告：これは極めて危険な実装です 】】】
     // サービスロールキーはクライアントサイドに絶対に含めないでください。
     // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
@@ -12,7 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = []; // 選択されたファイルを保持する配列
-    // ▲▲▲ [修正点3] ここまで ▼▼▼
+    // ▲▲▲ ここまで ▲▲▲
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
@@ -26,7 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
         stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-        attachment: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c-1.93-1.35-4.5-1.5-6.5-1.5s-4.57.15-6.5 1.5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"></path></svg>`,
+        // ▼▼▼ [修正点3] クリップアイコンに変更 ▼▼▼
+        attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -224,7 +225,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (replyInfo) {
             replyingTo = replyInfo;
-            const replyInfoDiv = modalContainer.querySelector('#reply-info-modal');
+            const replyInfoDiv = modalContainer.querySelector('#reply-info');
             replyInfoDiv.innerHTML = `<span>@${replyInfo.name}に返信中</span>`;
             replyInfoDiv.classList.remove('hidden');
         }
@@ -318,7 +319,9 @@ window.addEventListener('DOMContentLoaded', () => {
             let attachmentsData = [];
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
-                    const fileName = `${crypto.randomUUID()}-${file.name}`;
+                    // ▼▼▼ [修正点4] 日本語ファイル名対応 ▼▼▼
+                    const fileName = `${crypto.randomUUID()}-${encodeURIComponent(file.name)}`;
+                    // ▲▲▲ [修正点4] ここまで ▼▼▼
                     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                         .from('nyax')
                         .upload(fileName, file);
@@ -391,7 +394,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (isImage) {
                     attachmentsHTML += `<img src="${publicURL}" alt="添付画像" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
                 } else {
-                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${attachment.id.split('-').slice(1).join('-')}</a>`;
+                    // ▼▼▼ [修正点4] 日本語ファイル名対応 ▼▼▼
+                    const originalFileName = decodeURIComponent(attachment.id.split('-').slice(1).join('-'));
+                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(originalFileName)}</a>`;
+                    // ▲▲▲ [修正点4] ここまで ▼▼▼
                 }
                 attachmentsHTML += '</div>';
             }
