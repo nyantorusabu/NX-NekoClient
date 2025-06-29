@@ -38,11 +38,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #main-content { flex-shrink: 0; width: 600px; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
 #page-header { position: sticky; top: 0; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); padding: 1rem; border-bottom: 1px solid var(--border-color); z-index: 10; }
 #page-header h2 { margin: 0; font-size: 1.25rem; }
-.header-search-bar { display: flex; align-items: center; background-color: var(--bg-color); border-radius: 9999px; padding: 0.5rem 1rem; }
-.header-search-bar input { flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem; }
-.header-search-bar button { background-color: var(--primary-color); color: white; border: none; border-radius: 9999px; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; margin-left: 0.5rem; transition: background-color 0.2s; flex-shrink: 0; }
-.header-search-bar button:hover { background-color: var(--primary-hover-color); }
-.header-search-bar button svg { fill: none; stroke: white; width: 20px; height: 20px; }
+/* ▼▼▼ [修正点3] 検索ページのヘッダー検索バーのスタイル ▼▼▼ */
+.header-search-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-color);
+    border-radius: 9999px;
+    padding: 0.5rem 1rem;
+}
+.header-search-bar .search-icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--secondary-text-color);
+    stroke-width: 2;
+    margin-right: 0.8rem;
+}
+.header-search-bar input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 1rem;
+}
+/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
 
 .timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
 .timeline-tabs { display: flex; }
