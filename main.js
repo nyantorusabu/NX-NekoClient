@@ -3,11 +3,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // 【【【 警告：これは極めて危険な実装です 】】】
-    // サービスロールキーはクライアントサイドに絶対に含めないでください。
-    // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
-    // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -290,8 +285,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     previewContainer.appendChild(previewItem);
                 };
                 reader.readAsDataURL(file);
+            } else if (file.type.startsWith('audio/')) {
+                previewItem.innerHTML = `<span>🎵 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewContainer.appendChild(previewItem);
             } else {
-                previewItem.innerHTML = `<span>${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 previewContainer.appendChild(previewItem);
             }
         });
@@ -300,7 +298,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (e.target.classList.contains('file-preview-remove')) {
                 const indexToRemove = parseInt(e.target.dataset.index);
                 selectedFiles.splice(indexToRemove, 1);
-                // 再描画
                 handleFileSelection({ target: { files: new DataTransfer().files } }, container);
                 const newFiles = new DataTransfer();
                 selectedFiles.forEach(file => newFiles.items.add(file));
@@ -324,24 +321,15 @@ window.addEventListener('DOMContentLoaded', () => {
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
                     const fileId = crypto.randomUUID();
-                    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-                        .from('nyax')
-                        .upload(fileId, file); // UUIDのみをファイル名としてアップロード
-
+                    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
                     if (uploadError) throw new Error(`ファイルアップロードに失敗しました: ${uploadError.message}`);
                     
-                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : 'file');
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
                     attachmentsData.push({ type: fileType, id: fileId, name: file.name });
                 }
             }
             
-            const postData = { 
-                userid: currentUser.id, 
-                content, 
-                reply_id: replyingTo?.id || null,
-                attachments: attachmentsData.length > 0 ? attachmentsData : null
-            };
-            
+            const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null, attachments: attachmentsData.length > 0 ? attachmentsData : null };
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
             if(postError) throw postError;
 
@@ -350,7 +338,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     sendNotification(newPost.reply_to.user.id, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
                 }
             }
-
             selectedFiles = [];
             contentEl.value = '';
             container.querySelector('.file-preview-container').innerHTML = '';
@@ -375,7 +362,11 @@ window.addEventListener('DOMContentLoaded', () => {
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => { if (!e.target.closest('button, a, video, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
+        postEl.onclick = (e) => {
+            if (!e.target.closest('button, a, video, audio, img')) { // インタラクティブ要素以外をクリックした場合
+                window.location.hash = `#post/${post.id}`;
+            }
+        };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -396,8 +387,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
                 } else if (attachment.type === 'video') {
                     attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
+                } else if (attachment.type === 'audio') {
+                    attachmentsHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio>`;
                 } else {
-                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(attachment.name)}</a>`;
+                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
             }
@@ -435,6 +428,10 @@ window.addEventListener('DOMContentLoaded', () => {
             attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
+        // ▼▼▼ [修正点3] タブ切り替えのイベントリスナーをここで設定 ▼▼▼
+        document.querySelectorAll('.timeline-tab-button').forEach(btn => {
+            btn.onclick = () => switchTimelineTab(btn.dataset.tab);
+        });
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
     }
 
@@ -455,14 +452,12 @@ window.addEventListener('DOMContentLoaded', () => {
     async function performSearch() {
         const headerSearchInput = document.getElementById('search-input');
         const sidebarSearchInput = document.getElementById('sidebar-search-input');
-        
         let query = '';
         if (headerSearchInput && document.getElementById('explore-screen')?.classList.contains('hidden') === false) {
              query = headerSearchInput.value.trim();
         } else if (sidebarSearchInput) {
              query = sidebarSearchInput.value.trim();
         }
-
         if (!query) return;
         window.location.hash = `#search/${encodeURIComponent(query)}`;
     }
@@ -602,12 +597,16 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true); container.innerHTML = '';
         try {
             let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').order('time', { ascending: false }).limit(50);
-            if (tab === 'following' && currentUser?.follow?.length) {
+            if (tab === 'following' && currentUser?.follow?.length > 0) {
                 query = query.in('userid', currentUser.follow);
+            } else if (tab === 'following') {
+                container.innerHTML = `<p style="padding: 2rem; text-align: center;">まだ誰もフォローしていません。</p>`;
+                showLoading(false);
+                return;
             }
             const { data: posts, error } = await query;
             if (error) throw new Error('ポストの読み込みに失敗しました。');
-            if (!posts?.length) { container.innerHTML = `<p style="padding: 2rem; text-align: center;">${tab === 'following' ? 'まだ誰もフォローしていません。' : 'まだポストがありません。'}</p>`; return; }
+            if (!posts?.length) { container.innerHTML = `<p style="padding: 2rem; text-align: center;">${tab === 'following' ? 'フォローしているユーザーのポストはまだありません。' : 'まだポストがありません。'}</p>`; return; }
             for (const post of posts) { await renderPost(post, post.user || {}, container); }
         } catch(err) { container.innerHTML = `<p class="error-message">${err.message}</p>`; console.error("loadTimeline error:", err);}
         finally { showLoading(false); }
@@ -818,12 +817,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    document.addEventListener('click', (e) => {
-        // ▼▼▼ [修正点3] フォロー中タブの不具合修正 ▼▼▼
-        if (e.target.matches('.timeline-tab-button')) {
-            switchTimelineTab(e.target.dataset.tab);
-        }
-    });
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
