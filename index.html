@@ -22,11 +22,13 @@
             </header>
             <div id="content-area">
                 <div id="main-screen" class="screen hidden">
-                    <div class="timeline-tabs">
-                        <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
-                        <button class="timeline-tab-button" data-tab="following">フォロー中</button>
+                    <!-- ▼▼▼ [修正点7] ホームのタブとポスト枠をスクロールしても動かないようにする ▼▼▼ -->
+                    <div class="timeline-tabs-sticky-container">
+                        <div class="timeline-tabs">
+                            <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
+                            <button class="timeline-tab-button" data-tab="following">フォロー中</button>
+                        </div>
                     </div>
-                    <!-- ▼▼▼ [修正点7] ポストフォームをスティッキーにするためにコンテナを調整 ▼▼▼ -->
                     <div class="post-form-sticky-container">
                         <div class="post-form-container"></div>
                     </div>

@@ -1,7 +1,9 @@
 window.addEventListener('DOMContentLoaded', () => {
     // --- 1. 初期設定 & グローバル変数 ---
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
+    // ▼▼▼ [修正点1] APIキーを更新 ▼▼▼
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
@@ -9,14 +11,14 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 2. アイコンSVG定義 ▼▼▼ [修正点2] 左メニューのアイコンを枠線のみの旧アイコンベースに（ホームは一部塗りつぶし） ▼▼▼ ---
     const ICONS = {
         // ホームアイコン: ドアのような部分（中央の四角）以外を塗りつぶし、その部分は線画
-        // path:nth-child(1) が家全体、path:nth-child(2) がドアの部分
-        home: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10" fill="none" stroke="currentColor"></rect></svg>`,
-        explore: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
-        notifications: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
-        likes: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
-        stars: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
-        profile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-        settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
+        // path:nth-child(1) が家全体、rect（ドア部分）が線画になるようにSVGを調整
+        home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
+        explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
+        likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
+        stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+        profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+        settings: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
     };
     // ▲▲▲ [修正点2] ここまで ▼▼▼
 
@@ -40,7 +42,7 @@ window.addEventListener('DOMContentLoaded', () => {
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
             recommendations: document.getElementById('recommendations-widget-container'),
-            searchWidget: document.getElementById('right-sidebar-search-widget-container') // index.htmlに追加された要素
+            searchWidget: document.getElementById('right-sidebar-search-widget-container')
         }
     };
 
@@ -52,11 +54,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
-    // フォローボタンの状態を更新するヘルパー関数
+    // ▼▼▼ [修正点4] フォローボタンの状態を更新するヘルパー関数 ▼▼▼
     function updateFollowButtonState(buttonElement, isFollowing) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following', 'follow-button-unfollow-hover');
         if (isFollowing) {
-            buttonElement.textContent = 'フォロー中';
+            buttonElement.textContent = 'フォロー'; // フォロー中のボタンテキストを「フォロー」に変更
             buttonElement.classList.add('follow-button-following');
             // ホバー時に「フォロー解除」を表示するロジック
             buttonElement.onmouseenter = () => {
@@ -64,7 +66,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 buttonElement.classList.add('follow-button-unfollow-hover');
             };
             buttonElement.onmouseleave = () => {
-                buttonElement.textContent = 'フォロー中';
+                buttonElement.textContent = 'フォロー'; // ホバーを外したら「フォロー」に戻す
                 buttonElement.classList.remove('follow-button-unfollow-hover');
             };
         } else {
@@ -76,15 +78,16 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         buttonElement.disabled = false;
     }
+    // ▲▲▲ [修正点4] ここまで ▼▼▼
 
-    // ▼▼▼ [修正点4] 通知を送信する関数 ▼▼▼
+    // ▼▼▼ [修正点8] 通知を送信する関数 ▼▼▼
     async function sendNotification(recipientId, message) {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return; // ログインユーザーでない、または自分自身への通知は送らない
 
         try {
-            // 受信者の現在の通知リストを取得
+            // 受信者の現在の通知リストと通知数を取得
             const { data: userData, error: fetchError } = await supabase.from('user')
-                .select('notice')
+                .select('notice, notice_count')
                 .eq('id', recipientId)
                 .single();
 
@@ -96,23 +99,22 @@ window.addEventListener('DOMContentLoaded', () => {
             // 新しい通知を先頭に追加（最新50件まで保持）
             const currentNotices = userData.notice || [];
             const updatedNotices = [`${new Date().toLocaleDateString('ja-JP')} ${new Date().toLocaleTimeString('ja-JP')} - ${message}`, ...currentNotices].slice(0, 50);
+            
+            // notice_countをインクリメント
+            const updatedNoticeCount = (userData.notice_count || 0) + 1;
 
             const { error: updateError } = await supabase.from('user')
-                .update({ notice: updatedNotices })
+                .update({ notice: updatedNotices, notice_count: updatedNoticeCount })
                 .eq('id', recipientId);
 
             if (updateError) {
                 console.error('通知の更新に失敗:', updateError);
-            } else {
-                // 通知を送った相手が currentUser の場合、currentUser の通知も更新
-                // ただし、sendNotification関数内で自分自身への通知は送らないようにしているので、これは基本的に不要
-                // しかし、念のため、notificationsScreenVisibleがtrueの場合にrouter()を呼ぶことで対応
             }
         } catch (e) {
             console.error('通知送信中にエラー発生:', e);
         }
     }
-    // ▲▲▲ [修正点4] ここまで ▼▼▼
+    // ▲▲▲ [修正点8] ここまで ▼▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -140,22 +142,42 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 6. ナビゲーションとサイドバー ---
-    function updateNavAndSidebars() {
+    async function updateNavAndSidebars() { // async関数に変更
         const hash = window.location.hash || '#';
         const menuItems = [
             { name: 'ホーム', hash: '#', icon: ICONS.home },
             { name: '検索', hash: '#explore', icon: ICONS.explore }
         ];
+
+        // ▼▼▼ [修正点8] 通知アイコンの未読数表示を更新するために、currentUserを最新にする ▼▼▼
+        if (currentUser) {
+            const { data: updatedUser, error } = await supabase.from('user').select('notice_count').eq('id', currentUser.id).single();
+            if (!error && updatedUser) {
+                currentUser.notice_count = updatedUser.notice_count;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser)); // localStorageも更新
+            } else {
+                console.error("Failed to fetch latest notice_count for current user:", error);
+                currentUser.notice_count = 0; // 取得失敗時は0にするなど、フォールバック
+            }
+        }
+        // ▲▲▲ [修正点8] ここまで ▼▼▼
+
         if (currentUser) {
             menuItems.push(
-                { name: '通知', hash: '#notifications', icon: ICONS.notifications },
+                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, // badgeプロパティを追加
                 { name: 'いいね', hash: '#likes', icon: ICONS.likes },
                 { name: 'お気に入り', hash: '#stars', icon: ICONS.stars },
                 { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile },
                 { name: '設定', hash: '#settings', icon: ICONS.settings }
             );
         }
-        DOM.navMenuTop.innerHTML = menuItems.map(item => `<a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}">${item.icon}<span>${item.name}</span></a>`).join('');
+        
+        DOM.navMenuTop.innerHTML = menuItems.map(item => `
+            <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}">
+                ${item.icon}
+                <span>${item.name}</span>
+                ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge}</span>` : ''}
+            </a>`).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         
         DOM.navMenuBottom.innerHTML = currentUser ?
@@ -199,7 +221,7 @@ window.addEventListener('DOMContentLoaded', () => {
         recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
-            const btnText = isFollowing ? 'フォロー中' : 'フォロー';
+            const btnText = isFollowing ? 'フォロー' : 'フォロー'; // ▼▼▼ [修正点4] フォロー中のテキストを「フォロー」に変更 ▼▼▼
 
             return `
                 <div class="widget-item recommend-user">
@@ -373,7 +395,7 @@ window.addEventListener('DOMContentLoaded', () => {
         await loadTimeline('foryou', DOM.exploreContent); // 発見ページでは「すべて」を表示
     }
 
-    // ▼▼▼ [修正点1, 3] 検索機能の拡張（ユーザーとポストの部分一致検索） ▼▼▼
+    // ▼▼▼ [修正点3] 検索機能の拡張（ユーザーとポストの部分一致検索） ▼▼▼
     async function performSearch() {
         // ヘッダーの検索入力とサイドバーの検索入力の両方に対応
         const headerSearchInput = document.getElementById('search-input');
@@ -453,24 +475,73 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error("検索結果表示エラー:", e);
         }
     }
-    // ▲▲▲ [修正点1, 3] ここまで ▼▼▼
+    // ▲▲▲ [修正点3] ここまで ▼▼▼
 
+    // ▼▼▼ [修正点8] 通知タブに切り替えた時通知を読み込む / 通知をリセットする ▼▼▼
     async function showNotificationsScreen() {
+        if (!currentUser) {
+            DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
+            showScreen('notifications-screen');
+            DOM.notificationsContent.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知を見るにはログインが必要です。</p>';
+            return;
+        }
+
         DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
         showScreen('notifications-screen');
-        const contentDiv = DOM.notificationsContent; contentDiv.innerHTML = '';
-        
-        // ▼▼▼ [修正点4] 通知表示を最新順にし、空の場合のメッセージを追加 ▼▼▼
-        if (currentUser.notice?.length) {
-            // notice配列は最新のものが先頭に追加されるため、そのままforEachで表示すれば最新順になる
-            currentUser.notice.forEach(n => {
-                const noticeEl = document.createElement('div'); noticeEl.className = 'widget-item';
-                noticeEl.textContent = n;
-                contentDiv.appendChild(noticeEl);
-            });
-        } else { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知はまだありません。</p>'; }
-        // ▲▲▲ [修正点4] ここまで ▼▼▼
+        const contentDiv = DOM.notificationsContent;
+        contentDiv.innerHTML = '<div class="spinner"></div>'; // ローディング表示
+
+        try {
+            // 最新のユーザーデータを取得し、通知リストと通知数を更新
+            const { data: updatedUser, error: fetchError } = await supabase.from('user')
+                .select('notice, notice_count')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (fetchError || !updatedUser) {
+                console.error('通知の取得に失敗:', fetchError);
+                contentDiv.innerHTML = '<p class="error-message">通知の読み込み中にエラーが発生しました。</p>';
+                return;
+            }
+
+            currentUser.notice = updatedUser.notice;
+            currentUser.notice_count = updatedUser.notice_count;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+            // 通知を全て既読にする（notice_countを0にリセット）
+            if (currentUser.notice_count > 0) {
+                const { error: resetError } = await supabase.from('user')
+                    .update({ notice_count: 0 })
+                    .eq('id', currentUser.id);
+                if (resetError) {
+                    console.error('通知数のリセットに失敗:', resetError);
+                } else {
+                    currentUser.notice_count = 0; // ローカルのcurrentUserも更新
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                    updateNavAndSidebars(); // 左メニューの通知バッジを更新
+                }
+            }
+
+            // 通知を表示
+            contentDiv.innerHTML = '';
+            if (currentUser.notice?.length) {
+                currentUser.notice.forEach(n => {
+                    const noticeEl = document.createElement('div'); noticeEl.className = 'widget-item';
+                    noticeEl.textContent = n;
+                    contentDiv.appendChild(noticeEl);
+                });
+            } else {
+                contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知はまだありません。</p>';
+            }
+        } catch (e) {
+            console.error("通知画面エラー:", e);
+            contentDiv.innerHTML = `<p class="error-message">通知の読み込みに失敗しました。</p>`;
+        } finally {
+            showLoading(false);
+        }
     }
+    // ▲▲▲ [修正点8] ここまで ▼▼▼
+
     async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(currentUser.like, DOM.likesContent, "いいねしたポストはまだありません。"); }
     async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(currentUser.star, DOM.starsContent, "お気に入りに登録したポストはまだありません。"); }
     async function showPostDetail(postId) {
