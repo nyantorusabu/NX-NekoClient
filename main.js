@@ -46,6 +46,22 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
+    // --- 認証とセッション ---
+    function goToLoginPage() { window.location.href = 'login.html'; }
+    function handleLogout() {
+        if(!confirm("ログアウトしますか？")) return;
+        currentUser = null; localStorage.removeItem('currentUser');
+        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+        window.location.hash = '#';
+        router();
+    }
+    function checkSession() {
+        const userJson = localStorage.getItem('currentUser');
+        currentUser = userJson ? JSON.parse(userJson) : null;
+        if(currentUser) subscribeToChanges();
+        router();
+    }
+
     // --- ナビゲーションとサイドバー ---
     function updateNavAndSidebars() {
         const hash = window.location.hash || '#';
@@ -98,22 +114,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 ${currentUser && currentUser.id !== user.id ? `<button onclick="window.handleRecFollow(${user.id}, this)">フォロー</button>` : ''}
             </div>`).join('');
         DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
-    }
-
-    // --- 認証とセッション ---
-    function goToLoginPage() { window.location.href = 'login.html'; }
-    function handleLogout() {
-        if(!confirm("ログアウトしますか？")) return;
-        currentUser = null; localStorage.removeItem('currentUser');
-        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-        window.location.hash = '#';
-        router();
-    }
-    function checkSession() {
-        const userJson = localStorage.getItem('currentUser');
-        currentUser = userJson ? JSON.parse(userJson) : null;
-        if(currentUser) subscribeToChanges();
-        router();
     }
 
     // --- メインロジック（画面表示） ---
@@ -169,6 +169,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!ids || ids.length === 0) { container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`; return; }
             const { data, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').in('id', ids).order('time', { ascending: false });
             if (error) throw error;
+            container.innerHTML = '';
             for (const p of data) { await renderPost(p, p.user, container); }
         } catch (err) { container.innerHTML = `<p class="error-message">ポストの読み込みに失敗しました。</p>`; }
         finally { showLoading(false); }
@@ -257,7 +258,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     const handleCtrlEnter = (e) => {
         if (e.ctrlKey && e.key === 'Enter') {
-            e.target.closest('.post-form').querySelector('button').click();
+            e.target.closest('.post-form, .form-content').querySelector('button').click();
         }
     };
     window.togglePostMenu = (postId) => document.getElementById(`menu-${postId}`).classList.toggle('hidden');
@@ -307,7 +308,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if(error) throw error;
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
-            // Realtime will handle the update, no need to manually render
         } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
         finally { button.disabled = false; button.textContent = 'ポスト'; }
     }
@@ -338,7 +338,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (error) { alert('設定の更新に失敗しました。'); }
         else { alert('設定を更新しました。'); currentUser = data; localStorage.setItem('currentUser', JSON.stringify(currentUser)); window.location.hash = ''; }
     }
-
+    
     async function showProfileScreen(userId) {
         DOM.pageTitle.textContent = "プロフィール"; showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
@@ -428,7 +428,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }).subscribe();
     }
     
-    // --- 初期化処理 ---
+    // --- ▼▼▼▼▼ 全ての関数の呼び出し（初期化処理）を最後に集約 ▼▼▼▼▼ ---
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
