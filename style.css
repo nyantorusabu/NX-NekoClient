@@ -63,13 +63,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 
 /* ▼▼▼ [修正点1] ファイル添付ボタンのスタイル ▼▼▼ */
 .attachment-button {
-    background: none; /* 背景色をなくす */
+    background-color: transparent !important; /* 背景色を強制的に無効化 */
     border: none;
     cursor: pointer;
     padding: 0.5rem;
     color: var(--primary-color);
     line-height: 1;
-    border-radius: 50%; /* ホバー時の背景を円形にするため */
+    border-radius: 50%;
     transition: background-color 0.2s;
 }
 .attachment-button:hover {
@@ -84,7 +84,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* ▲▲▲ [修正点1] ここまで ▼▼▼ */
 .file-preview-container { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .file-preview-item { position: relative; }
-.file-preview-item img { max-width: 100px; max-height: 100px; border-radius: 8px; }
+.file-preview-item img, .file-preview-item video { max-width: 100px; max-height: 100px; border-radius: 8px; }
 .file-preview-remove { position: absolute; top: -5px; right: -5px; background: rgba(0,0,0,0.7); color: white; border-radius: 50%; width: 20px; height: 20px; border: none; cursor: pointer; font-size: 0.8rem; line-height: 20px; text-align: center; }
 
 /* ポスト表示 */
@@ -111,9 +111,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .replying-to a { color: var(--primary-color); text-decoration: none; }
 .parent-post-container { padding-left: 1rem; border-left: 2px solid var(--border-color); margin-left: 24px; margin-bottom: 1rem; }
 
+/* 添付ファイル表示のスタイル */
 .attachments-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .attachment-item { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
-.attachment-item img { max-width: 100%; display: block; cursor: pointer; }
+.attachment-item img, .attachment-item video { max-width: 100%; display: block; cursor: pointer; }
 .attachment-item a { display: block; padding: 1rem; text-decoration: none; color: var(--text-color); }
 
 /* 右側サイドバー */
@@ -141,11 +142,32 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* ▼▼▼ [修正点2] 未ログインバナーのボタンのCSSを再構成 ▼▼▼ */
 #login-banner { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--primary-color); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
 #login-banner-content h3 { margin: 0; font-weight: 500; font-size: 1.1rem; }
-#login-banner-actions button { margin-left: 1rem; padding: 0.6rem 1.2rem; border-radius: 9999px; font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: background-color 0.2s, color 0.2s, border-color 0.2s; border: 1px solid; }
-#banner-login-button { background: transparent; color: white; border-color: white; }
-#banner-login-button:hover { background-color: rgba(255,255,255,0.1); }
-#banner-signup-button { background: white; color: black; border-color: white; }
-#banner-signup-button:hover { background-color: #f0f0f0; }
+#login-banner-actions button {
+    margin-left: 1rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px !important; /* 丸みを強制 */
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    border: 1px solid;
+}
+#banner-login-button {
+    background: transparent;
+    color: white;
+    border-color: white;
+}
+#banner-login-button:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+#banner-signup-button {
+    background: white;
+    color: black;
+    border-color: white;
+}
+#banner-signup-button:hover {
+    background-color: #f0f0f0;
+}
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 
 /* ポスト用モーダル */
