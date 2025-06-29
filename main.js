@@ -24,6 +24,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
+        mainContent: document.getElementById('main-content'), // ▼▼▼ イベントデリゲーション用にmain-contentを追加 ▼▼▼
         navMenuTop: document.getElementById('nav-menu-top'),
         navMenuBottom: document.getElementById('nav-menu-bottom'),
         pageHeader: document.getElementById('page-header'),
@@ -306,7 +307,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // ▼▼▼ [修正点1, 4] ポスト処理とuser.postの更新ロジックを修正 ▼▼▼
     async function handlePostSubmit(container) {
         if (!currentUser) return alert("ログインが必要です。");
         const contentEl = container.querySelector('textarea');
@@ -334,13 +334,11 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
             if(postError) throw postError;
 
-            // 投稿者のuser.post配列を更新
             const currentPostIds = currentUser.post || [];
             const updatedPostIds = [newPost.id, ...currentPostIds];
             const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPostIds }).eq('id', currentUser.id);
             if (userUpdateError) throw new Error('ユーザー情報の更新に失敗しました。');
             
-            // ローカルのcurrentUserも更新
             currentUser.post = updatedPostIds;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
@@ -362,7 +360,6 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
-    // ▲▲▲ [修正点1, 4] ここまで ▼▼▼
     
     window.openImageModal = (src) => {
         DOM.imagePreviewModalContent.src = src;
@@ -373,7 +370,6 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.imagePreviewModalContent.src = '';
     }
     
-    // ▼▼▼ [修正点2] JavaScriptによるファイルダウンロード処理 ▼▼▼
     window.handleDownload = async (fileUrl, fileName) => {
         try {
             const response = await fetch(fileUrl);
@@ -393,16 +389,13 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('ファイルのダウンロードに失敗しました。');
         }
     }
-    // ▲▲▲ [修正点2] ここまで ▼▼▼
 
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
-        const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => {
-            if (!e.target.closest('button, a, video, audio, img')) { // インタラクティブ要素以外をクリックした場合
-                window.location.hash = `#post/${post.id}`;
-            }
-        };
+        const postEl = document.createElement('div');
+        postEl.className = 'post';
+        postEl.dataset.postId = post.id; // データ属性にIDを設定
+
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -425,10 +418,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
                 } else if (attachment.type === 'audio') {
                     attachmentsHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio>`;
-                } else {
-                    attachmentsHTML += `<a class="attachment-download-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">${escapeHTML(attachment.name)}</a>`;
                 }
-                if (attachment.type === 'image' || attachment.type === 'video') {
+                
+                if (attachment.type === 'file' || attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio') {
                     attachmentsHTML += `<a class="attachment-download-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
@@ -855,6 +847,22 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
+    // ▼▼▼ [修正点7] クリックイベントの処理をイベントデリゲーションに変更 ▼▼▼
+    DOM.mainContent.addEventListener('click', (e) => {
+        // ポスト詳細ページへの遷移ロジック
+        if (!e.target.closest('button, a, video, audio, img, input')) {
+            const postElement = e.target.closest('.post');
+            if (postElement && postElement.dataset.postId) {
+                window.location.hash = `#post/${postElement.dataset.postId}`;
+            }
+        }
+        // ホームタブの切り替えロジック
+        if (e.target.matches('.timeline-tab-button')) {
+            switchTimelineTab(e.target.dataset.tab);
+        }
+    });
+    // ▲▲▲ [修正点7] ここまで ▼▼▼
+
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
