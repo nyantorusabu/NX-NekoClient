@@ -221,7 +221,7 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
-
+    
     // --- ユーザーアクションとモーダル ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
@@ -273,7 +273,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
         if (postError) { await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id); alert('いいね数の更新に失敗しました。'); } 
-        else { currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('liked'); iconSpan.textContent = isLiked ? '♡' : '♥'; }
+        else { currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('liked', !isLiked); iconSpan.textContent = isLiked ? '♡' : '♥'; }
         button.disabled = false;
     };
     window.handleStar = async (button, postId) => {
@@ -286,7 +286,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
         if (postError) { await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id); alert('お気に入り数の更新に失敗しました。'); } 
-        else { currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('starred'); iconSpan.textContent = isStarred ? '☆' : '★'; }
+        else { currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser)); countSpan.textContent = parseInt(countSpan.textContent) + incrementValue; button.classList.toggle('starred', !isStarred); iconSpan.textContent = isStarred ? '☆' : '★'; }
         button.disabled = false;
     };
     window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.textContent = '...'; button.disabled = true; await handleFollowToggle(userId, button, true); };
@@ -306,7 +306,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if(error) throw error;
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
-            // Realtime will handle the update
         } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
         finally { button.disabled = false; button.textContent = 'ポスト'; }
     }
@@ -337,6 +336,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (error) { alert('設定の更新に失敗しました。'); }
         else { alert('設定を更新しました。'); currentUser = data; localStorage.setItem('currentUser', JSON.stringify(currentUser)); window.location.hash = ''; }
     }
+    
     async function showProfileScreen(userId) {
         DOM.pageTitle.textContent = "プロフィール"; showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
@@ -344,7 +344,20 @@ window.addEventListener('DOMContentLoaded', () => {
         const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
         if (error || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
         const { count: followerCount, error: countError } = await supabase.from('user').select('id', { count: 'exact', head: true }).contains('follow', `{${userId}}`);
-        profileHeader.innerHTML = `<div class="header-top"><img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon"><div id="follow-button-container" class="follow-button"></div></div><div class="profile-info"><h2>${escapeHTML(user.name)}</h2><div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div><p class="user-me">${escapeHTML(user.me || '')}</p><div class="user-stats"><span><strong>${user.follow?.length || 0}</strong> フォロー中</span><span id="follower-count"><strong>${countError ? '?' : followerCount}</strong> フォロワー</span></div></div>`;
+        profileHeader.innerHTML = `
+            <div class="header-top">
+                <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                <div id="follow-button-container" class="follow-button"></div>
+            </div>
+            <div class="profile-info">
+                <h2>${escapeHTML(user.name)}</h2>
+                <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
+                <p class="user-me">${escapeHTML(user.me || '')}</p>
+                <div class="user-stats">
+                    <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
+                    <span id="follower-count"><strong>${countError ? '?' : followerCount}</strong> フォロワー</span>
+                </div>
+            </div>`;
         if (currentUser && userId !== currentUser.id) {
             const followButton = document.createElement('button');
             const isFollowing = currentUser.follow?.includes(userId);
@@ -412,7 +425,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }).subscribe();
     }
-    
+
     // --- 初期化処理 ---
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
