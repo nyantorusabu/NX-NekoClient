@@ -6,7 +6,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
 
-    // --- 2. アイコンSVG定義 ▼▼▼ [修正点1, 2, 5, 6] 各アイコンのSVG定義を修正 ▼▼▼ ---
+    // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
@@ -16,7 +16,6 @@ window.addEventListener('DOMContentLoaded', () => {
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
     };
-    // ▲▲▲ [修正点1, 2, 5, 6] ここまで ▼▼▼
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
@@ -76,12 +75,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     // ▲▲▲ [修正点3] ここまで ▼▼▼
 
-    // ▼▼▼ [修正点8] 通知を送信する関数 ▼▼▼
     async function sendNotification(recipientId, message) {
-        if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return; // ログインユーザーでない、または自分自身への通知は送らない
+        if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
 
         try {
-            // 受信者の現在の通知リストと通知数を取得
             const { data: userData, error: fetchError } = await supabase.from('user')
                 .select('notice, notice_count')
                 .eq('id', recipientId)
@@ -92,11 +89,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 新しい通知を先頭に追加（最新50件まで保持）
             const currentNotices = userData.notice || [];
             const updatedNotices = [`${new Date().toLocaleDateString('ja-JP')} ${new Date().toLocaleTimeString('ja-JP')} - ${message}`, ...currentNotices].slice(0, 50);
             
-            // notice_countをインクリメント
             const updatedNoticeCount = (userData.notice_count || 0) + 1;
 
             const { error: updateError } = await supabase.from('user')
@@ -110,22 +105,18 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error('通知送信中にエラー発生:', e);
         }
     }
-    // ▲▲▲ [修正点8] ここまで ▼▼▼
     
-    // ▼▼▼ [修正点8] 自動リンク機能のためのヘルパー関数 ▼▼▼
+    // ▼▼▼ [修正点1] 自動リンク機能のためのヘルパー関数を修正 ▼▼▼
     async function formatPostContent(text) {
         let formattedText = escapeHTML(text);
 
-        // 1. URL
         const urlRegex = /(https?:\/\/[^\s<>"'’]+)/g;
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
 
-        // 2. ハッシュタグ
         const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
         formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
 
-        // 3. メンション
-        const mentionRegex = /@(\d{4})/g;
+        const mentionRegex = /@(\d+)/g; // 4桁縛りを撤廃
         const userIds = [...formattedText.matchAll(mentionRegex)].map(match => parseInt(match[1]));
 
         if (userIds.length > 0) {
@@ -144,11 +135,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         return formattedText;
     }
-    // ▲▲▲ [修正点8] ここまで ▼▼▼
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
-        await updateNavAndSidebars(); // awaitを追加してナビゲーションの更新を待つ
+        await updateNavAndSidebars();
         const hash = window.location.hash || '#';
         showLoading(true);
         try {
@@ -172,31 +163,29 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 6. ナビゲーションとサイドバー ---
-    async function updateNavAndSidebars() { // async関数に変更
+    async function updateNavAndSidebars() {
         const hash = window.location.hash || '#';
         const menuItems = [
             { name: 'ホーム', hash: '#', icon: ICONS.home },
             { name: '検索', hash: '#explore', icon: ICONS.explore }
         ];
 
-        // ▼▼▼ [修正点8] 通知アイコンの未読数表示を更新するために、currentUserを最新にする ▼▼▼
-        if (currentUser && !currentUser.notice_count_fetched_recently) { // 無駄なフェッチを避けるフラグ
+        if (currentUser && !currentUser.notice_count_fetched_recently) {
             const { data: updatedUser, error } = await supabase.from('user').select('notice, notice_count').eq('id', currentUser.id).single();
             if (!error && updatedUser) {
                 currentUser.notice = updatedUser.notice;
                 currentUser.notice_count = updatedUser.notice_count;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser)); // localStorageも更新
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
             } else {
                 console.error("Failed to fetch latest notice_count for current user:", error);
             }
-            currentUser.notice_count_fetched_recently = true; // フェッチしたことを記録
-            setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000); // 10秒後にリセット
+            currentUser.notice_count_fetched_recently = true;
+            setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
-        // ▲▲▲ [修正点8] ここまで ▼▼▼
 
         if (currentUser) {
             menuItems.push(
-                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, // badgeプロパティを追加
+                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count },
                 { name: 'いいね', hash: '#likes', icon: ICONS.likes },
                 { name: 'お気に入り', hash: '#stars', icon: ICONS.stars },
                 { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile },
@@ -343,10 +332,9 @@ window.addEventListener('DOMContentLoaded', () => {
         button.disabled = true; button.textContent = '投稿中...';
         try {
             const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null };
-            const { data: newPost, error } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single(); // 投稿したポスト情報を取得
+            const { data: newPost, error } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
             if(error) throw error;
             
-            // 返信の場合に通知を送信
             if (newPost.reply_id && newPost.reply_to?.user?.id) {
                 const parentPostAuthorId = newPost.reply_to.user.id;
                 if (parentPostAuthorId !== currentUser.id) {
@@ -496,7 +484,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ▼▼▼ [修正点8] 通知タブに切り替えた時通知を読み込む / 通知をリセットする ▼▼▼
     async function showNotificationsScreen() {
         if (!currentUser) {
             DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
@@ -511,9 +498,8 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
         try {
-            await updateNavAndSidebars(); // 最新の通知情報を取得
+            await updateNavAndSidebars();
 
-            // 通知を全て既読にする（notice_countを0にリセット）
             if (currentUser.notice_count > 0) {
                 const { error: resetError } = await supabase.from('user')
                     .update({ notice_count: 0 })
@@ -523,11 +509,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     currentUser.notice_count = 0;
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    await updateNavAndSidebars(); // 左メニューの通知バッジを更新
+                    await updateNavAndSidebars();
                 }
             }
 
-            // 通知を表示
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
                 currentUser.notice.forEach(n => {
@@ -545,10 +530,11 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     }
-    // ▲▲▲ [修正点8] ここまで ▼▼▼
 
     async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(currentUser.like, DOM.likesContent, "いいねしたポストはまだありません。"); }
     async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(currentUser.star, DOM.starsContent, "お気に入りに登録したポストはまだありません。"); }
+
+    // ▼▼▼ [修正点2] 返信ポストの場合に親ポストも表示するよう修正 ▼▼▼
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
         showScreen('post-detail-screen');
@@ -557,8 +543,19 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: post, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').eq('id', postId).single();
             if (error || !post) throw new Error('ポストが見つかりません。');
             contentDiv.innerHTML = '';
+            
+            // 返信先のポストが存在する場合、それを先に表示
+            if (post.reply_id && post.reply_to) {
+                const parentPostContainer = document.createElement('div');
+                parentPostContainer.className = 'parent-post-container';
+                await renderPost(post.reply_to, post.reply_to.user, parentPostContainer);
+                contentDiv.appendChild(parentPostContainer);
+            }
+            
+            // メインのポストを表示
             await renderPost(post, post.user, contentDiv);
             
+            // このポストへの返信一覧を表示
             const { data: replies, error: repliesError } = await supabase.from('post')
                 .select('*, user(*), reply_to:reply_id(*, user(*))')
                 .eq('reply_id', postId)
@@ -570,7 +567,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repliesHeader = document.createElement('h3');
                 repliesHeader.textContent = '返信';
                 repliesHeader.style.padding = '1rem';
+                repliesHeader.style.borderTop = '1px solid var(--border-color)';
                 repliesHeader.style.borderBottom = '1px solid var(--border-color)';
+                repliesHeader.style.marginTop = '1rem';
                 repliesHeader.style.margin = '0';
                 repliesHeader.style.fontSize = '1.2rem';
                 contentDiv.appendChild(repliesHeader);
@@ -581,6 +580,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) { contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`; }
     }
+    // ▲▲▲ [修正点2] ここまで ▼▼▼
     
     // --- 10. コンテンツ読み込み & レンダリング ---
     async function loadPostsByIds(ids, container, emptyMessage) {
@@ -641,7 +641,7 @@ window.addEventListener('DOMContentLoaded', () => {
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('liked', !isLiked);
             iconSpan.textContent = isLiked ? '♡' : '♥';
-            if (!isLiked) { // いいねした場合のみ通知
+            if (!isLiked) {
                 const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
                 if (postData?.userid && postData.userid !== currentUser.id) {
                     sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
@@ -668,7 +668,7 @@ window.addEventListener('DOMContentLoaded', () => {
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('starred', !isStarred);
             iconSpan.textContent = isStarred ? '★' : '☆';
-            if (!isStarred) { // お気に入りにした場合のみ通知
+            if (!isStarred) {
                 const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
                 if (postData?.userid && postData.userid !== currentUser.id) {
                     sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
@@ -828,7 +828,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
-                // 自身のユーザーデータが更新されたらナビゲーションを再描画して通知数を更新
                 updateNavAndSidebars();
             })
             .subscribe();
