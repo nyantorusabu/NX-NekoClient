@@ -928,7 +928,111 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+    // --- 12. プロフィール関連 ---
+    async function showProfileScreen(userId) {
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
+        showScreen('profile-screen');
+        const profileHeader = document.getElementById('profile-header');
+        const profileTabs = document.getElementById('profile-tabs');
+        profileHeader.innerHTML = '<div class="spinner"></div>';
+        profileTabs.innerHTML = ''; // タブも一旦クリア
 
+        try {
+            const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
+            if (error || !user) {
+                profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
+                return;
+            }
+            
+            const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
+            const followerCount = countError ? '?' : followerCountData;
+
+            profileHeader.innerHTML = `
+                <div class="header-top">
+                    <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                    <div id="follow-button-container" class="follow-button"></div>
+                </div>
+                <div class="profile-info">
+                    <h2>${escapeHTML(user.name)}</h2>
+                    <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
+                    <p class="user-me">${escapeHTML(user.me || '')}</p>
+                    <div class="user-stats">
+                        <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
+                        <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
+                    </div>
+                </div>`;
+
+            if (currentUser && userId !== currentUser.id) {
+                const followButton = document.createElement('button');
+                followButton.id = `profile-follow-button-${userId}`;
+                const isFollowing = currentUser.follow?.includes(userId);
+                updateFollowButtonState(followButton, isFollowing);
+                followButton.onclick = () => handleFollowToggle(userId, followButton);
+                profileHeader.querySelector('#follow-button-container').appendChild(followButton);
+            }
+
+            profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
+            profileTabs.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadProfileTabContent(user, button.dataset.tab);
+                });
+            });
+
+            await loadProfileTabContent(user, 'posts');
+        } catch(err) {
+            profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
+            console.error(err);
+        }
+    }
+
+    async function loadProfileTabContent(user, tab) {
+        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        const contentDiv = document.getElementById('profile-content');
+        
+        if (postLoadObserver) postLoadObserver.disconnect();
+        contentDiv.innerHTML = '';
+
+        try {
+            switch(tab) {
+                case 'posts':
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [] });
+                    break;
+                case 'likes': 
+                    if (!user.settings.show_like && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのいいねは非公開です。</p>'; break; }
+                    await loadPostsWithPagination(contentDiv, 'likes', { ids: user.like || [] });
+                    break;
+                case 'stars':
+                    if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
+                    await loadPostsWithPagination(contentDiv, 'stars', { ids: user.star || [] });
+                    break;
+                case 'follows':
+                    contentDiv.innerHTML = '<div class="spinner"></div>';
+                    if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
+                    if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
+                    
+                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid').in('id', user.follow);
+                    if(fErr) throw fErr;
+                    contentDiv.innerHTML = '';
+                    fUsers?.forEach(u => {
+                        const userCard = document.createElement('div');
+                        userCard.className = 'profile-card';
+                        const userLink = document.createElement('a');
+                        userLink.href = `#profile/${u.id}`;
+                        userLink.className = 'profile-link';
+                        userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
+                        userLink.innerHTML = `<img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                        userCard.appendChild(userLink);
+                        contentDiv.appendChild(userCard);
+                    });
+                    break;
+            }
+        } catch(err) {
+            contentDiv.innerHTML = `<p class="error-message">コンテンツの読み込みに失敗しました。</p>`;
+            console.error("loadProfileTabContent error:", err);
+        }
+    }
+    
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
