@@ -22,7 +22,6 @@
             </header>
             <div id="content-area">
                 <div id="main-screen" class="screen hidden">
-                    <!-- ▼▼▼ [修正点7] ホームのタブとポスト枠をスクロールしても動かないようにする ▼▼▼ -->
                     <div class="timeline-tabs-sticky-container">
                         <div class="timeline-tabs">
                             <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
@@ -32,7 +31,6 @@
                     <div class="post-form-sticky-container">
                         <div class="post-form-container"></div>
                     </div>
-                    <!-- ▲▲▲ [修正点7] ここまで ▼▼▼ -->
                     <div id="timeline"></div>
                 </div>
                 <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
@@ -49,9 +47,7 @@
         </main>
         <!-- 右側サイドバー -->
         <aside id="right-sidebar">
-            <!-- ▼▼▼ [修正点9] 右サイドバーの検索ウィジェットコンテナを追加 ▼▼▼ -->
             <div id="right-sidebar-search-widget-container"></div>
-            <!-- ▲▲▲ [修正点9] ここまで ▼▼▼ -->
             <div id="recommendations-widget-container"></div>
         </aside>
     </div>
@@ -64,10 +60,20 @@
     </div>
     <div id="post-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <button class="modal-close-btn">×</button>
+            <!-- ▼▼▼ [修正点4] モーダルの閉じるボタンをモーダル外に移動するため、クラスをmodal-close-btn-outerに変更 ▼▼▼ -->
+            <button class="modal-close-btn-outer">×</button>
+            <!-- ▲▲▲ [修正点4] ここまで ▼▼▼ -->
             <div class="post-form-container-modal"></div>
         </div>
     </div>
+    <!-- ▼▼▼ [修正点6] 画像プレビューモーダルの追加 ▼▼▼ -->
+    <div id="image-preview-modal" class="modal-overlay hidden">
+        <div class="modal-content image-content">
+            <button class="modal-close-btn-outer">×</button>
+            <img id="modal-image-display" src="" alt="拡大画像">
+        </div>
+    </div>
+    <!-- ▲▲▲ [修正点6] ここまで ▼▼▼ -->
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <script src="main.js"></script>
 </body>

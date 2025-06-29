@@ -5,8 +5,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
+    let attachedFiles = []; // ▼▼▼ [修正点8] 添付ファイルの状態を管理する配列 ▼▼▼
 
-    // --- 2. アイコンSVG定義 ---
+    // --- 2. アイコンSVG定義 ▼▼▼ [修正点1, 2, 5] アイコンSVGの調整と、[修正点8] ファイル添付アイコンを追加 ▼▼▼ ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
@@ -14,8 +15,10 @@ window.addEventListener('DOMContentLoaded', () => {
         likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
         stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-        settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+        settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+        paperclip: `<svg viewBox="0 0 24 24"><path d="M21.44 11.03l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`
     };
+    // ▲▲▲ [修正点1, 2, 5, 8] ここまで ▼▼▼
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
@@ -38,7 +41,11 @@ window.addEventListener('DOMContentLoaded', () => {
         rightSidebar: {
             recommendations: document.getElementById('recommendations-widget-container'),
             searchWidget: document.getElementById('right-sidebar-search-widget-container')
-        }
+        },
+        // ▼▼▼ [修正点6] 画像プレビューモーダルのDOM要素を追加 ▼▼▼
+        imagePreviewModal: document.getElementById('image-preview-modal'),
+        modalImageDisplay: document.getElementById('modal-image-display'),
+        // ▲▲▲ [修正点6] ここまで ▼▼▼
     };
 
     // --- 4. ユーティリティ関数 ---
@@ -53,7 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function updateFollowButtonState(buttonElement, isFollowing) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
         if (isFollowing) {
-            buttonElement.textContent = 'フォロー中';
+            buttonElement.textContent = 'フォロー中'; // フォロー中のボタンテキストを「フォロー中」に変更
             buttonElement.classList.add('follow-button-following');
             // ホバー時に「フォロー解除」を表示するロジック
             buttonElement.onmouseenter = () => {
@@ -129,13 +136,45 @@ window.addEventListener('DOMContentLoaded', () => {
                         const userName = userMap.get(numericId);
                         return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
                     }
-                    return match; // 見つからなかった場合はそのまま
+                    return match;
                 });
             }
         }
         return formattedText;
     }
     // ▲▲▲ [修正点1] ここまで ▼▼▼
+
+    // ▼▼▼ [修正点8] ファイルアップロード関数 ▼▼▼
+    async function uploadFile(file) {
+        showLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/functions/v1/upload-handler', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // ここは匿名キーでOK、Edge FunctionがService Role Keyを使う
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return { type: data.file_type.startsWith('image/') ? 'image' : 'file', id: data.file_id, url: data.public_url };
+        } catch (error) {
+            console.error("File upload error:", error);
+            alert(`ファイルのアップロードに失敗しました: ${error.message}`);
+            return null;
+        } finally {
+            showLoading(false);
+        }
+    }
+    // ▲▲▲ [修正点8] ここまで ▼▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -283,57 +322,145 @@ window.addEventListener('DOMContentLoaded', () => {
         router();
     }
 
-    // --- 8. ポスト関連のUIとロジック ---
+    // --- 8. ポスト関連のUIとロジック ▼▼▼ [修正点8] ファイル添付機能の実装を含む ▼▼▼ ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
         DOM.postModal.classList.remove('hidden');
-        const modalContainer = DOM.postModal.querySelector('.post-form-container-modal');
-        modalContainer.innerHTML = `
-            <div class="post-form">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
-                <div class="form-content">
-                    <div id="reply-info-modal" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
-                    <textarea id="post-content-modal" placeholder="ポストを入力" maxlength="280"></textarea>
-                    <div class="post-form-actions"><button id="post-submit-button-modal">ポスト</button></div>
-                </div>
-            </div>`;
-        const textarea = document.getElementById('post-content-modal');
-        if (replyInfo) {
-            replyingTo = replyInfo;
-            const replyInfoDiv = document.getElementById('reply-info-modal');
-            replyInfoDiv.innerHTML = `<span>@${replyInfo.name}に返信中</span>`;
-            replyInfoDiv.classList.remove('hidden');
-        }
-        modalContainer.querySelector('#post-submit-button-modal').addEventListener('click', () => handlePostSubmit(true));
-        DOM.postModal.querySelector('.modal-close-btn').onclick = closePostModal;
-        textarea.focus();
-        textarea.addEventListener('keydown', handleCtrlEnter);
+        attachedFiles = []; // モーダルを開くたびに添付ファイルをリセット
+        renderPostForm(DOM.postModal.querySelector('.post-form-container-modal'), replyInfo, true);
     }
+
     function closePostModal() {
         DOM.postModal.classList.add('hidden');
         replyingTo = null;
-        const textarea = document.getElementById('post-content-modal');
-        if (textarea) textarea.removeEventListener('keydown', handleCtrlEnter);
+        attachedFiles = []; // 閉じる時に添付ファイルをリセット
     }
+
     const handleCtrlEnter = (e) => {
         if (e.ctrlKey && e.key === 'Enter') {
-            e.target.closest('.post-form').querySelector('button').click();
+            e.target.closest('.post-form').querySelector('button[type="submit"]').click();
         }
     };
-    
+
+    // ▼▼▼ [修正点8] 投稿フォームのレンダリングを共通化し、添付ファイルUIを追加 ▼▼▼
+    function renderPostForm(containerElement, replyInfo = null, isModal = false) {
+        const formHtml = `
+            <div class="post-form">
+                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
+                <div class="form-content">
+                    <div id="${isModal ? 'reply-info-modal' : 'reply-info'}" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
+                    <textarea id="${isModal ? 'post-content-modal' : 'post-content'}" placeholder="${isModal ? 'ポストを入力' : 'いまどうしてる？'}" maxlength="280"></textarea>
+                    <div id="${isModal ? 'attachment-preview-modal' : 'attachment-preview'}" class="attachment-preview-container"></div>
+                    <div class="post-form-actions">
+                        <input type="file" id="${isModal ? 'attach-file-modal' : 'attach-file'}" accept="image/*" multiple class="hidden">
+                        <button type="button" class="attach-file-button" id="${isModal ? 'attach-button-modal' : 'attach-button'}">
+                            ${ICONS.paperclip}
+                        </button>
+                        <button type="submit" id="${isModal ? 'post-submit-button-modal' : 'post-submit-button'}">ポスト</button>
+                    </div>
+                </div>
+            </div>`;
+        containerElement.innerHTML = formHtml;
+
+        const textarea = containerElement.querySelector('textarea');
+        const attachButton = containerElement.querySelector('.attach-file-button');
+        const attachInput = containerElement.querySelector('input[type="file"]');
+        const postButton = containerElement.querySelector('button[type="submit"]');
+        const attachmentPreviewContainer = containerElement.querySelector('.attachment-preview-container');
+
+        if (replyInfo) {
+            replyingTo = replyInfo;
+            const replyInfoDiv = containerElement.querySelector(`#${isModal ? 'reply-info-modal' : 'reply-info'}`);
+            replyInfoDiv.innerHTML = `<span>@${replyInfo.name}に返信中</span>`;
+            replyInfoDiv.classList.remove('hidden');
+        }
+
+        textarea.addEventListener('keydown', handleCtrlEnter);
+        postButton.addEventListener('click', () => handlePostSubmit(isModal));
+        attachButton.addEventListener('click', () => attachInput.click());
+        attachInput.addEventListener('change', (e) => handleFileSelect(e, attachmentPreviewContainer));
+
+        // 既存の添付ファイルがあればプレビュー表示を更新
+        updateAttachmentPreview(attachmentPreviewContainer);
+    }
+
+    function updateAttachmentPreview(container) {
+        container.innerHTML = '';
+        attachedFiles.forEach((fileInfo, index) => {
+            const previewItem = document.createElement('div');
+            previewItem.className = 'attachment-preview-item';
+            if (fileInfo.file_type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(fileInfo.file);
+                previewItem.appendChild(img);
+            } else {
+                previewItem.textContent = fileInfo.file.name; // 画像以外はファイル名表示
+            }
+            const removeButton = document.createElement('button');
+            removeButton.className = 'attachment-preview-remove';
+            removeButton.textContent = '×';
+            removeButton.onclick = () => {
+                attachedFiles.splice(index, 1);
+                updateAttachmentPreview(container);
+            };
+            previewItem.appendChild(removeButton);
+            container.appendChild(previewItem);
+        });
+    }
+
+    function handleFileSelect(event, previewContainer) {
+        const files = Array.from(event.target.files);
+        files.forEach(file => {
+            // 例: 画像ファイルのみを許可
+            if (file.type.startsWith('image/')) {
+                attachedFiles.push({ file: file, file_type: file.type });
+            } else {
+                alert('画像ファイルのみ添付可能です。');
+            }
+        });
+        event.target.value = ''; // 同じファイルを再選択できるようにinputをリセット
+        updateAttachmentPreview(previewContainer);
+    }
+
     async function handlePostSubmit(isModal = false) {
         if (!currentUser) return alert("ログインが必要です。");
         const contentElId = isModal ? 'post-content-modal' : 'post-content';
         const buttonId = isModal ? 'post-submit-button-modal' : 'post-submit-button';
         const contentEl = document.getElementById(contentElId);
         const content = contentEl.value.trim();
-        if (!content) return alert('内容を入力してください。');
+        if (!content && attachedFiles.length === 0) return alert('内容を入力するか、ファイルを添付してください。');
+
         const button = document.getElementById(buttonId);
         button.disabled = true; button.textContent = '投稿中...';
+        showLoading(true);
+
         try {
-            const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null };
-            const { data: newPost, error } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
-            if(error) throw error;
+            const attachments = [];
+            for (const fileInfo of attachedFiles) {
+                const uploaded = await uploadFile(fileInfo.file);
+                if (uploaded) {
+                    attachments.push({ type: uploaded.type, id: uploaded.file_id, url: uploaded.public_url });
+                } else {
+                    throw new Error('ファイルアップロードに失敗しました。');
+                }
+            }
+
+            const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null, attachments };
+            const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
+            if(postError) throw postError;
+
+            // ▼▼▼ [修正点1] ユーザーのpost配列を更新 ▼▼▼
+            const updatedUserPosts = currentUser.post ? [...currentUser.post, newPost.id] : [newPost.id];
+            const { error: userUpdateError } = await supabase.from('user')
+                .update({ post: updatedUserPosts })
+                .eq('id', currentUser.id);
+            if (userUpdateError) {
+                console.error("ユーザーのポストリスト更新に失敗:", userUpdateError);
+            } else {
+                currentUser.post = updatedUserPosts;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            }
+            // ▲▲▲ [修正点1] ここまで ▼▼▼
             
             if (newPost.reply_id && newPost.reply_to?.user?.id) {
                 const parentPostAuthorId = newPost.reply_to.user.id;
@@ -343,14 +470,15 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
+            attachedFiles = []; // 投稿成功後、添付ファイルをリセット
         } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
-        finally { button.disabled = false; button.textContent = 'ポスト'; }
+        finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
 
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
+        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn, .post-attachment-item')) window.location.hash = `#post/${post.id}`; }; // 添付ファイルクリックも除外
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -358,6 +486,24 @@ window.addEventListener('DOMContentLoaded', () => {
         const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
         const formattedContent = await formatPostContent(post.content);
+
+        // ▼▼▼ [修正点8] 添付ファイル表示のHTML生成 ▼▼▼
+        let attachmentsHTML = '';
+        if (post.attachments && post.attachments.length > 0) {
+            attachmentsHTML = `<div class="post-attachments">`;
+            for (const attachment of post.attachments) {
+                if (attachment.type === 'image') {
+                    const imageUrl = `https://mnvdpvsivqqbzbtjtpws.supabase.co/storage/v1/object/public/attachments/${attachment.id}`;
+                    attachmentsHTML += `
+                        <div class="post-attachment-item" onclick="event.stopPropagation(); window.openImagePreviewModal('${imageUrl}')">
+                            <img src="${imageUrl}" alt="添付画像">
+                        </div>`;
+                }
+                // 他のファイルタイプもここに追加可能
+            }
+            attachmentsHTML += `</div>`;
+        }
+        // ▲▲▲ [修正点8] ここまで ▼▼▼
 
         const actionsHTML = currentUser ? `
             <div class="post-actions">
@@ -374,21 +520,19 @@ window.addEventListener('DOMContentLoaded', () => {
                     <span class="post-time">#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}</span>
                     ${menuHTML}
                 </div>
-                <div class="post-content"><p>${formattedContent}</p></div>
+                <div class="post-content"><p>${formattedContent}</p>${attachmentsHTML}</div>
                 ${actionsHTML}
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
+    // ▲▲▲ [修正点8] ここまで ▼▼▼
     
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
         if (currentUser) {
-            DOM.postFormContainer.innerHTML = `<div class="post-form"><img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon"><div class="form-content"><div id="reply-info" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div><textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea><div class="post-form-actions"><button id="post-submit-button">ポスト</button></div></div></div>`;
-            const textarea = document.getElementById('post-content');
-            textarea.addEventListener('keydown', handleCtrlEnter);
-            DOM.postFormContainer.querySelector('#post-submit-button').addEventListener('click', () => handlePostSubmit(false));
+            renderPostForm(DOM.postFormContainer); // 投稿フォームのレンダリング
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
@@ -544,7 +688,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (error || !post) throw new Error('ポストが見つかりません。');
             contentDiv.innerHTML = '';
             
-            // 返信先のポストが存在する場合、それを先に表示
             if (post.reply_id && post.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
@@ -552,10 +695,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 contentDiv.appendChild(parentPostContainer);
             }
             
-            // メインのポストを表示
             await renderPost(post, post.user, contentDiv);
             
-            // このポストへの返信一覧を表示
             const { data: replies, error: repliesError } = await supabase.from('post')
                 .select('*, user(*), reply_to:reply_id(*, user(*))')
                 .eq('reply_id', postId)
@@ -832,11 +973,26 @@ window.addEventListener('DOMContentLoaded', () => {
             })
             .subscribe();
     }
+
+    // ▼▼▼ [修正点6] 画像プレビューモーダルの関数 ▼▼▼
+    window.openImagePreviewModal = (imageUrl) => {
+        DOM.modalImageDisplay.src = imageUrl;
+        DOM.imagePreviewModal.classList.remove('hidden');
+    };
+
+    function closeImagePreviewModal() {
+        DOM.imagePreviewModal.classList.add('hidden');
+        DOM.modalImageDisplay.src = ''; // 画像をクリア
+    }
+    // ▲▲▲ [修正点6] ここまで ▼▼▼
     
     // --- 13. 初期化処理 ---
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
+    // ▼▼▼ [修正点6] 画像プレビューモーダルの閉じるボタンイベントリスナー ▼▼▼
+    DOM.imagePreviewModal.querySelector('.modal-close-btn-outer').addEventListener('click', closeImagePreviewModal);
+    // ▲▲▲ [修正点6] ここまで ▼▼▼
     window.addEventListener('hashchange', router);
     checkSession();
 });
