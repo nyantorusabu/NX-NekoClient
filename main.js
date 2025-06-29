@@ -196,16 +196,17 @@ window.addEventListener('DOMContentLoaded', () => {
         finally { button.disabled = false; button.textContent = 'ポスト'; }
     }
 
-    function renderPost(post, author, container, prepend = false) {
+    async function renderPost(post, author, container, prepend = false) {
         const postEl = document.createElement('div'); postEl.className = 'post';
         postEl.onclick = (e) => { if (!e.target.closest('button, a')) window.location.hash = `#post/${post.id}`; };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${post.reply_to.user.name}</a> さんに返信</div>` : '';
         const menuHTML = currentUser?.id === post.userid ? `<button class="post-menu-btn" onclick="event.stopPropagation(); window.togglePostMenu('${post.id}')">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" onclick="window.deletePost('${post.id}')">削除</button></div>` : '';
+        const { count: replyCount, error } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const actionsHTML = currentUser ? `
             <div class="post-actions">
-                <button class="reply-button" onclick="event.stopPropagation(); window.handleReplyClick('${post.id}', '${escapeHTML(author.name)}')" title="返信">🗨 <span>${post.reply_count || 0}</span></button>
+                <button class="reply-button" onclick="event.stopPropagation(); window.handleReplyClick('${post.id}', '${escapeHTML(author.name)}')" title="返信">🗨 <span>${error ? 0 : replyCount}</span></button>
                 <button class="like-button ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); window.handleLike(this, '${post.id}')"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
                 <button class="star-button ${isStarred ? 'starred' : ''}" onclick="event.stopPropagation(); window.handleStar(this, '${post.id}')"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
             </div>` : '';
@@ -235,15 +236,8 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) { alert('削除に失敗しました。'); }
         finally { showLoading(false); }
     };
-    window.handleReplyClick = (postId, username) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        openPostModal({ id: postId, name: username });
-    };
-    window.clearReply = () => {
-        replyingTo = null;
-        document.getElementById('reply-info')?.classList.add('hidden');
-        document.getElementById('reply-info-modal')?.classList.add('hidden');
-    };
+    window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
+    window.clearReply = () => { replyingTo = null; document.getElementById('reply-info')?.classList.add('hidden'); document.getElementById('reply-info-modal')?.classList.add('hidden'); };
     window.handleLike = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
@@ -286,11 +280,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         button.disabled = false;
     };
-    window.handleRecFollow = async (userId, button) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.textContent = '...'; button.disabled = true;
-        await handleFollowToggle(userId, button, true);
-    }
+    window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.textContent = '...'; button.disabled = true; await handleFollowToggle(userId, button, true); }
     
     async function handleFollowToggle(targetUserId, button, isRecButton = false) {
         if (!currentUser) return alert("ログインが必要です。");
@@ -319,16 +309,20 @@ window.addEventListener('DOMContentLoaded', () => {
         profileHeader.innerHTML = '<div class="spinner"></div>'; profileTabs.innerHTML = '';
         const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
         if (error || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
-        const { count: followerCount, error: countError } = await supabase.from('user').select('id', { count: 'exact', head: true }).contains('follow', `{${userId}}`);
+        const { count: followerCount, error: countError } = await supabase.from('user').select('id', { count: 'exact', head: true }).cs('follow', `{${userId}}`);
         profileHeader.innerHTML = `
-            <div id="follow-button-container" class="follow-button"></div>
-            <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon" style="width:128px; height:128px; border-radius:50%; margin-bottom:1rem;">
-            <h2>${escapeHTML(user.name)}</h2>
-            <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
-            <p class="user-me">${escapeHTML(user.me || '')}</p>
-            <div class="user-stats">
-                <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
-                <span id="follower-count"><strong>${countError ? '?' : followerCount}</strong> フォロワー</span>
+            <div class="header-content">
+                <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                <div id="follow-button-container" class="follow-button"></div>
+            </div>
+            <div class="profile-info">
+                <h2>${escapeHTML(user.name)}</h2>
+                <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
+                <p class="user-me">${escapeHTML(user.me || '')}</p>
+                <div class="user-stats">
+                    <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
+                    <span id="follower-count"><strong>${countError ? '?' : followerCount}</strong> フォロワー</span>
+                </div>
             </div>`;
         if (currentUser && userId !== currentUser.id) {
             const followButton = document.createElement('button');
@@ -411,12 +405,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     function subscribeToChanges() {
         if (realtimeChannel) return;
-        realtimeChannel = supabase.channel('nyax-feed').on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
-            const mainScreenVisible = !document.getElementById('main-screen').classList.contains('hidden');
-            if (payload.eventType === 'INSERT' && mainScreenVisible) {
-                router(); // シンプルに再描画
-            }
-        }).subscribe();
+        realtimeChannel = supabase.channel('nyax-feed')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
+                const mainScreenVisible = !document.getElementById('main-screen').classList.contains('hidden');
+                if ((payload.eventType === 'INSERT' || payload.eventType === 'DELETE') && mainScreenVisible) {
+                    router();
+                }
+            }).subscribe();
     }
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
     
