@@ -394,12 +394,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!post || !author) return;
         const postEl = document.createElement('div');
         postEl.className = 'post';
-        postEl.dataset.postId = post.id;
+        postEl.dataset.postId = post.id; // データ属性にIDを設定
 
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
-        const menuHTML = `<button class="post-menu-btn" data-action="toggle-menu" data-post-id="${post.id}">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" data-action="delete-post" data-post-id="${post.id}">削除</button></div>`;
+        const menuHTML = `<button class="post-menu-btn">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn">削除</button></div>`;
         const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
         const formattedContent = await formatPostContent(post.content);
@@ -413,15 +413,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 attachmentsHTML += '<div class="attachment-item">';
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" data-action="open-image" data-src="${publicURL}">`;
+                    attachmentsHTML += `<img class="attachment-image" src="${publicURL}" alt="${escapeHTML(attachment.name)}" data-src="${publicURL}">`;
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<video src="${publicURL}" controls data-action="noop"></video>`;
+                    attachmentsHTML += `<video src="${publicURL}" controls></video>`;
                 } else if (attachment.type === 'audio') {
-                    attachmentsHTML += `<audio src="${publicURL}" controls data-action="noop"></audio>`;
+                    attachmentsHTML += `<audio src="${publicURL}" controls></audio>`;
                 }
                 
                 if (attachment.type === 'file' || attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio') {
-                    attachmentsHTML += `<a class="attachment-download-link" href="#" data-action="download" data-url="${publicURL}" data-name="${escapeHTML(attachment.name)}">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
+                    attachmentsHTML += `<a class="attachment-download-link" href="#" data-url="${publicURL}" data-name="${escapeHTML(attachment.name)}">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
             }
@@ -430,9 +430,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const actionsHTML = currentUser ? `
             <div class="post-actions">
-                <button class="reply-button" data-action="reply" data-post-id="${post.id}" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
-                <button class="like-button ${isLiked ? 'liked' : ''}" data-action="like" data-post-id="${post.id}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
-                <button class="star-button ${isStarred ? 'starred' : ''}" data-action="star" data-post-id="${post.id}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
+                <button class="reply-button" data-post-id="${post.id}" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
+                <button class="like-button ${isLiked ? 'liked' : ''}" data-post-id="${post.id}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
+                <button class="star-button ${isStarred ? 'starred' : ''}" data-post-id="${post.id}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
             </div>` : '';
         postEl.innerHTML = `
             <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.scid}" class="user-icon" alt="${author.name}'s icon">
@@ -866,38 +866,74 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    // ▼▼▼ [修正点1] クリックイベントの処理をイベントデリゲーションに統一 ▼▼▼
+    // ▼▼▼ [修正点1] イベント処理をイベントデリゲーションに統一 ▼▼▼
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
-        const actionTarget = target.closest('[data-action]');
+        const postElement = target.closest('.post');
         
-        if (actionTarget) { // データ属性を持つ要素がクリックされた場合
+        // --- ポストのアクションボタンの処理 ---
+        const menuButton = target.closest('.post-menu-btn');
+        const deleteButton = target.closest('.delete-btn');
+        const replyButton = target.closest('.reply-button');
+        const likeButton = target.closest('.like-button');
+        const starButton = target.closest('.star-button');
+        const imageAttachment = target.closest('.attachment-image');
+        const downloadLink = target.closest('.attachment-download-link');
+
+        if (menuButton) {
+            e.stopPropagation();
+            const postId = postElement.dataset.postId;
+            window.togglePostMenu(postId);
+            return;
+        }
+        if (deleteButton) {
+            e.stopPropagation();
+            const postId = postElement.dataset.postId;
+            window.deletePost(postId);
+            return;
+        }
+        if(replyButton) {
+            e.stopPropagation();
+            const postId = replyButton.closest('.post').dataset.postId;
+            const username = replyButton.dataset.username;
+            window.handleReplyClick(postId, username);
+            return;
+        }
+        if(likeButton) {
+            e.stopPropagation();
+            const postId = likeButton.closest('.post').dataset.postId;
+            window.handleLike(likeButton, postId);
+            return;
+        }
+        if(starButton) {
+            e.stopPropagation();
+            const postId = starButton.closest('.post').dataset.postId;
+            window.handleStar(starButton, postId);
+            return;
+        }
+        if(imageAttachment) {
+            e.stopPropagation();
+            window.openImageModal(imageAttachment.src);
+            return;
+        }
+        if(downloadLink) {
             e.preventDefault();
             e.stopPropagation();
-            const action = actionTarget.dataset.action;
-            const postId = actionTarget.dataset.postId;
-            switch(action) {
-                case 'toggle-menu': window.togglePostMenu(postId); break;
-                case 'delete-post': window.deletePost(postId); break;
-                case 'reply': window.handleReplyClick(postId, actionTarget.dataset.username); break;
-                case 'like': window.handleLike(actionTarget, postId); break;
-                case 'star': window.handleStar(actionTarget, postId); break;
-                case 'open-image': window.openImageModal(actionTarget.dataset.src); break;
-                case 'download': window.handleDownload(actionTarget.dataset.url, actionTarget.dataset.name); break;
-                case 'noop': break; // video, audio controls
-            }
-        } else { // ポスト詳細への遷移
-            const postElement = target.closest('.post');
-            if (postElement && postElement.dataset.postId) {
-                window.location.hash = `#post/${postElement.dataset.postId}`;
-            }
+            window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name);
+            return;
+        }
+
+        // --- ポスト詳細ページへの遷移 ---
+        if (postElement && !target.closest('a, video, audio')) { // a, video, audioタグ以外
+            const postId = postElement.dataset.postId;
+            if(postId) window.location.hash = `#post/${postId}`;
         }
     });
 
     // タブ切り替えのイベントリスナー
-    const timelineTabs = document.querySelector('.timeline-tabs');
-    if(timelineTabs) {
-        timelineTabs.addEventListener('click', (e) => {
+    const tabsContainer = document.querySelector('.timeline-tabs');
+    if(tabsContainer) {
+        tabsContainer.addEventListener('click', (e) => {
             if (e.target.matches('.timeline-tab-button')) {
                 switchTimelineTab(e.target.dataset.tab);
             }
