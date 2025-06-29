@@ -60,20 +60,18 @@
     </div>
     <div id="post-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <!-- ▼▼▼ [修正点4] モーダルの閉じるボタンをモーダル外に移動するため、クラスをmodal-close-btn-outerに変更 ▼▼▼ -->
-            <button class="modal-close-btn-outer">×</button>
-            <!-- ▲▲▲ [修正点4] ここまで ▼▼▼ -->
+            <!-- ▼▼▼ [修正点3] ポスト作成モーダルの閉じるボタンを modal-close-btn に戻す ▼▼▼ -->
+            <button class="modal-close-btn">×</button>
+            <!-- ▲▲▲ [修正点3] ここまで ▼▼▼ -->
             <div class="post-form-container-modal"></div>
         </div>
     </div>
-    <!-- ▼▼▼ [修正点6] 画像プレビューモーダルの追加 ▼▼▼ -->
     <div id="image-preview-modal" class="modal-overlay hidden">
         <div class="modal-content image-content">
             <button class="modal-close-btn-outer">×</button>
             <img id="modal-image-display" src="" alt="拡大画像">
         </div>
     </div>
-    <!-- ▲▲▲ [修正点6] ここまで ▼▼▼ -->
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <script src="main.js"></script>
 </body>

@@ -5,9 +5,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
-    let attachedFiles = []; // ▼▼▼ [修正点8] 添付ファイルの状態を管理する配列 ▼▼▼
+    let attachedFiles = [];
 
-    // --- 2. アイコンSVG定義 ▼▼▼ [修正点1, 2, 5] アイコンSVGの調整と、[修正点8] ファイル添付アイコンを追加 ▼▼▼ ---
+    // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
@@ -18,7 +18,6 @@ window.addEventListener('DOMContentLoaded', () => {
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         paperclip: `<svg viewBox="0 0 24 24"><path d="M21.44 11.03l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`
     };
-    // ▲▲▲ [修正点1, 2, 5, 8] ここまで ▼▼▼
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
@@ -42,10 +41,8 @@ window.addEventListener('DOMContentLoaded', () => {
             recommendations: document.getElementById('recommendations-widget-container'),
             searchWidget: document.getElementById('right-sidebar-search-widget-container')
         },
-        // ▼▼▼ [修正点6] 画像プレビューモーダルのDOM要素を追加 ▼▼▼
         imagePreviewModal: document.getElementById('image-preview-modal'),
         modalImageDisplay: document.getElementById('modal-image-display'),
-        // ▲▲▲ [修正点6] ここまで ▼▼▼
     };
 
     // --- 4. ユーティリティ関数 ---
@@ -56,13 +53,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
-    // ▼▼▼ [修正点3] フォローボタンの状態を更新するヘルパー関数 ▼▼▼
     function updateFollowButtonState(buttonElement, isFollowing) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
         if (isFollowing) {
-            buttonElement.textContent = 'フォロー中'; // フォロー中のボタンテキストを「フォロー中」に変更
+            buttonElement.textContent = 'フォロー中';
             buttonElement.classList.add('follow-button-following');
-            // ホバー時に「フォロー解除」を表示するロジック
             buttonElement.onmouseenter = () => {
                 buttonElement.textContent = 'フォロー解除';
                 buttonElement.classList.add('follow-button-unfollow-hover');
@@ -74,13 +69,11 @@ window.addEventListener('DOMContentLoaded', () => {
         } else {
             buttonElement.textContent = 'フォロー';
             buttonElement.classList.add('follow-button-not-following');
-            // フォローしていない場合はホバー時の特殊な挙動をリセット
             buttonElement.onmouseenter = null;
             buttonElement.onmouseleave = null;
         }
         buttonElement.disabled = false;
     }
-    // ▲▲▲ [修正点3] ここまで ▼▼▼
 
     async function sendNotification(recipientId, message) {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
@@ -113,7 +106,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ▼▼▼ [修正点1] 自動リンク機能のためのヘルパー関数を修正 ▼▼▼
+    // 自動リンク機能のためのヘルパー関数
     async function formatPostContent(text) {
         let formattedText = escapeHTML(text);
 
@@ -123,7 +116,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
         formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
 
-        const mentionRegex = /@(\d+)/g; // 4桁縛りを撤廃
+        const mentionRegex = /@(\d+)/g;
         const userIds = [...formattedText.matchAll(mentionRegex)].map(match => parseInt(match[1]));
 
         if (userIds.length > 0) {
@@ -142,26 +135,41 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         return formattedText;
     }
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
-    // ▼▼▼ [修正点8] ファイルアップロード関数 ▼▼▼
+    // ▼▼▼ [修正点1] ファイルアップロード関数を修正 ▼▼▼
     async function uploadFile(file) {
         showLoading(true);
         try {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch('/functions/v1/upload-handler', {
+            // SupabaseプロジェクトのURLからFunctionsのエンドポイントを動的に構築
+            const supabaseProjectRef = SUPABASE_URL.split('://')[1].split('.')[0];
+            const functionUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/upload-handler`;
+
+            const response = await fetch(functionUrl, {
                 method: 'POST',
+                // FormDataを使う場合、ブラウザが自動でContent-Type: multipart/form-data; boundary=... を設定するため、
+                // 手動で'Content-Type'ヘッダーを設定すると問題が起きることがあります。
+                // ここではContent-Typeは含めません。
                 headers: {
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // ここは匿名キーでOK、Edge FunctionがService Role Keyを使う
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                    // 'x-supabase-oauth-token': 'YOUR_JWT_IF_AUTHENTICATED_USER_IS_REQUIRED_IN_FUNCTION' // 必要なら
                 },
                 body: formData,
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Upload failed with status: ${response.status}`);
+                let errorDetails = `Upload failed with status: ${response.status} - ${response.statusText}`;
+                try {
+                    const errorData = await response.json();
+                    errorDetails = errorData.error || errorData.message || errorDetails;
+                } catch (parseError) {
+                    // レスポンスがJSONではない場合
+                    console.error("Failed to parse error response as JSON:", parseError);
+                    errorDetails += ` (Response was not JSON: ${await response.text().catch(() => '')})`;
+                }
+                throw new Error(errorDetails);
             }
 
             const data = await response.json();
@@ -174,7 +182,7 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     }
-    // ▲▲▲ [修正点8] ここまで ▼▼▼
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -322,18 +330,21 @@ window.addEventListener('DOMContentLoaded', () => {
         router();
     }
 
-    // --- 8. ポスト関連のUIとロジック ▼▼▼ [修正点8] ファイル添付機能の実装を含む ▼▼▼ ---
+    // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
         DOM.postModal.classList.remove('hidden');
-        attachedFiles = []; // モーダルを開くたびに添付ファイルをリセット
+        attachedFiles = [];
         renderPostForm(DOM.postModal.querySelector('.post-form-container-modal'), replyInfo, true);
+        // ▼▼▼ [修正点4] モーダルの閉じるボタンにイベントリスナーをアタッチ ▼▼▼
+        DOM.postModal.querySelector('.modal-close-btn').onclick = closePostModal;
+        // ▲▲▲ [修正点4] ここでアタッチするように変更 ▼▼▼
     }
 
     function closePostModal() {
         DOM.postModal.classList.add('hidden');
         replyingTo = null;
-        attachedFiles = []; // 閉じる時に添付ファイルをリセット
+        attachedFiles = [];
     }
 
     const handleCtrlEnter = (e) => {
@@ -342,7 +353,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // ▼▼▼ [修正点8] 投稿フォームのレンダリングを共通化し、添付ファイルUIを追加 ▼▼▼
     function renderPostForm(containerElement, replyInfo = null, isModal = false) {
         const formHtml = `
             <div class="post-form">
@@ -380,7 +390,6 @@ window.addEventListener('DOMContentLoaded', () => {
         attachButton.addEventListener('click', () => attachInput.click());
         attachInput.addEventListener('change', (e) => handleFileSelect(e, attachmentPreviewContainer));
 
-        // 既存の添付ファイルがあればプレビュー表示を更新
         updateAttachmentPreview(attachmentPreviewContainer);
     }
 
@@ -394,7 +403,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 img.src = URL.createObjectURL(fileInfo.file);
                 previewItem.appendChild(img);
             } else {
-                previewItem.textContent = fileInfo.file.name; // 画像以外はファイル名表示
+                previewItem.textContent = fileInfo.file.name;
             }
             const removeButton = document.createElement('button');
             removeButton.className = 'attachment-preview-remove';
@@ -411,14 +420,13 @@ window.addEventListener('DOMContentLoaded', () => {
     function handleFileSelect(event, previewContainer) {
         const files = Array.from(event.target.files);
         files.forEach(file => {
-            // 例: 画像ファイルのみを許可
             if (file.type.startsWith('image/')) {
                 attachedFiles.push({ file: file, file_type: file.type });
             } else {
                 alert('画像ファイルのみ添付可能です。');
             }
         });
-        event.target.value = ''; // 同じファイルを再選択できるようにinputをリセット
+        event.target.value = '';
         updateAttachmentPreview(previewContainer);
     }
 
@@ -439,7 +447,7 @@ window.addEventListener('DOMContentLoaded', () => {
             for (const fileInfo of attachedFiles) {
                 const uploaded = await uploadFile(fileInfo.file);
                 if (uploaded) {
-                    attachments.push({ type: uploaded.type, id: uploaded.file_id, url: uploaded.public_url });
+                    attachments.push({ type: uploaded.type, id: uploaded.id, url: uploaded.url });
                 } else {
                     throw new Error('ファイルアップロードに失敗しました。');
                 }
@@ -449,7 +457,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
             if(postError) throw postError;
 
-            // ▼▼▼ [修正点1] ユーザーのpost配列を更新 ▼▼▼
             const updatedUserPosts = currentUser.post ? [...currentUser.post, newPost.id] : [newPost.id];
             const { error: userUpdateError } = await supabase.from('user')
                 .update({ post: updatedUserPosts })
@@ -460,7 +467,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser.post = updatedUserPosts;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
             }
-            // ▲▲▲ [修正点1] ここまで ▼▼▼
             
             if (newPost.reply_id && newPost.reply_to?.user?.id) {
                 const parentPostAuthorId = newPost.reply_to.user.id;
@@ -470,7 +476,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             if (isModal) closePostModal(); else contentEl.value = '';
             clearReply();
-            attachedFiles = []; // 投稿成功後、添付ファイルをリセット
+            attachedFiles = [];
         } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
@@ -478,7 +484,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn, .post-attachment-item')) window.location.hash = `#post/${post.id}`; }; // 添付ファイルクリックも除外
+        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn, .post-attachment-item')) window.location.hash = `#post/${post.id}`; };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -487,7 +493,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
         const formattedContent = await formatPostContent(post.content);
 
-        // ▼▼▼ [修正点8] 添付ファイル表示のHTML生成 ▼▼▼
         let attachmentsHTML = '';
         if (post.attachments && post.attachments.length > 0) {
             attachmentsHTML = `<div class="post-attachments">`;
@@ -499,11 +504,9 @@ window.addEventListener('DOMContentLoaded', () => {
                             <img src="${imageUrl}" alt="添付画像">
                         </div>`;
                 }
-                // 他のファイルタイプもここに追加可能
             }
             attachmentsHTML += `</div>`;
         }
-        // ▲▲▲ [修正点8] ここまで ▼▼▼
 
         const actionsHTML = currentUser ? `
             <div class="post-actions">
@@ -525,14 +528,13 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
-    // ▲▲▲ [修正点8] ここまで ▼▼▼
     
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
         if (currentUser) {
-            renderPostForm(DOM.postFormContainer); // 投稿フォームのレンダリング
+            renderPostForm(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
@@ -678,7 +680,6 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(currentUser.like, DOM.likesContent, "いいねしたポストはまだありません。"); }
     async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(currentUser.star, DOM.starsContent, "お気に入りに登録したポストはまだありません。"); }
 
-    // ▼▼▼ [修正点2] 返信ポストの場合に親ポストも表示するよう修正 ▼▼▼
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
         showScreen('post-detail-screen');
@@ -721,7 +722,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         } catch (err) { contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`; }
     }
-    // ▲▲▲ [修正点2] ここまで ▼▼▼
     
     // --- 10. コンテンツ読み込み & レンダリング ---
     async function loadPostsByIds(ids, container, emptyMessage) {
@@ -974,7 +974,6 @@ window.addEventListener('DOMContentLoaded', () => {
             .subscribe();
     }
 
-    // ▼▼▼ [修正点6] 画像プレビューモーダルの関数 ▼▼▼
     window.openImagePreviewModal = (imageUrl) => {
         DOM.modalImageDisplay.src = imageUrl;
         DOM.imagePreviewModal.classList.remove('hidden');
@@ -982,17 +981,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function closeImagePreviewModal() {
         DOM.imagePreviewModal.classList.add('hidden');
-        DOM.modalImageDisplay.src = ''; // 画像をクリア
+        DOM.modalImageDisplay.src = '';
     }
-    // ▲▲▲ [修正点6] ここまで ▼▼▼
     
     // --- 13. 初期化処理 ---
     document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
-    // ▼▼▼ [修正点6] 画像プレビューモーダルの閉じるボタンイベントリスナー ▼▼▼
     DOM.imagePreviewModal.querySelector('.modal-close-btn-outer').addEventListener('click', closeImagePreviewModal);
-    // ▲▲▲ [修正点6] ここまで ▼▼▼
     window.addEventListener('hashchange', router);
     checkSession();
 });

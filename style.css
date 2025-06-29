@@ -15,33 +15,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .nav-item svg {
     width: 1.75rem;
     height: 1.75rem;
-    fill: none; /* 塗りつぶしをなくす */
-    stroke: currentColor; /* 枠線色をテキスト色に合わせる */
-    stroke-width: 2; /* 枠線の太さ */
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
 }
 .nav-item:hover { background-color: var(--bg-color); }
 .nav-item.active { font-weight: 700; }
-.nav-item.active:not([href="#"]):not([href="#explore"]):not([href="#settings"]) svg { /* ホーム、検索、設定アイコン以外 */
+.nav-item.active:not([href="#"]):not([href="#explore"]):not([href="#settings"]) svg {
     fill: currentColor;
     stroke: none;
 }
-/* ▼▼▼ [修正点1] ホームアイコンのアクティブ状態の修正 ▼▼▼ */
 .nav-item[href="#"].active svg path:nth-child(1) {
     fill: currentColor;
     stroke: none;
 }
 .nav-item[href="#"].active svg rect {
-    fill: white; /* ドアの部分は白で塗りつぶし */
-    stroke: none; /* 枠線なし */
+    fill: white;
+    stroke: none;
 }
-/* ▲▲▲ [修正点1] ここまで ▼▼▼ */
-/* ▼▼▼ [修正点2] 検索アイコンはアクティブでも線画のまま ▼▼▼ */
 .nav-item[href="#explore"].active svg {
     fill: none !important;
     stroke: currentColor !important;
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
-/* ▼▼▼ [修正点5] 設定アイコンのアクティブ状態の修正 ▼▼▼ */
 .nav-item[href="#settings"].active svg path {
     fill: currentColor;
     stroke: none;
@@ -50,7 +45,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     fill: white;
     stroke: none;
 }
-/* ▲▲▲ [修正点5] ここまで ▼▼▼ */
 .nav-item-post { background-color: var(--primary-color); color: white; width: 90%; justify-content: center; font-size: 1.1rem; font-weight: 700; padding: 1rem; margin-top: 1rem; }
 .nav-item-post:hover { background-color: var(--primary-hover-color); }
 #nav-menu-bottom { padding-bottom: 1rem; }
@@ -64,19 +58,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .notification-badge {
     background-color: var(--primary-color);
     color: white;
-    font-size: 0.7rem; /* 少し小さく */
+    font-size: 0.7rem;
     font-weight: bold;
     border-radius: 50%;
-    width: 1.5em; /* 幅と高さを固定 */
+    width: 1.5em;
     height: 1.5em;
-    line-height: 1.5em; /* 縦方向の中央揃え */
+    line-height: 1.5em;
     text-align: center;
     position: absolute;
     top: 0.6rem;
-    left: 2rem; /* アイコンの右側に配置 */
-    transform: translate(-50%, -50%); /* 微調整 */
-    box-shadow: 0 0 0 2px white; /* 背景色との境目を強調 */
-    z-index: 1; /* アイコンの上に表示 */
+    left: 2rem;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 2px white;
+    z-index: 1;
 }
 .nav-item[href="#notifications"] {
     position: relative;
@@ -108,16 +102,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .post-form .form-content { flex-grow: 1; }
 .post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
 .post-form-actions { display: flex; justify-content: flex-end; align-items: center; padding-top: 0.5rem; }
-.post-form-actions button { padding: 0.5rem 1rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; cursor: pointer; }
-.post-form-actions button:disabled { background-color: #8ecdf8; cursor: not-allowed; }
-/* ▼▼▼ [修正点8] ファイル添付ボタンのスタイル ▼▼▼ */
-.attach-file-button {
-    background: none;
+/* ▼▼▼ [修正点2] ファイル添付ボタンの背景色をなくす ▼▼▼ */
+.post-form-actions button[type="submit"] {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
     border: none;
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+.post-form-actions button[type="submit"]:disabled { background-color: #8ecdf8; cursor: not-allowed; }
+
+.attach-file-button {
+    background: none; /* 背景色なし */
+    border: none; /* 枠線なし */
     color: var(--primary-color);
     cursor: pointer;
     padding: 0.5rem;
-    margin-right: auto; /* 右に寄せる */
+    margin-right: auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -129,8 +132,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     stroke: currentColor;
     stroke-width: 2;
 }
-/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
-/* ▼▼▼ [修正点8] 添付ファイルのプレビューエリアのスタイル ▼▼▼ */
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
+/* 添付ファイルのプレビューエリアのスタイル */
 .attachment-preview-container {
     display: flex;
     flex-wrap: wrap;
@@ -140,8 +143,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 }
 .attachment-preview-item {
     position: relative;
-    width: 100px; /* プレビュー画像の幅 */
-    height: 100px; /* プレビュー画像の高さ */
+    width: 100px;
+    height: 100px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
@@ -166,7 +169,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     font-size: 0.8rem;
     cursor: pointer;
 }
-/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
 
 
 /* ポスト表示 */
@@ -180,7 +182,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .post-content { margin-bottom: 1rem; white-space: pre-wrap; word-wrap: break-word; font-size: 1rem; cursor: pointer; }
 .post-content a { color: var(--primary-color); text-decoration: none; }
 .post-content a:hover { text-decoration: underline; }
-/* ▼▼▼ [修正点8] ポスト内の添付ファイル表示スタイル ▼▼▼ */
 .post-attachments {
     display: flex;
     flex-wrap: wrap;
@@ -191,9 +192,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
-    max-width: 100%; /* 親の幅に合わせる */
+    max-width: 100%;
     height: auto;
-    cursor: pointer; /* 拡大表示のためにカーソルを変更 */
+    cursor: pointer;
 }
 .post-attachment-item img {
     max-width: 100%;
@@ -201,7 +202,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     display: block;
     object-fit: contain;
 }
-/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
 .post-actions { display: flex; justify-content: space-around; align-items: center; max-width: 425px; }
 .post-actions button { background: none; border: none; color: var(--secondary-text-color); padding: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .like-button:hover, .like-button.liked { color: var(--like-color); }
@@ -254,46 +254,58 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* モーダル共通スタイル */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; z-index: 1001; }
 .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; position: relative; }
-/* ▼▼▼ [修正点4] モーダルの閉じるボタンをモーダル外に移動し、スタイルを調整 ▼▼▼ */
+/* ▼▼▼ [修正点3] ポスト作成モーダル内の閉じるボタンのスタイルを再定義 ▼▼▼ */
+.modal-close-btn {
+    position: absolute; /* モーダルコンテンツに対して絶対位置 */
+    top: 1rem;
+    left: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--secondary-text-color); /* 色を調整 */
+    z-index: 1; /* 手前に表示 */
+}
+/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
+/* ▼▼▼ [修正点4] モーダル外に配置する閉じるボタンのスタイル（画像プレビュー用） ▼▼▼ */
 .modal-close-btn-outer {
-    position: fixed; /* 画面に対して固定 */
+    position: fixed;
     top: 10px;
     right: 10px;
-    background: #888;
+    background: rgba(0,0,0,0.5); /* 半透明の背景 */
     color: white;
     border-radius: 50%;
-    width: 32px; /* 少し大きく */
+    width: 32px;
     height: 32px;
     border: none;
-    font-size: 1.2rem; /* サイズに合わせる */
+    font-size: 1.2rem;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    z-index: 1002; /* モーダルより手前に */
+    z-index: 1002;
 }
 /* ▲▲▲ [修正点4] ここまで ▼▼▼ */
 
-/* ▼▼▼ [修正点6] 画像プレビューモーダル専用スタイル ▼▼▼ */
+/* 画像プレビューモーダル専用スタイル */
 .modal-content.image-content {
-    background: transparent; /* 背景を透明に */
-    box-shadow: none; /* 影をなくす */
+    background: transparent;
+    box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 90vw; /* 画面幅の90% */
-    height: 90vh; /* 画面高さの90% */
-    max-width: none; /* 最大幅の制限をなくす */
-    max-height: none; /* 最大高さの制限をなくす */
+    width: 90vw;
+    height: 90vh;
+    max-width: none;
+    max-height: none;
 }
 #modal-image-display {
     max-width: 100%;
     max-height: 100%;
-    object-fit: contain; /* アスペクト比を維持して表示 */
-    border-radius: 8px; /* 角丸にする */
+    object-fit: contain;
+    border-radius: 8px;
 }
-/* ▲▲▲ [修正点6] ここまで ▼▼▼ */
 
 /* プロフィール画面 */
 #profile-header { padding: 1rem; border-bottom: 1px solid var(--border-color); }
@@ -327,7 +339,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* レスポンシブ */
 @media (max-width: 1280px) { #right-sidebar { display: none; } }
 @media (max-width: 1000px) { #left-nav { width: 88px; } #left-nav .nav-item span { display: none; } .nav-item-post span { display: block !important; } }
-/* ▼▼▼ [修正点3, 4] スマホでの表示崩れとナビゲーションバーの位置を修正 ▼▼▼ */
 @media (max-width: 680px) {
     .app-container { flex-direction: column; padding-bottom: 50px; }
     #left-nav {
@@ -349,38 +360,36 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     .nav-item-post, #nav-menu-bottom { display: none; }
     #main-content {
         border: none;
-        width: 100%; /* 画面幅いっぱいに広げる */
-        min-width: 0; /* flexアイテムの最小幅をリセット */
+        width: 100%;
+        min-width: 0;
     }
     #page-header {
-        position: static; /* stickyを解除して通常フローに */
+        position: static;
     }
     .timeline-tabs-sticky-container {
-        position: static; /* stickyを解除 */
+        position: static;
         border-bottom: none;
     }
     .post-form-sticky-container {
-        position: static; /* stickyを解除 */
+        position: static;
         border-bottom: none;
     }
     .timeline-tabs {
-        flex-wrap: nowrap; /* 折り返しを禁止 */
-        overflow-x: auto; /* 横スクロールを可能に */
-        -webkit-overflow-scrolling: touch; /* iOSのスクロールを滑らかに */
-        white-space: nowrap; /* ボタンが改行されないように */
-        padding-bottom: 10px; /* スクロールバーのためのスペース */
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+        padding-bottom: 10px;
     }
     .timeline-tab-button {
-        flex-shrink: 0; /* ボタンの縮小を防ぐ */
-        min-width: fit-content; /* 内容に応じた最小幅 */
+        flex-shrink: 0;
+        min-width: fit-content;
     }
 
     #login-banner { flex-direction: column; text-align: center; gap: 1rem; }
     
-    /* モーダルクローズボタンのスマホでの位置調整 */
     .modal-close-btn-outer {
         top: 20px;
         right: 20px;
     }
 }
-/* ▲▲▲ [修正点3, 4] ここまで ▼▼▼ */
