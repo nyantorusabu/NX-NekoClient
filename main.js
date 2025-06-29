@@ -3,8 +3,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // 【【【 警告：これは極めて危険な実装です 】】】
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -26,7 +24,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
-        mainContent: document.getElementById('main-content'),
+        contentArea: document.getElementById('content-area'), // イベントデリゲーション用にcontent-areaを追加
         navMenuTop: document.getElementById('nav-menu-top'),
         navMenuBottom: document.getElementById('nav-menu-bottom'),
         pageHeader: document.getElementById('page-header'),
@@ -417,7 +415,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (attachment.type === 'image') {
                     attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" data-action="open-image" data-src="${publicURL}">`;
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<video src="${publicURL}" controls data-action="noop"></video>`; // noop: 何もしない
+                    attachmentsHTML += `<video src="${publicURL}" controls data-action="noop"></video>`;
                 } else if (attachment.type === 'audio') {
                     attachmentsHTML += `<audio src="${publicURL}" controls data-action="noop"></audio>`;
                 }
@@ -647,43 +645,28 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!confirm('このポストを削除しますか？')) return;
         showLoading(true);
         try {
-            // 添付ファイル情報を取得
             const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
             if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
 
-            // ストレージからファイルを削除
             if (postData.attachments && postData.attachments.length > 0) {
                 const fileIds = postData.attachments.map(file => file.id);
                 const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
-                if (storageError) {
-                    console.error('ストレージのファイル削除に失敗:', storageError.message);
-                    // エラーが出てもDBの削除は続行する（DBとストレージの不整合は許容）
-                }
+                if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
             }
-
-            // DBからポストを削除
             const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
             if (deleteError) throw deleteError;
-
-            // ユーザーのpost配列からもIDを削除
             if (currentUser && currentUser.post?.includes(postId)) {
                 const updatedPosts = currentUser.post.filter(id => id !== postId);
                 const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
-                if (userUpdateError) {
-                    console.error("ユーザーのポストリスト更新に失敗:", userUpdateError);
-                } else {
+                if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); }
+                 else {
                     currentUser.post = updatedPosts;
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 }
             }
-
-            router(); // 画面を再読み込み
-        } catch(e) {
-            console.error(e);
-            alert('削除に失敗しました。');
-        } finally {
-            showLoading(false);
-        }
+            router();
+        } catch(e) { console.error(e); alert('削除に失敗しました。'); }
+        finally { showLoading(false); }
     };
     window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
     window.clearReply = () => { replyingTo = null; document.getElementById('reply-info')?.classList.add('hidden'); document.getElementById('reply-info-modal')?.classList.add('hidden'); };
@@ -887,51 +870,32 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    // ▼▼▼ [修正点7] クリックイベントの処理をイベントデリゲーションに変更 ▼▼▼
-    DOM.mainContent.addEventListener('click', (e) => {
+    DOM.contentArea.addEventListener('click', (e) => {
         const target = e.target;
-        const postElement = target.closest('.post');
-        
-        // アクションを特定
         const actionTarget = target.closest('[data-action]');
-        const action = actionTarget?.dataset.action;
-
-        if (action) {
+        
+        if (actionTarget) {
             e.stopPropagation();
+            const action = actionTarget.dataset.action;
             const postId = actionTarget.dataset.postId;
             switch(action) {
-                case 'toggle-menu':
-                    window.togglePostMenu(postId);
-                    break;
-                case 'delete-post':
-                    window.deletePost(postId);
-                    break;
-                case 'reply':
-                    window.handleReplyClick(postId, actionTarget.dataset.username);
-                    break;
-                case 'like':
-                    window.handleLike(actionTarget, postId);
-                    break;
-                case 'star':
-                    window.handleStar(actionTarget, postId);
-                    break;
-                case 'open-image':
-                    window.openImageModal(actionTarget.dataset.src);
-                    break;
-                case 'download':
-                    e.preventDefault();
-                    window.handleDownload(actionTarget.dataset.url, actionTarget.dataset.name);
-                    break;
-                case 'noop': // video, audio controls
-                    break;
+                case 'toggle-menu': window.togglePostMenu(postId); break;
+                case 'delete-post': window.deletePost(postId); break;
+                case 'reply': window.handleReplyClick(postId, actionTarget.dataset.username); break;
+                case 'like': window.handleLike(actionTarget, postId); break;
+                case 'star': window.handleStar(actionTarget, postId); break;
+                case 'open-image': window.openImageModal(actionTarget.dataset.src); break;
+                case 'download': e.preventDefault(); window.handleDownload(actionTarget.dataset.url, actionTarget.dataset.name); break;
+                case 'noop': break;
             }
-        } else if (postElement && !target.closest('a')) { // aタグ以外のポスト部分をクリック
-            const postId = postElement.dataset.postId;
-            if(postId) window.location.hash = `#post/${postId}`;
+        } else {
+            const postElement = target.closest('.post');
+            if (postElement && postElement.dataset.postId) {
+                window.location.hash = `#post/${postElement.dataset.postId}`;
+            }
         }
     });
 
-    // タブ切り替えのイベントリスナー
     const tabsContainer = document.querySelector('.timeline-tabs');
     if (tabsContainer) {
         tabsContainer.addEventListener('click', (e) => {
@@ -940,7 +904,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // ▲▲▲ [修正点7] ここまで ▼▼▼
 
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
