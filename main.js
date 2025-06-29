@@ -26,7 +26,6 @@ window.addEventListener('DOMContentLoaded', () => {
         stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-        // ▼▼▼ [修正点3] クリップアイコンに変更 ▼▼▼
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
     };
 
@@ -286,6 +285,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     previewContainer.appendChild(previewItem);
                 };
                 reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewItem.innerHTML = `<video src="${e.target.result}" alt="${file.name}" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
             } else {
                 previewItem.innerHTML = `<span>${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 previewContainer.appendChild(previewItem);
@@ -319,9 +325,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let attachmentsData = [];
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
-                    // ▼▼▼ [修正点4] 日本語ファイル名対応 ▼▼▼
-                    const fileName = `${crypto.randomUUID()}-${encodeURIComponent(file.name)}`;
-                    // ▲▲▲ [修正点4] ここまで ▼▼▼
+                    const fileName = `${crypto.randomUUID()}-${btoa(unescape(encodeURIComponent(file.name)))}`;
                     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                         .from('nyax')
                         .upload(fileName, file);
@@ -348,7 +352,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 成功したらフォームをリセット
             selectedFiles = [];
             contentEl.value = '';
             container.querySelector('.file-preview-container').innerHTML = '';
@@ -389,15 +392,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
                 const publicURL = publicUrlData.publicUrl;
                 const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.id);
-
+                const isVideo = /\.(mp4|webm|mov)$/i.test(attachment.id);
+                
                 attachmentsHTML += '<div class="attachment-item">';
                 if (isImage) {
                     attachmentsHTML += `<img src="${publicURL}" alt="添付画像" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                } else if (isVideo) {
+                    attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
                 } else {
-                    // ▼▼▼ [修正点4] 日本語ファイル名対応 ▼▼▼
-                    const originalFileName = decodeURIComponent(attachment.id.split('-').slice(1).join('-'));
+                    const originalFileName = decodeURIComponent(escape(atob(attachment.id.split('-').slice(1).join('-'))));
                     attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(originalFileName)}</a>`;
-                    // ▲▲▲ [修正点4] ここまで ▼▼▼
                 }
                 attachmentsHTML += '</div>';
             }
@@ -434,7 +438,9 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.postFormContainer.innerHTML = createPostFormHTML();
             attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
-        document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
+        // ▼▼▼ [修正点3] イベントリスナーを正しくアタッチ ▼▼▼
+        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
+        // ▲▲▲ [修正点3] ここまで ▼▼▼
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
     }
 
@@ -873,6 +879,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
+    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
+    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
     checkSession();
 });
