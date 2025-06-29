@@ -1,7 +1,7 @@
 window.addEventListener('DOMContentLoaded', () => {
     // --- 1. 初期設定 & グローバル変数 ---
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJis_sIjoic3VwYWJhc2UiLCJyZWYiOiJtbnZkcHZzaXZxcWJ6YnRqdHB3cyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQwMDUyMTAzLCJleHAiOjIwNTU2MjgxMDN9.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
