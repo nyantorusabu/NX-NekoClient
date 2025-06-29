@@ -3,6 +3,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 【【【 警告：これは極めて危険な実装です 】】】
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -24,7 +26,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 3. DOM要素の取得 ---
     const DOM = {
-        mainContent: document.getElementById('main-content'), // ▼▼▼ イベントデリゲーション用にmain-contentを追加 ▼▼▼
+        mainContent: document.getElementById('main-content'),
         navMenuTop: document.getElementById('nav-menu-top'),
         navMenuBottom: document.getElementById('nav-menu-bottom'),
         pageHeader: document.getElementById('page-header'),
@@ -394,12 +396,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!post || !author) return;
         const postEl = document.createElement('div');
         postEl.className = 'post';
-        postEl.dataset.postId = post.id; // データ属性にIDを設定
+        postEl.dataset.postId = post.id;
 
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
-        const menuHTML = currentUser?.id === post.userid ? `<button class="post-menu-btn" onclick="event.stopPropagation(); window.togglePostMenu('${post.id}')">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" onclick="event.stopPropagation(); window.deletePost('${post.id}')">削除</button></div>` : '';
+        const menuHTML = `<button class="post-menu-btn" data-action="toggle-menu" data-post-id="${post.id}">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" data-action="delete-post" data-post-id="${post.id}">削除</button></div>`;
         const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
         const formattedContent = await formatPostContent(post.content);
@@ -413,15 +415,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 attachmentsHTML += '<div class="attachment-item">';
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" data-action="open-image" data-src="${publicURL}">`;
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
+                    attachmentsHTML += `<video src="${publicURL}" controls data-action="noop"></video>`; // noop: 何もしない
                 } else if (attachment.type === 'audio') {
-                    attachmentsHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio>`;
+                    attachmentsHTML += `<audio src="${publicURL}" controls data-action="noop"></audio>`;
                 }
                 
                 if (attachment.type === 'file' || attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio') {
-                    attachmentsHTML += `<a class="attachment-download-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
+                    attachmentsHTML += `<a class="attachment-download-link" href="#" data-action="download" data-url="${publicURL}" data-name="${escapeHTML(attachment.name)}">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
             }
@@ -430,9 +432,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const actionsHTML = currentUser ? `
             <div class="post-actions">
-                <button class="reply-button" onclick="event.stopPropagation(); window.handleReplyClick('${post.id}', '${escapeHTML(author.name)}')" title="返信">🗨 <span>${replyCount}</span></button>
-                <button class="like-button ${isLiked ? 'liked' : ''}" onclick="event.stopPropagation(); window.handleLike(this, '${post.id}')"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
-                <button class="star-button ${isStarred ? 'starred' : ''}" onclick="event.stopPropagation(); window.handleStar(this, '${post.id}')"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
+                <button class="reply-button" data-action="reply" data-post-id="${post.id}" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
+                <button class="like-button ${isLiked ? 'liked' : ''}" data-action="like" data-post-id="${post.id}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
+                <button class="star-button ${isStarred ? 'starred' : ''}" data-action="star" data-post-id="${post.id}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
             </div>` : '';
         postEl.innerHTML = `
             <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.scid}" class="user-icon" alt="${author.name}'s icon">
@@ -441,7 +443,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="post-header">
                     <a href="#profile/${author.id}" class="post-author">${escapeHTML(author.name || '不明')}</a>
                     <span class="post-time">#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}</span>
-                    ${menuHTML}
+                    ${currentUser?.id === post.userid ? menuHTML : ''}
                 </div>
                 <div class="post-content"><p>${formattedContent}</p></div>
                 ${attachmentsHTML}
@@ -459,9 +461,6 @@ window.addEventListener('DOMContentLoaded', () => {
             attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
-        document.querySelectorAll('.timeline-tab-button').forEach(btn => {
-            btn.onclick = () => switchTimelineTab(btn.dataset.tab);
-        });
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
     }
 
@@ -644,7 +643,48 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // --- 11. ユーザーアクション ---
     window.togglePostMenu = (postId) => document.getElementById(`menu-${postId}`).classList.toggle('hidden');
-    window.deletePost = async (postId) => { if (!confirm('このポストを削除しますか？')) return; showLoading(true); try { const { error } = await supabase.from('post').delete().eq('id', postId); if (error) throw error; window.location.hash = '#'; router(); } catch(e) { alert('削除に失敗しました。'); } finally { showLoading(false); } };
+    window.deletePost = async (postId) => {
+        if (!confirm('このポストを削除しますか？')) return;
+        showLoading(true);
+        try {
+            // 添付ファイル情報を取得
+            const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
+            if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
+
+            // ストレージからファイルを削除
+            if (postData.attachments && postData.attachments.length > 0) {
+                const fileIds = postData.attachments.map(file => file.id);
+                const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
+                if (storageError) {
+                    console.error('ストレージのファイル削除に失敗:', storageError.message);
+                    // エラーが出てもDBの削除は続行する（DBとストレージの不整合は許容）
+                }
+            }
+
+            // DBからポストを削除
+            const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
+            if (deleteError) throw deleteError;
+
+            // ユーザーのpost配列からもIDを削除
+            if (currentUser && currentUser.post?.includes(postId)) {
+                const updatedPosts = currentUser.post.filter(id => id !== postId);
+                const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
+                if (userUpdateError) {
+                    console.error("ユーザーのポストリスト更新に失敗:", userUpdateError);
+                } else {
+                    currentUser.post = updatedPosts;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
+            }
+
+            router(); // 画面を再読み込み
+        } catch(e) {
+            console.error(e);
+            alert('削除に失敗しました。');
+        } finally {
+            showLoading(false);
+        }
+    };
     window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
     window.clearReply = () => { replyingTo = null; document.getElementById('reply-info')?.classList.add('hidden'); document.getElementById('reply-info-modal')?.classList.add('hidden'); };
     window.handleLike = async (button, postId) => {
@@ -849,18 +889,57 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 13. 初期化処理 ---
     // ▼▼▼ [修正点7] クリックイベントの処理をイベントデリゲーションに変更 ▼▼▼
     DOM.mainContent.addEventListener('click', (e) => {
-        // ポスト詳細ページへの遷移ロジック
-        if (!e.target.closest('button, a, video, audio, img, input')) {
-            const postElement = e.target.closest('.post');
-            if (postElement && postElement.dataset.postId) {
-                window.location.hash = `#post/${postElement.dataset.postId}`;
+        const target = e.target;
+        const postElement = target.closest('.post');
+        
+        // アクションを特定
+        const actionTarget = target.closest('[data-action]');
+        const action = actionTarget?.dataset.action;
+
+        if (action) {
+            e.stopPropagation();
+            const postId = actionTarget.dataset.postId;
+            switch(action) {
+                case 'toggle-menu':
+                    window.togglePostMenu(postId);
+                    break;
+                case 'delete-post':
+                    window.deletePost(postId);
+                    break;
+                case 'reply':
+                    window.handleReplyClick(postId, actionTarget.dataset.username);
+                    break;
+                case 'like':
+                    window.handleLike(actionTarget, postId);
+                    break;
+                case 'star':
+                    window.handleStar(actionTarget, postId);
+                    break;
+                case 'open-image':
+                    window.openImageModal(actionTarget.dataset.src);
+                    break;
+                case 'download':
+                    e.preventDefault();
+                    window.handleDownload(actionTarget.dataset.url, actionTarget.dataset.name);
+                    break;
+                case 'noop': // video, audio controls
+                    break;
             }
-        }
-        // ホームタブの切り替えロジック
-        if (e.target.matches('.timeline-tab-button')) {
-            switchTimelineTab(e.target.dataset.tab);
+        } else if (postElement && !target.closest('a')) { // aタグ以外のポスト部分をクリック
+            const postId = postElement.dataset.postId;
+            if(postId) window.location.hash = `#post/${postId}`;
         }
     });
+
+    // タブ切り替えのイベントリスナー
+    const tabsContainer = document.querySelector('.timeline-tabs');
+    if (tabsContainer) {
+        tabsContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.timeline-tab-button')) {
+                switchTimelineTab(e.target.dataset.tab);
+            }
+        });
+    }
     // ▲▲▲ [修正点7] ここまで ▼▼▼
 
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
