@@ -3,6 +3,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 【【【 警告：これは極めて危険な実装です 】】】
+    // サービスロールキーはクライアントサイドに絶対に含めないでください。
+    // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
+    // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -306,6 +311,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // ▼▼▼ [修正点1] ポスト作成時にuser.post配列を更新するロジックを追加 ▼▼▼
     async function handlePostSubmit(container) {
         if (!currentUser) return alert("ログインが必要です。");
         const contentEl = container.querySelector('textarea');
@@ -333,6 +339,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
             if(postError) throw postError;
 
+            // RPCを呼び出してuserテーブルのpost配列に新しいIDを追加
+            const { error: rpcError } = await supabase.rpc('append_to_array', { user_id: currentUser.id, column_name: 'post', new_value: newPost.id });
+            if (rpcError) throw new Error('ユーザーのポストリスト更新に失敗しました。');
+            
+            // ローカルのcurrentUserも更新
+            if (!currentUser.post) currentUser.post = [];
+            currentUser.post.push(newPost.id);
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
             if (newPost.reply_id && newPost.reply_to?.user?.id) {
                 if (newPost.reply_to.user.id !== currentUser.id) {
                     sendNotification(newPost.reply_to.user.id, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
@@ -349,6 +364,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
     
     window.openImageModal = (src) => {
         DOM.imagePreviewModalContent.src = src;
@@ -359,11 +375,12 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.imagePreviewModalContent.src = '';
     }
 
+    // ▼▼▼ [修正点2, 3] ファイルのダウンロードとプレビューを修正 ▼▼▼
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
         postEl.onclick = (e) => {
-            if (!e.target.closest('button, a, video, audio, img')) { // インタラクティブ要素以外をクリックした場合
+            if (!e.target.closest('button, a, video, audio, img')) {
                 window.location.hash = `#post/${post.id}`;
             }
         };
@@ -384,11 +401,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 attachmentsHTML += '<div class="attachment-item">';
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')"></a>`;
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
+                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><video src="${publicURL}" controls onclick="event.stopPropagation()"></video></a>`;
                 } else if (attachment.type === 'audio') {
-                    attachmentsHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio>`;
+                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio></a>`;
                 } else {
                     attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(attachment.name)}</a>`;
                 }
@@ -418,6 +435,7 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
+    // ▲▲▲ [修正点2, 3] ここまで ▼▼▼
     
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
@@ -428,7 +446,6 @@ window.addEventListener('DOMContentLoaded', () => {
             attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
-        // ▼▼▼ [修正点3] タブ切り替えのイベントリスナーをここで設定 ▼▼▼
         document.querySelectorAll('.timeline-tab-button').forEach(btn => {
             btn.onclick = () => switchTimelineTab(btn.dataset.tab);
         });
