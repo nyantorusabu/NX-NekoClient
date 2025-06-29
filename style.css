@@ -25,11 +25,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .nav-item:hover { background-color: var(--bg-color); }
 .nav-item.active { font-weight: 700; }
-/* ▼▼▼ [修正点2] アクティブ時のアイコンは塗りつぶしに戻す ▼▼▼ */
+/* ▼▼▼ [修正点2] アクティブ時のアイコンは塗りつぶしに戻す（ホーム以外） ▼▼▼ */
 .nav-item.active svg {
     fill: currentColor;
     stroke: none;
 }
+/* ホームのアクティブアイコンは別途調整（ドアの部分以外を塗りつぶし） */
+.nav-item.active[href="#"] svg path:nth-child(1) { fill: currentColor; stroke: none; } /* 家全体 */
+.nav-item.active[href="#"] svg path:nth-child(2) { fill: none; stroke: currentColor; } /* ドア部分の枠線 */
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .nav-item-post { background-color: var(--primary-color); color: white; width: 90%; justify-content: center; font-size: 1.1rem; font-weight: 700; padding: 1rem; margin-top: 1rem; }
 .nav-item-post:hover { background-color: var(--primary-hover-color); }
@@ -68,22 +71,54 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .header-search-bar button:hover {
     background-color: var(--primary-hover-color);
 }
+/* ▼▼▼ [修正点3] 検索アイコンは塗りつぶさない（ヘッダー） ▼▼▼ */
 .header-search-bar button svg {
-    fill: white;
+    fill: none; /* 塗りつぶしなし */
+    stroke: white; /* 枠線色を白に */
     width: 20px;
     height: 20px;
-    /* ▼▼▼ [修正点2] 検索アイコンの色を白に固定するため、strokeも白に ▼▼▼ */
-    stroke: white;
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
-.timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
-.timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; }
+/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
+
+/* ▼▼▼ [修正点6] ホームのタブとポスト枠をスクロールしても動かないようにする ▼▼▼ */
+.timeline-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: calc(56px + 1rem); /* page-headerの高さ + page-headerのpadding-top */
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 9;
+}
+.post-form-sticky-container {
+    position: sticky;
+    top: calc(56px + 1rem + 50px); /* page-header + timeline-tabsの高さ */
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 8; /* timeline-tabsより下 */
+    border-bottom: 1px solid var(--border-color); /* 投稿フォームの下線 */
+}
+/* ▲▲▲ [修正点6] ここまで ▼▼▼ */
+/* ▼▼▼ [修正点5] ホームのタブ切り替えテキストを中央寄せにする ▼▼▼ */
+.timeline-tab-button {
+    flex-grow: 1;
+    padding: 1rem;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--secondary-text-color);
+    font-weight: 500;
+    position: relative;
+    text-align: center; /* 中央寄せ */
+}
+/* ▲▲▲ [修正点5] ここまで ▼▼▼ */
 .timeline-tab-button:hover { background-color: var(--bg-color); }
 .timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
 .timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
 
 /* ポストフォーム */
-.post-form { padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; gap: 0.5rem; }
+.post-form { padding: 1rem; /* border-bottom: 1px solid var(--border-color); */ display: flex; gap: 0.5rem; } /* border-bottomは親の.post-form-sticky-containerに移動 */
 .post-form .user-icon { width: 48px; height: 48px; border-radius: 50%; }
 .post-form .form-content { flex-grow: 1; }
 .post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
@@ -146,7 +181,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .widget-title { font-size: 1.25rem; font-weight: 800; padding: 0.75rem 1rem; }
 .widget-item { padding: 0.75rem 1rem; cursor: pointer; transition: background-color 0.2s; }
 .widget-item:hover { background-color: #e7e7e8; }
-/* ▼▼▼ [修正点8] 右サイドバーの検索バーのスタイル ▼▼▼ */
+/* ▼▼▼ [修正点9] 右サイドバーの検索バーのスタイル ▼▼▼ */
 .sidebar-search-widget {
     background-color: var(--bg-color);
     border-radius: 9999px;
@@ -162,16 +197,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     outline: none;
     font-size: 1rem;
 }
+/* ▼▼▼ [修正点3] 右サイドバー検索アイコンは塗りつぶさない ▼▼▼ */
 .sidebar-search-widget svg {
-    width: 20px; /* アイコンのサイズ */
-    height: 20px; /* アイコンのサイズ */
-    fill: var(--secondary-text-color); /* 検索アイコンの色 */
+    width: 20px;
+    height: 20px;
+    fill: none; /* 塗りつぶしなし */
+    stroke: var(--secondary-text-color); /* 枠線色をテキスト色に合わせる */
     margin-right: 0.5rem;
-    /* ▼▼▼ [修正点2] 右サイドバー検索アイコンは枠線にするため stroke も指定 ▼▼▼ */
-    stroke: var(--secondary-text-color);
-    stroke-width: 2;
 }
-/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
+/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
 
 .recommend-user { display: flex; justify-content: space-between; align-items: center; }
 .recommend-user span { font-weight: 700; }
@@ -203,13 +237,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     color: var(--text-color); /* 黒文字 */
     border: 1px solid var(--border-color); /* 薄いグレーの枠線 */
 }
-/* ▼▼▼ [修正点6] プロフィールのフォロー解除ホバー時のクラス（背景色を赤に） ▼▼▼ */
-.follow-button-following:hover.follow-button-unfollow-hover {
+/* ▼▼▼ [修正点4] プロフィールのフォロー解除ホバー時のクラス（背景色を赤に） ▼▼▼ */
+.follow-button-following.follow-button-unfollow-hover { /* .follow-button-unfollow-hover クラスのみでスタイルを適用 */
     background-color: #f4212e !important; /* 強制的に赤 */
     color: white !important; /* 白文字 */
     border-color: #f4212e !important; /* 赤い枠線 */
 }
-/* ▲▲▲ [修正点6] ここまで ▼▼▼ */
+/* ▲▲▲ [修正点4] ここまで ▼▼▼ */
 
 /* 未ログイン時バナー */
 #login-banner { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--primary-color); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }

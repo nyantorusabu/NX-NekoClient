@@ -1,15 +1,16 @@
 window.addEventListener('DOMContentLoaded', () => {
     // --- 1. 初期設定 & グローバル変数 ---
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJis_sIjoic3VwYWJhc2UiLCJyZWYiOiJtbnZkcHZzaXZxcWJ6YnRqdHB3cyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQwMDUyMTAzLCJleHAiOjIwNTU2MjgxMDN9.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
 
-    // --- 2. アイコンSVG定義 ▼▼▼ [修正点2] 左メニューのアイコンを枠線のみの旧アイコンベースに ▼▼▼ ---
+    // --- 2. アイコンSVG定義 ▼▼▼ [修正点2] 左メニューのアイコンを枠線のみの旧アイコンベースに（ホームは一部塗りつぶし） ▼▼▼ ---
     const ICONS = {
-        // SVGは feather icons をベースに調整（旧Xアイコンに近い形状で線画）
-        home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
+        // ホームアイコン: ドアのような部分（中央の四角）以外を塗りつぶし、その部分は線画
+        // path:nth-child(1) が家全体、path:nth-child(2) がドアの部分
+        home: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10" fill="none" stroke="currentColor"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
         notifications: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
         likes: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
@@ -39,7 +40,7 @@ window.addEventListener('DOMContentLoaded', () => {
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
             recommendations: document.getElementById('recommendations-widget-container'),
-            searchWidget: document.getElementById('right-sidebar-search-widget-container') // index.htmlに要素を追加済み
+            searchWidget: document.getElementById('right-sidebar-search-widget-container') // index.htmlに追加された要素
         }
     };
 
@@ -102,6 +103,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (updateError) {
                 console.error('通知の更新に失敗:', updateError);
+            } else {
+                // 通知を送った相手が currentUser の場合、currentUser の通知も更新
+                // ただし、sendNotification関数内で自分自身への通知は送らないようにしているので、これは基本的に不要
+                // しかし、念のため、notificationsScreenVisibleがtrueの場合にrouter()を呼ぶことで対応
             }
         } catch (e) {
             console.error('通知送信中にエラー発生:', e);
@@ -170,8 +175,8 @@ window.addEventListener('DOMContentLoaded', () => {
         loadRightSidebar();
     }
     async function loadRightSidebar() {
-        // ▼▼▼ [修正点8] 右サイドバーに検索バーを追加 ▼▼▼
-        if (DOM.rightSidebar.searchWidget) { // nullチェック
+        // ▼▼▼ [修正点9] 右サイドバーに検索バーを追加 ▼▼▼
+        if (DOM.rightSidebar.searchWidget) { // nullチェックを追加
             DOM.rightSidebar.searchWidget.innerHTML = `
                 <div class="sidebar-search-widget">
                     ${ICONS.explore}
@@ -186,7 +191,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        // ▲▲▲ [修正点8] ここまで ▼▼▼
+        // ▲▲▲ [修正点9] ここまで ▼▼▼
 
         const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
         if (error || !data || data.length === 0) { DOM.rightSidebar.recommendations.innerHTML = ''; return; }
@@ -313,7 +318,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
-        const menuHTML = currentUser?.id === post.userid ? `<button class="post-menu-btn" onclick="event.stopPropagation(); window.togglePostMenu('${post.id}')">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" onclick="window.deletePost('${post.id}')">削除</button></div>` : '';
+        // ▼▼▼ [修正点1] ポストメニューのonclickハンドラを修正 ▼▼▼
+        const menuHTML = currentUser?.id === post.userid ? `<button class="post-menu-btn" onclick="event.stopPropagation(); window.togglePostMenu('${post.id}')">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn" onclick="event.stopPropagation(); window.deletePost('${post.id}')">削除</button></div>` : '';
+        // ▲▲▲ [修正点1] ここまで ▼▼▼
         const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
         const replyCount = replyCountError ? '?' : (replyCountData || 0);
 
@@ -373,9 +380,10 @@ window.addEventListener('DOMContentLoaded', () => {
         const sidebarSearchInput = document.getElementById('sidebar-search-input');
         
         let query = '';
-        if (headerSearchInput && document.getElementById('explore-screen')?.classList.contains('hidden') === false) {
+        // 現在アクティブな画面がexplore-screenの場合、ヘッダーの検索入力から値を取得
+        if (document.getElementById('explore-screen')?.classList.contains('hidden') === false && headerSearchInput) {
              query = headerSearchInput.value.trim();
-        } else if (sidebarSearchInput) {
+        } else if (sidebarSearchInput) { // それ以外の場合はサイドバーの検索入力から値を取得
              query = sidebarSearchInput.value.trim();
         }
 

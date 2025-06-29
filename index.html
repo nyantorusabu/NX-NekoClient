@@ -26,7 +26,11 @@
                         <button class="timeline-tab-button active" data-tab="foryou">すべて</button>
                         <button class="timeline-tab-button" data-tab="following">フォロー中</button>
                     </div>
-                    <div class="post-form-container"></div>
+                    <!-- ▼▼▼ [修正点7] ポストフォームをスティッキーにするためにコンテナを調整 ▼▼▼ -->
+                    <div class="post-form-sticky-container">
+                        <div class="post-form-container"></div>
+                    </div>
+                    <!-- ▲▲▲ [修正点7] ここまで ▼▼▼ -->
                     <div id="timeline"></div>
                 </div>
                 <div id="explore-screen" class="screen hidden"><div id="explore-content"></div></div>
@@ -43,9 +47,9 @@
         </main>
         <!-- 右側サイドバー -->
         <aside id="right-sidebar">
-            <!-- ▼▼▼ [修正点8] 右サイドバーの検索ウィジェットコンテナを追加 ▼▼▼ -->
+            <!-- ▼▼▼ [修正点9] 右サイドバーの検索ウィジェットコンテナを追加 ▼▼▼ -->
             <div id="right-sidebar-search-widget-container"></div>
-            <!-- ▲▲▲ [修正点8] ここまで ▼▼▼ -->
+            <!-- ▲▲▲ [修正点9] ここまで ▼▼▼ -->
             <div id="recommendations-widget-container"></div>
         </aside>
     </div>
