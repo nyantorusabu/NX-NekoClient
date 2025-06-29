@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="login.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="login-page">
+<body>
     <div class="login-container">
         <a href="index.html" class="logo-link">
             <img src="favicon.png" alt="NyaX Logo" class="logo-icon">
@@ -28,6 +28,6 @@
         <div id="error-message" class="error-message hidden"></div>
     </div>
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
-        <script type="module" src="js/auth.js"></script> <!-- ログイン専用のJSを直接読み込む -->
+    <script src="login.js"></script>
 </body>
 </html>
