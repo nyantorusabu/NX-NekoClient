@@ -240,61 +240,50 @@ body {
 }
 
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
-.timeline-tabs-sticky-container {
-    position: sticky;
-    top: 56px;
-    background-color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    z-index: 9;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.timeline-tabs {
-    display: flex;
-}
-
+.timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
+.timeline-tabs { display: flex; }
+/* ▼▼▼ [修正点2] ポスト送信枠の固定を解除 ▼▼▼ */
 .post-form-sticky-container {
-    position: sticky;
-    top: calc(56px + 50px);
-    background-color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
+    /* position: sticky; を削除 */
+    background-color: white; /* スクロール時に背景が透けないように */
     z-index: 8;
     border-bottom: 1px solid var(--border-color);
 }
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
+.timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; text-align: center; }
+.timeline-tab-button:hover { background-color: var(--bg-color); }
+.timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
+.timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
 
-.timeline-tab-button {
-    flex-grow: 1;
-    padding: 1rem;
-    border: none;
-    background: none;
-    font-size: 1rem;
-    cursor: pointer;
-    color: var(--secondary-text-color);
-    font-weight: 500;
-    position: relative;
+/* ポストフォーム */
+.post-form { padding: 1rem; display: flex; gap: 0.5rem; }
+/* ...（以降の.post-form関連のルールは変更なし）... */
+
+/* リアルタイム更新用ボタンのスタイル */
+/* ▼▼▼ [修正点1] ボタンの表示位置と重なり順を修正 ▼▼▼ */
+.new-posts-indicator {
+    position: sticky;
+    top: calc(56px + 50px); /* ヘッダー + タブの高さ */
+    z-index: 9; /* ポストフォームより手前に表示 */
     text-align: center;
+    padding-bottom: 0.5rem; /* ボタンの下に少し余白 */
+    margin-bottom: -2.5rem; /* ボタンの高さ分、下の要素との距離を詰める */
 }
-
-.timeline-tab-button:hover {
-    background-color: var(--bg-color);
-}
-
-.timeline-tab-button.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 4px;
+.new-posts-indicator button {
     background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
     border-radius: 9999px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s;
 }
-
-.timeline-tab-button.active {
-    color: var(--text-color);
-    font-weight: 700;
+.new-posts-indicator button:hover {
+    background-color: var(--primary-hover-color);
 }
+/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 
 /* ポストフォーム */
 .post-form {
