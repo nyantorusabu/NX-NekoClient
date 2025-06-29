@@ -60,18 +60,16 @@
     </div>
     <div id="post-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <!-- ▼▼▼ [修正点3] ポスト作成モーダルの閉じるボタンを modal-close-btn に戻す ▼▼▼ -->
             <button class="modal-close-btn">×</button>
-            <!-- ▲▲▲ [修正点3] ここまで ▼▼▼ -->
             <div class="post-form-container-modal"></div>
         </div>
     </div>
-    <div id="image-preview-modal" class="modal-overlay hidden">
-        <div class="modal-content image-content">
-            <button class="modal-close-btn-outer">×</button>
-            <img id="modal-image-display" src="" alt="拡大画像">
-        </div>
+    <!-- ▼▼▼ [修正点3] 画像プレビュー用モーダルを追加 ▼▼▼ -->
+    <div id="image-preview-modal" class="modal-overlay hidden" onclick="window.closeImageModal()">
+        <button class="modal-close-btn" style="top: 1rem; right: 1rem; font-size: 2rem;">×</button>
+        <img id="image-preview-modal-content" src="" alt="拡大画像">
     </div>
+    <!-- ▲▲▲ [修正点3] ここまで ▼▼▼ -->
     <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
     <script src="main.js"></script>
 </body>

@@ -3,9 +3,19 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // ▼▼▼ [修正点3] ファイルアップロード用サービスキーと、関連するグローバル変数 ▼▼▼
+    // 【【【 警告：これは極めて危険な実装です 】】】
+    // サービスロールキーはクライアントサイドに絶対に含めないでください。
+    // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
+    // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
+    const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
+    const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    let selectedFiles = []; // 選択されたファイルを保持する配列
+    // ▲▲▲ [修正点3] ここまで ▼▼▼
+
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
-    let attachedFiles = [];
 
     // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -15,8 +25,8 @@ window.addEventListener('DOMContentLoaded', () => {
         likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
         stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-        settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-        paperclip: `<svg viewBox="0 0 24 24"><path d="M21.44 11.03l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`
+        settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+        attachment: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c-1.93-1.35-4.5-1.5-6.5-1.5s-4.57.15-6.5 1.5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"></path></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -27,6 +37,8 @@ window.addEventListener('DOMContentLoaded', () => {
         screens: document.querySelectorAll('.screen'),
         postFormContainer: document.querySelector('.post-form-container'),
         postModal: document.getElementById('post-modal'),
+        imagePreviewModal: document.getElementById('image-preview-modal'),
+        imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
         exploreContent: document.getElementById('explore-content'),
         notificationsContent: document.getElementById('notifications-content'),
@@ -40,9 +52,7 @@ window.addEventListener('DOMContentLoaded', () => {
         rightSidebar: {
             recommendations: document.getElementById('recommendations-widget-container'),
             searchWidget: document.getElementById('right-sidebar-search-widget-container')
-        },
-        imagePreviewModal: document.getElementById('image-preview-modal'),
-        modalImageDisplay: document.getElementById('modal-image-display'),
+        }
     };
 
     // --- 4. ユーティリティ関数 ---
@@ -58,14 +68,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isFollowing) {
             buttonElement.textContent = 'フォロー中';
             buttonElement.classList.add('follow-button-following');
-            buttonElement.onmouseenter = () => {
-                buttonElement.textContent = 'フォロー解除';
-                buttonElement.classList.add('follow-button-unfollow-hover');
-            };
-            buttonElement.onmouseleave = () => {
-                buttonElement.textContent = 'フォロー中';
-                buttonElement.classList.remove('follow-button-unfollow-hover');
-            };
+            buttonElement.onmouseenter = () => { buttonElement.textContent = 'フォロー解除'; };
+            buttonElement.onmouseleave = () => { buttonElement.textContent = 'フォロー中'; };
         } else {
             buttonElement.textContent = 'フォロー';
             buttonElement.classList.add('follow-button-not-following');
@@ -77,48 +81,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function sendNotification(recipientId, message) {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
-
         try {
-            const { data: userData, error: fetchError } = await supabase.from('user')
-                .select('notice, notice_count')
-                .eq('id', recipientId)
-                .single();
-
-            if (fetchError || !userData) {
-                console.error('通知受信者の情報取得に失敗:', fetchError);
-                return;
-            }
-
+            const { data: userData, error: fetchError } = await supabase.from('user').select('notice, notice_count').eq('id', recipientId).single();
+            if (fetchError || !userData) { console.error('通知受信者の情報取得に失敗:', fetchError); return; }
             const currentNotices = userData.notice || [];
             const updatedNotices = [`${new Date().toLocaleDateString('ja-JP')} ${new Date().toLocaleTimeString('ja-JP')} - ${message}`, ...currentNotices].slice(0, 50);
-            
             const updatedNoticeCount = (userData.notice_count || 0) + 1;
-
-            const { error: updateError } = await supabase.from('user')
-                .update({ notice: updatedNotices, notice_count: updatedNoticeCount })
-                .eq('id', recipientId);
-
-            if (updateError) {
-                console.error('通知の更新に失敗:', updateError);
-            }
-        } catch (e) {
-            console.error('通知送信中にエラー発生:', e);
-        }
+            const { error: updateError } = await supabase.from('user').update({ notice: updatedNotices, notice_count: updatedNoticeCount }).eq('id', recipientId);
+            if (updateError) { console.error('通知の更新に失敗:', updateError); }
+        } catch (e) { console.error('通知送信中にエラー発生:', e); }
     }
     
-    // 自動リンク機能のためのヘルパー関数
     async function formatPostContent(text) {
         let formattedText = escapeHTML(text);
-
         const urlRegex = /(https?:\/\/[^\s<>"'’]+)/g;
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
-
         const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
         formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
-
         const mentionRegex = /@(\d+)/g;
         const userIds = [...formattedText.matchAll(mentionRegex)].map(match => parseInt(match[1]));
-
         if (userIds.length > 0) {
             const { data: users, error } = await supabase.from('user').select('id, name').in('id', userIds);
             if (!error && users) {
@@ -135,49 +116,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         return formattedText;
     }
-
-    // ▼▼▼ [修正点1] ファイルアップロード関数を修正 (apikey ヘッダー追加) ▼▼▼
-    async function uploadFile(file) {
-        showLoading(true);
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const supabaseProjectRef = SUPABASE_URL.split('://')[1].split('.')[0];
-            const functionUrl = `https://${supabaseProjectRef}.supabase.co/functions/v1/upload-handler`;
-
-            const response = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'apikey': SUPABASE_ANON_KEY // APIキーを追加
-                },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                let errorDetails = `Upload failed with status: ${response.status} - ${response.statusText}`;
-                try {
-                    const errorData = await response.json();
-                    errorDetails = errorData.error || errorData.message || errorDetails;
-                } catch (parseError) {
-                    console.error("Failed to parse error response as JSON:", parseError);
-                    errorDetails += ` (Response was not JSON: ${await response.text().catch(() => '')})`;
-                }
-                throw new Error(errorDetails);
-            }
-
-            const data = await response.json();
-            return { type: data.file_type.startsWith('image/') ? 'image' : 'file', id: data.file_id, url: data.public_url };
-        } catch (error) {
-            console.error("File upload error:", error);
-            alert(`ファイルのアップロードに失敗しました: ${error.message}`);
-            return null;
-        } finally {
-            showLoading(false);
-        }
-    }
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -207,52 +145,23 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 6. ナビゲーションとサイドバー ---
     async function updateNavAndSidebars() {
         const hash = window.location.hash || '#';
-        const menuItems = [
-            { name: 'ホーム', hash: '#', icon: ICONS.home },
-            { name: '検索', hash: '#explore', icon: ICONS.explore }
-        ];
-
+        const menuItems = [ { name: 'ホーム', hash: '#', icon: ICONS.home }, { name: '検索', hash: '#explore', icon: ICONS.explore } ];
         if (currentUser && !currentUser.notice_count_fetched_recently) {
             const { data: updatedUser, error } = await supabase.from('user').select('notice, notice_count').eq('id', currentUser.id).single();
             if (!error && updatedUser) {
                 currentUser.notice = updatedUser.notice;
                 currentUser.notice_count = updatedUser.notice_count;
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            } else {
-                console.error("Failed to fetch latest notice_count for current user:", error);
             }
             currentUser.notice_count_fetched_recently = true;
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
-
         if (currentUser) {
-            menuItems.push(
-                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count },
-                { name: 'いいね', hash: '#likes', icon: ICONS.likes },
-                { name: 'お気に入り', hash: '#stars', icon: ICONS.stars },
-                { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile },
-                { name: '設定', hash: '#settings', icon: ICONS.settings }
-            );
+            menuItems.push( { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, { name: 'いいね', hash: '#likes', icon: ICONS.likes }, { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, { name: '設定', hash: '#settings', icon: ICONS.settings } );
         }
-        
-        DOM.navMenuTop.innerHTML = menuItems.map(item => `
-            <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}">
-                ${item.icon}
-                <span>${item.name}</span>
-                ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
-            </a>`).join('');
+        DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
-        
-        DOM.navMenuBottom.innerHTML = currentUser ?
-            `<button id="account-button" class="nav-item account-button">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="${currentUser.name}'s icon">
-                <div class="account-info">
-                    <span class="name">${escapeHTML(currentUser.name)}</span>
-                    <span class="id">#${currentUser.id}</span>
-                </div>
-            </button>` :
-            `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
-        
+        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => link.addEventListener('click', (e) => { e.preventDefault(); window.location.hash = link.getAttribute('href'); }));
         DOM.navMenuBottom.querySelector('button')?.addEventListener('click', currentUser ? handleLogout : goToLoginPage);
@@ -261,21 +170,14 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     async function loadRightSidebar() {
         if (DOM.rightSidebar.searchWidget) {
-            DOM.rightSidebar.searchWidget.innerHTML = `
-                <div class="sidebar-search-widget">
-                    ${ICONS.explore}
-                    <input type="search" id="sidebar-search-input" placeholder="検索">
-                </div>`;
+            DOM.rightSidebar.searchWidget.innerHTML = ` <div class="sidebar-search-widget"> ${ICONS.explore} <input type="search" id="sidebar-search-input" placeholder="検索"> </div>`;
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const query = e.target.value.trim();
-                    if (query) {
-                        window.location.hash = `#search/${encodeURIComponent(query)}`;
-                    }
+                    if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
                 }
             });
         }
-
         const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
         if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
@@ -283,22 +185,9 @@ window.addEventListener('DOMContentLoaded', () => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
             const btnText = isFollowing ? 'フォロー中' : 'フォロー';
-
-            return `
-                <div class="widget-item recommend-user">
-                    <a href="#profile/${user.id}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;">
-                        <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon">
-                        <div>
-                            <span>${escapeHTML(user.name)}</span>
-                            <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small>
-                        </div>
-                    </a>
-                    ${currentUser && currentUser.id !== user.id ? 
-                        `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''}
-                </div>`;
+            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
         }).join('');
         if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
-
         DOM.rightSidebar.recommendations?.querySelectorAll('.recommend-user button').forEach(button => {
             const userId = parseInt(button.dataset.userId);
             if (!isNaN(userId)) {
@@ -329,157 +218,159 @@ window.addEventListener('DOMContentLoaded', () => {
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
         DOM.postModal.classList.remove('hidden');
-        attachedFiles = [];
-        renderPostForm(DOM.postModal.querySelector('.post-form-container-modal'), replyInfo, true);
-        // ▼▼▼ [修正点4] モーダルの閉じるボタンにイベントリスナーをアタッチ ▼▼▼
-        DOM.postModal.querySelector('.modal-close-btn').onclick = closePostModal;
-        // ▲▲▲ [修正点4] ここでアタッチするように変更 ▼▼▼
-    }
-
-    function closePostModal() {
-        DOM.postModal.classList.add('hidden');
-        replyingTo = null;
-        attachedFiles = [];
-    }
-
-    const handleCtrlEnter = (e) => {
-        if (e.ctrlKey && e.key === 'Enter') {
-            e.target.closest('.post-form').querySelector('button[type="submit"]').click();
-        }
-    };
-
-    function renderPostForm(containerElement, replyInfo = null, isModal = false) {
-        const formHtml = `
-            <div class="post-form">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
-                <div class="form-content">
-                    <div id="${isModal ? 'reply-info-modal' : 'reply-info'}" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
-                    <textarea id="${isModal ? 'post-content-modal' : 'post-content'}" placeholder="${isModal ? 'ポストを入力' : 'いまどうしてる？'}" maxlength="280"></textarea>
-                    <div id="${isModal ? 'attachment-preview-modal' : 'attachment-preview'}" class="attachment-preview-container"></div>
-                    <div class="post-form-actions">
-                        <input type="file" id="${isModal ? 'attach-file-modal' : 'attach-file'}" accept="image/*" multiple class="hidden">
-                        <button type="button" class="attach-file-button" id="${isModal ? 'attach-button-modal' : 'attach-button'}">
-                            ${ICONS.paperclip}
-                        </button>
-                        <button type="submit" id="${isModal ? 'post-submit-button-modal' : 'post-submit-button'}">ポスト</button>
-                    </div>
-                </div>
-            </div>`;
-        containerElement.innerHTML = formHtml;
-
-        const textarea = containerElement.querySelector('textarea');
-        const attachButton = containerElement.querySelector('.attach-file-button');
-        const attachInput = containerElement.querySelector('input[type="file"]');
-        const postButton = containerElement.querySelector('button[type="submit"]');
-        const attachmentPreviewContainer = containerElement.querySelector('.attachment-preview-container');
+        const modalContainer = DOM.postModal.querySelector('.post-form-container-modal');
+        modalContainer.innerHTML = createPostFormHTML();
+        attachPostFormListeners(modalContainer);
 
         if (replyInfo) {
             replyingTo = replyInfo;
-            const replyInfoDiv = containerElement.querySelector(`#${isModal ? 'reply-info-modal' : 'reply-info'}`);
+            const replyInfoDiv = modalContainer.querySelector('#reply-info-modal');
             replyInfoDiv.innerHTML = `<span>@${replyInfo.name}に返信中</span>`;
             replyInfoDiv.classList.remove('hidden');
         }
-
-        textarea.addEventListener('keydown', handleCtrlEnter);
-        postButton.addEventListener('click', () => handlePostSubmit(isModal));
-        attachButton.addEventListener('click', () => attachInput.click());
-        attachInput.addEventListener('change', (e) => handleFileSelect(e, attachmentPreviewContainer));
-
-        updateAttachmentPreview(attachmentPreviewContainer);
+        DOM.postModal.querySelector('.modal-close-btn').onclick = closePostModal;
+        modalContainer.querySelector('textarea').focus();
+    }
+    function closePostModal() {
+        DOM.postModal.classList.add('hidden');
+        replyingTo = null;
+        selectedFiles = [];
+    }
+    const handleCtrlEnter = (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.target.closest('.post-form').querySelector('button[id^="post-submit-button"]').click();
+        }
+    };
+    
+    function createPostFormHTML() {
+        return `
+            <div class="post-form">
+                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
+                <div class="form-content">
+                    <div id="reply-info" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
+                    <textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea>
+                    <div class="file-preview-container"></div>
+                    <div class="post-form-actions">
+                        <button type="button" class="attachment-button" title="ファイルを添付">
+                            ${ICONS.attachment}
+                        </button>
+                        <input type="file" id="file-input" class="hidden" multiple>
+                        <button id="post-submit-button">ポスト</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+    function attachPostFormListeners(container) {
+        container.querySelector('.attachment-button').addEventListener('click', () => {
+            container.querySelector('#file-input').click();
+        });
+        container.querySelector('#file-input').addEventListener('change', (e) => handleFileSelection(e, container));
+        container.querySelector('#post-submit-button').addEventListener('click', () => handlePostSubmit(container));
+        container.querySelector('textarea').addEventListener('keydown', handleCtrlEnter);
     }
 
-    function updateAttachmentPreview(container) {
-        container.innerHTML = '';
-        attachedFiles.forEach((fileInfo, index) => {
+    function handleFileSelection(event, container) {
+        const previewContainer = container.querySelector('.file-preview-container');
+        previewContainer.innerHTML = '';
+        selectedFiles = Array.from(event.target.files);
+        
+        selectedFiles.forEach((file, index) => {
             const previewItem = document.createElement('div');
-            previewItem.className = 'attachment-preview-item';
-            if (fileInfo.file_type.startsWith('image/')) {
-                const img = document.createElement('img');
-                img.src = URL.createObjectURL(fileInfo.file);
-                previewItem.appendChild(img);
-            } else {
-                previewItem.textContent = fileInfo.file.name;
-            }
-            const removeButton = document.createElement('button');
-            removeButton.className = 'attachment-preview-remove';
-            removeButton.textContent = '×';
-            removeButton.onclick = () => {
-                attachedFiles.splice(index, 1);
-                updateAttachmentPreview(container);
-            };
-            previewItem.appendChild(removeButton);
-            container.appendChild(previewItem);
-        });
-    }
-
-    function handleFileSelect(event, previewContainer) {
-        const files = Array.from(event.target.files);
-        files.forEach(file => {
+            previewItem.className = 'file-preview-item';
+            
             if (file.type.startsWith('image/')) {
-                attachedFiles.push({ file: file, file_type: file.type });
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewItem.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
             } else {
-                alert('画像ファイルのみ添付可能です。');
+                previewItem.innerHTML = `<span>${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewContainer.appendChild(previewItem);
             }
         });
-        event.target.value = '';
-        updateAttachmentPreview(previewContainer);
+        
+        previewContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('file-preview-remove')) {
+                const indexToRemove = parseInt(e.target.dataset.index);
+                selectedFiles.splice(indexToRemove, 1);
+                // 再描画
+                handleFileSelection({ target: { files: new DataTransfer().files } }, container); // 空のイベントを渡して再描画
+                const newFiles = new DataTransfer();
+                selectedFiles.forEach(file => newFiles.items.add(file));
+                container.querySelector('#file-input').files = newFiles.files;
+            }
+        });
     }
-
-    async function handlePostSubmit(isModal = false) {
+    
+    async function handlePostSubmit(container) {
         if (!currentUser) return alert("ログインが必要です。");
-        const contentElId = isModal ? 'post-content-modal' : 'post-content';
-        const buttonId = isModal ? 'post-submit-button-modal' : 'post-submit-button';
-        const contentEl = document.getElementById(contentElId);
+        const contentEl = container.querySelector('textarea');
         const content = contentEl.value.trim();
-        if (!content && attachedFiles.length === 0) return alert('内容を入力するか、ファイルを添付してください。');
-
-        const button = document.getElementById(buttonId);
+        if (!content && selectedFiles.length === 0) return alert('内容を入力するか、ファイルを添付してください。');
+        
+        const button = container.querySelector('#post-submit-button');
         button.disabled = true; button.textContent = '投稿中...';
         showLoading(true);
 
         try {
-            const attachments = [];
-            for (const fileInfo of attachedFiles) {
-                const uploaded = await uploadFile(fileInfo.file);
-                if (uploaded) {
-                    attachments.push({ type: uploaded.type, id: uploaded.id, url: uploaded.url });
-                } else {
-                    throw new Error('ファイルアップロードに失敗しました。');
+            let attachmentsData = [];
+            if (selectedFiles.length > 0) {
+                for (const file of selectedFiles) {
+                    const fileName = `${crypto.randomUUID()}-${file.name}`;
+                    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                        .from('nyax')
+                        .upload(fileName, file);
+
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗しました: ${uploadError.message}`);
+                    
+                    attachmentsData.push({ type: 'file', id: uploadData.path });
                 }
             }
-
-            const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null, attachments };
+            
+            const postData = { 
+                userid: currentUser.id, 
+                content, 
+                reply_id: replyingTo?.id || null,
+                attachments: attachmentsData.length > 0 ? attachmentsData : null
+            };
+            
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
             if(postError) throw postError;
 
-            const updatedUserPosts = currentUser.post ? [...currentUser.post, newPost.id] : [newPost.id];
-            const { error: userUpdateError } = await supabase.from('user')
-                .update({ post: updatedUserPosts })
-                .eq('id', currentUser.id);
-            if (userUpdateError) {
-                console.error("ユーザーのポストリスト更新に失敗:", userUpdateError);
-            } else {
-                currentUser.post = updatedUserPosts;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            }
-            
             if (newPost.reply_id && newPost.reply_to?.user?.id) {
-                const parentPostAuthorId = newPost.reply_to.user.id;
-                if (parentPostAuthorId !== currentUser.id) {
-                    sendNotification(parentPostAuthorId, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
+                if (newPost.reply_to.user.id !== currentUser.id) {
+                    sendNotification(newPost.reply_to.user.id, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
                 }
             }
-            if (isModal) closePostModal(); else contentEl.value = '';
-            clearReply();
-            attachedFiles = [];
-        } catch(e) { console.error(e); alert('ポストに失敗しました。'); }
+
+            // 成功したらフォームをリセット
+            selectedFiles = [];
+            contentEl.value = '';
+            container.querySelector('.file-preview-container').innerHTML = '';
+            if (container.closest('.modal-overlay')) {
+                closePostModal();
+            } else {
+                clearReply();
+            }
+        } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
+    }
+    
+    window.openImageModal = (src) => {
+        DOM.imagePreviewModalContent.src = src;
+        DOM.imagePreviewModal.classList.remove('hidden');
+    }
+    window.closeImageModal = () => {
+        DOM.imagePreviewModal.classList.add('hidden');
+        DOM.imagePreviewModalContent.src = '';
     }
 
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn, .post-attachment-item')) window.location.hash = `#post/${post.id}`; };
+        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -490,17 +381,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let attachmentsHTML = '';
         if (post.attachments && post.attachments.length > 0) {
-            attachmentsHTML = `<div class="post-attachments">`;
+            attachmentsHTML += '<div class="attachments-container">';
             for (const attachment of post.attachments) {
-                if (attachment.type === 'image') {
-                    const imageUrl = `https://mnvdpvsivqqbzbtjtpws.supabase.co/storage/v1/object/public/attachments/${attachment.id}`;
-                    attachmentsHTML += `
-                        <div class="post-attachment-item" onclick="event.stopPropagation(); window.openImagePreviewModal('${imageUrl}')">
-                            <img src="${imageUrl}" alt="添付画像">
-                        </div>`;
+                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                const publicURL = publicUrlData.publicUrl;
+                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.id);
+
+                attachmentsHTML += '<div class="attachment-item">';
+                if (isImage) {
+                    attachmentsHTML += `<img src="${publicURL}" alt="添付画像" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                } else {
+                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${attachment.id.split('-').slice(1).join('-')}</a>`;
                 }
+                attachmentsHTML += '</div>';
             }
-            attachmentsHTML += `</div>`;
+            attachmentsHTML += '</div>';
         }
 
         const actionsHTML = currentUser ? `
@@ -518,7 +413,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     <span class="post-time">#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}</span>
                     ${menuHTML}
                 </div>
-                <div class="post-content"><p>${formattedContent}</p>${attachmentsHTML}</div>
+                <div class="post-content"><p>${formattedContent}</p></div>
+                ${attachmentsHTML}
                 ${actionsHTML}
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
@@ -529,7 +425,8 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
         if (currentUser) {
-            renderPostForm(DOM.postFormContainer);
+            DOM.postFormContainer.innerHTML = createPostFormHTML();
+            attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
@@ -891,13 +788,13 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
         try {
             switch(tab) {
-                case 'posts': await loadPostsByIds(user.post, contentDiv, "このユーザーはまだポストしていません。"); break;
+                case 'posts': await loadPostsByIds(user.post || [], contentDiv, "このユーザーはまだポストしていません。"); break;
                 case 'likes': 
                     if (!user.settings.show_like && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのいいねは非公開です。</p>'; break; }
-                    await loadPostsByIds(user.like, contentDiv, "このユーザーはまだいいねしたポストがありません。"); break;
+                    await loadPostsByIds(user.like || [], contentDiv, "このユーザーはまだいいねしたポストがありません。"); break;
                 case 'stars':
                     if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
-                    await loadPostsByIds(user.star, contentDiv, "このユーザーはまだお気に入りしたポストがありません。"); break;
+                    await loadPostsByIds(user.star || [], contentDiv, "このユーザーはまだお気に入りしたポストがありません。"); break;
                 case 'follows':
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
                     if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
@@ -968,22 +865,8 @@ window.addEventListener('DOMContentLoaded', () => {
             })
             .subscribe();
     }
-
-    window.openImagePreviewModal = (imageUrl) => {
-        DOM.modalImageDisplay.src = imageUrl;
-        DOM.imagePreviewModal.classList.remove('hidden');
-    };
-
-    function closeImagePreviewModal() {
-        DOM.imagePreviewModal.classList.add('hidden');
-        DOM.modalImageDisplay.src = '';
-    }
     
     // --- 13. 初期化処理 ---
-    document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
-    DOM.imagePreviewModal.querySelector('.modal-close-btn-outer').addEventListener('click', closeImagePreviewModal);
     window.addEventListener('hashchange', router);
     checkSession();
 });
