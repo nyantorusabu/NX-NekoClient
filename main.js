@@ -1032,7 +1032,53 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error("loadProfileTabContent error:", err);
         }
     }
-    
+
+    async function showSettingsScreen() {
+        if (!currentUser) return router();
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
+        showScreen('settings-screen');
+        document.getElementById('settings-screen').innerHTML = `
+            <form id="settings-form">
+                <label for="setting-username">ユーザー名:</label>
+                <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
+                <label for="setting-me">自己紹介:</label>
+                <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
+                <fieldset><legend>公開設定</legend>
+                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
+                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                </fieldset>
+                <button type="submit">設定を保存</button>
+            </form>`;
+        document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+    }
+
+    async function handleUpdateSettings(event) {
+        event.preventDefault();
+        if (!currentUser) return;
+        const form = event.target;
+        const updatedData = {
+            name: form.querySelector('#setting-username').value.trim(),
+            me: form.querySelector('#setting-me').value.trim(),
+            settings: {
+                show_like: form.querySelector('#setting-show-like').checked,
+                show_follow: form.querySelector('#setting-show-follow').checked,
+                show_star: form.querySelector('#setting-show-star').checked,
+                show_scid: form.querySelector('#setting-show-scid').checked,
+            },
+        };
+        if (!updatedData.name) return alert('ユーザー名は必須です。');
+        const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
+        if (error) {
+            alert('設定の更新に失敗しました。');
+        } else {
+            alert('設定を更新しました。');
+            currentUser = data;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            window.location.hash = ''; // ホームに戻る
+        }
+    }
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
