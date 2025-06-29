@@ -63,11 +63,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 
 /* ▼▼▼ [修正点1] ファイル添付ボタンのスタイル ▼▼▼ */
 .attachment-button {
-    background-color: transparent !important; /* 背景色を強制的に無効化 */
+    background: none !important; /* 背景色を強制的に無効化 */
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    color: var(--primary-color);
+    color: var(--text-color); /* アイコンの色を黒に */
     line-height: 1;
     border-radius: 50%;
     transition: background-color 0.2s;
@@ -142,32 +142,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* ▼▼▼ [修正点2] 未ログインバナーのボタンのCSSを再構成 ▼▼▼ */
 #login-banner { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--primary-color); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
 #login-banner-content h3 { margin: 0; font-weight: 500; font-size: 1.1rem; }
-#login-banner-actions button {
-    margin-left: 1rem;
-    padding: 0.6rem 1.2rem;
-    border-radius: 9999px !important; /* 丸みを強制 */
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    border: 1px solid;
-}
-#banner-login-button {
-    background: transparent;
-    color: white;
-    border-color: white;
-}
-#banner-login-button:hover {
-    background-color: rgba(255,255,255,0.1);
-}
-#banner-signup-button {
-    background: white;
-    color: black;
-    border-color: white;
-}
-#banner-signup-button:hover {
-    background-color: #f0f0f0;
-}
+#login-banner-actions button { margin-left: 1rem; padding: 0.6rem 1.2rem; border-radius: 9999px !important; /* 強制的に丸く */ font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: background-color 0.2s, color 0.2s, border-color 0.2s; border: 1px solid; }
+#banner-login-button { background: transparent; color: white; border-color: white; }
+#banner-login-button:hover { background-color: rgba(255,255,255,0.1); }
+#banner-signup-button { background: white; color: black; border-color: white; }
+#banner-signup-button:hover { background-color: #f0f0f0; }
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 
 /* ポスト用モーダル */

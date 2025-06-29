@@ -4,15 +4,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // ▼▼▼ ファイルアップロード用サービスキーと、関連するグローバル変数 ▼▼▼
     // 【【【 警告：これは極めて危険な実装です 】】】
     // サービスロールキーはクライアントサイドに絶対に含めないでください。
     // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
     // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    let selectedFiles = []; // 選択されたファイルを保持する配列
-    // ▲▲▲ ここまで ▲▲▲
+    let selectedFiles = [];
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
@@ -288,7 +286,7 @@ window.addEventListener('DOMContentLoaded', () => {
             } else if (file.type.startsWith('video/')) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    previewItem.innerHTML = `<video src="${e.target.result}" alt="${file.name}" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    previewItem.innerHTML = `<video src="${e.target.result}" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
                     previewContainer.appendChild(previewItem);
                 };
                 reader.readAsDataURL(file);
@@ -303,7 +301,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const indexToRemove = parseInt(e.target.dataset.index);
                 selectedFiles.splice(indexToRemove, 1);
                 // 再描画
-                handleFileSelection({ target: { files: new DataTransfer().files } }, container); // 空のイベントを渡して再描画
+                handleFileSelection({ target: { files: new DataTransfer().files } }, container);
                 const newFiles = new DataTransfer();
                 selectedFiles.forEach(file => newFiles.items.add(file));
                 container.querySelector('#file-input').files = newFiles.files;
@@ -325,14 +323,15 @@ window.addEventListener('DOMContentLoaded', () => {
             let attachmentsData = [];
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
-                    const fileName = `${crypto.randomUUID()}-${btoa(unescape(encodeURIComponent(file.name)))}`;
+                    const fileId = crypto.randomUUID();
                     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
                         .from('nyax')
-                        .upload(fileName, file);
+                        .upload(fileId, file); // UUIDのみをファイル名としてアップロード
 
                     if (uploadError) throw new Error(`ファイルアップロードに失敗しました: ${uploadError.message}`);
                     
-                    attachmentsData.push({ type: 'file', id: uploadData.path });
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : 'file');
+                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
                 }
             }
             
@@ -376,7 +375,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
-        postEl.onclick = (e) => { if (!e.target.closest('button, a, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
+        postEl.onclick = (e) => { if (!e.target.closest('button, a, video, .post-menu-btn')) window.location.hash = `#post/${post.id}`; };
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
         let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
@@ -391,17 +390,14 @@ window.addEventListener('DOMContentLoaded', () => {
             for (const attachment of post.attachments) {
                 const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
                 const publicURL = publicUrlData.publicUrl;
-                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(attachment.id);
-                const isVideo = /\.(mp4|webm|mov)$/i.test(attachment.id);
                 
                 attachmentsHTML += '<div class="attachment-item">';
-                if (isImage) {
-                    attachmentsHTML += `<img src="${publicURL}" alt="添付画像" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
-                } else if (isVideo) {
+                if (attachment.type === 'image') {
+                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                } else if (attachment.type === 'video') {
                     attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
                 } else {
-                    const originalFileName = decodeURIComponent(escape(atob(attachment.id.split('-').slice(1).join('-'))));
-                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(originalFileName)}</a>`;
+                    attachmentsHTML += `<a href="${publicURL}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
             }
@@ -438,9 +434,7 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.postFormContainer.innerHTML = createPostFormHTML();
             attachPostFormListeners(DOM.postFormContainer);
         } else { DOM.postFormContainer.innerHTML = ''; }
-        // ▼▼▼ [修正点3] イベントリスナーを正しくアタッチ ▼▼▼
-        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.addEventListener('click', () => switchTimelineTab(btn.dataset.tab)));
-        // ▲▲▲ [修正点3] ここまで ▼▼▼
+        document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
     }
 
@@ -480,54 +474,26 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
         try {
             let resultsHTML = '';
-
-            const { data: users, error: userError } = await supabase.from('user')
-                .select('*')
-                .or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`)
-                .order('id', { ascending: true })
-                .limit(10);
-
+            const { data: users, error: userError } = await supabase.from('user').select('*').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
             if (userError) console.error("ユーザー検索エラー:", userError);
             if (users && users.length > 0) {
                 resultsHTML += `<h3 style="padding:1rem;">ユーザー (${users.length}件)</h3>`;
-                resultsHTML += users.map(u => `
-                    <div class="profile-card widget-item">
-                        <div class="profile-card-info" style="display:flex; align-items:center; gap:0.8rem;">
-                            <a href="#profile/${u.id}" style="display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;">
-                                <img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
-                                <div>
-                                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span>
-                                    <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
-                                    <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
-                                </div>
-                            </a>
-                        </div>
-                    </div>`).join('');
+                resultsHTML += users.map(u => ` <div class="profile-card widget-item"> <div class="profile-card-info" style="display:flex; align-items:center; gap:0.8rem;"> <a href="#profile/${u.id}" style="display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"> <div> <span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span> <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span> <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p> </div> </a> </div> </div>`).join('');
             } else {
                 resultsHTML += `<h3 style="padding:1rem;">ユーザー (0件)</h3><p style="padding:1rem; text-align:center;">ユーザーは見つかりませんでした。</p>`;
             }
-
-            const { data: posts, error: postError } = await supabase.from('post')
-                .select('*, user(*), reply_to:reply_id(*, user(*))')
-                .ilike('content', `%${query}%`)
-                .order('time', { ascending: false });
-
+            const { data: posts, error: postError } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').ilike('content', `%${query}%`).order('time', { ascending: false });
             if (postError) console.error("ポスト検索エラー:", postError);
             resultsHTML += `<h3 style="padding:1rem; border-top:1px solid var(--border-color); margin-top:1rem; padding-top:1rem;">ポスト (${posts?.length || 0}件)</h3>`;
             contentDiv.innerHTML = resultsHTML;
-
             if (posts && posts.length > 0) {
-                for (const post of posts) {
-                    await renderPost(post, post.user, contentDiv);
-                }
+                for (const post of posts) { await renderPost(post, post.user, contentDiv); }
             } else {
                 contentDiv.innerHTML += `<p style="padding:1rem; text-align:center;">ポストは見つかりませんでした。</p>`;
             }
-
             if ((!users || users.length === 0) && (!posts || posts.length === 0)) {
                 contentDiv.innerHTML = `<p style="padding:2rem; text-align:center;">「${escapeHTML(query)}」に一致する結果は見つかりませんでした。</p>`;
             }
-
         } catch (e) {
             contentDiv.innerHTML = `<p class="error-message">検索結果の読み込みに失敗しました。</p>`;
             console.error("検索結果表示エラー:", e);
@@ -541,28 +507,21 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.notificationsContent.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知を見るにはログインが必要です。</p>';
             return;
         }
-
         DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
         showScreen('notifications-screen');
         const contentDiv = DOM.notificationsContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
-
         try {
             await updateNavAndSidebars();
-
             if (currentUser.notice_count > 0) {
-                const { error: resetError } = await supabase.from('user')
-                    .update({ notice_count: 0 })
-                    .eq('id', currentUser.id);
-                if (resetError) {
-                    console.error('通知数のリセットに失敗:', resetError);
-                } else {
+                const { error: resetError } = await supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id);
+                if (resetError) { console.error('通知数のリセットに失敗:', resetError); } 
+                else {
                     currentUser.notice_count = 0;
                     localStorage.setItem('currentUser', JSON.stringify(currentUser));
                     await updateNavAndSidebars();
                 }
             }
-
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
                 currentUser.notice.forEach(n => {
@@ -602,14 +561,9 @@ window.addEventListener('DOMContentLoaded', () => {
             
             await renderPost(post, post.user, contentDiv);
             
-            const { data: replies, error: repliesError } = await supabase.from('post')
-                .select('*, user(*), reply_to:reply_id(*, user(*))')
-                .eq('reply_id', postId)
-                .order('time', { ascending: true });
-
-            if (repliesError) {
-                console.error("返信の読み込みに失敗しました:", repliesError);
-            } else if (replies?.length > 0) {
+            const { data: replies, error: repliesError } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').eq('reply_id', postId).order('time', { ascending: true });
+            if (repliesError) { console.error("返信の読み込みに失敗しました:", repliesError); } 
+            else if (replies?.length > 0) {
                 const repliesHeader = document.createElement('h3');
                 repliesHeader.textContent = '返信';
                 repliesHeader.style.padding = '1rem';
@@ -619,10 +573,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 repliesHeader.style.margin = '0';
                 repliesHeader.style.fontSize = '1.2rem';
                 contentDiv.appendChild(repliesHeader);
-
-                for (const reply of replies) {
-                    await renderPost(reply, reply.user, contentDiv);
-                }
+                for (const reply of replies) { await renderPost(reply, reply.user, contentDiv); }
             }
         } catch (err) { contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`; }
     }
@@ -634,7 +585,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!ids || ids.length === 0) { container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`; return; }
             const validIds = ids.filter(id => id !== null && typeof id === 'string' && id.length === 36 && id.includes('-'));
             if (validIds.length === 0) { container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`; return; }
-
             const { data, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').in('id', validIds).order('time', { ascending: false });
             if (error) throw error;
             if (!data?.length) { container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`; return; }
@@ -734,22 +684,13 @@ window.addEventListener('DOMContentLoaded', () => {
         if (error) { alert('フォロー状態の更新に失敗しました。'); } 
         else {
             currentUser.follow = updatedFollows; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
             updateFollowButtonState(button, !isFollowing);
-
-            if (!isFollowing) {
-                sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`);
-            }
-
+            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
             const followerCountSpan = document.querySelector('#follower-count strong');
             if (followerCountSpan) {
                 const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
-                if (!newCountError) {
-                    followerCountSpan.textContent = newCount;
-                } else {
-                    console.error("フォロワー数の再取得に失敗:", newCountError);
-                    followerCountSpan.textContent = '?';
-                }
+                if (!newCountError) { followerCountSpan.textContent = newCount; } 
+                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
             }
         }
     }
@@ -783,10 +724,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (currentUser && userId !== currentUser.id) {
             const followButton = document.createElement('button');
             followButton.id = `profile-follow-button-${userId}`;
-            
             const isFollowing = currentUser.follow?.includes(userId);
             updateFollowButtonState(followButton, isFollowing);
-
             followButton.onclick = () => handleFollowToggle(userId, followButton);
             profileHeader.querySelector('#follow-button-container').appendChild(followButton);
         }
@@ -879,6 +818,12 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
+    document.addEventListener('click', (e) => {
+        // ▼▼▼ [修正点3] フォロー中タブの不具合修正 ▼▼▼
+        if (e.target.matches('.timeline-tab-button')) {
+            switchTimelineTab(e.target.dataset.tab);
+        }
+    });
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
