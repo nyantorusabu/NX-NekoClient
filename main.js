@@ -390,65 +390,172 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ▼▼▼ [修正点1] ポスト描画関数を全面的にリファクタリング ▼▼▼
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
+
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
 
-        const isLiked = currentUser?.like?.includes(post.id);
-        const isStarred = currentUser?.star?.includes(post.id);
-        let replyHTML = post.reply_to?.user ? `<div class="replying-to"><a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信</div>` : '';
-        const menuHTML = `<button class="post-menu-btn">…</button><div id="menu-${post.id}" class="post-menu hidden"><button class="delete-btn">削除</button></div>`;
-        const { count: replyCountData, error: replyCountError } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
-        const replyCount = replyCountError ? '?' : (replyCountData || 0);
-        const formattedContent = await formatPostContent(post.content);
+        // 1. ユーザーアイコン
+        const userIcon = document.createElement('img');
+        userIcon.src = `https://trampoline.turbowarp.org/avatars/by-username/${author.scid}`;
+        userIcon.className = 'user-icon';
+        userIcon.alt = `${author.name}'s icon`;
+        postEl.appendChild(userIcon);
 
-        let attachmentsHTML = '';
+        const postMain = document.createElement('div');
+        postMain.className = 'post-main';
+
+        // 2. 返信先情報
+        if (post.reply_to?.user) {
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'replying-to';
+            const replyLink = document.createElement('a');
+            replyLink.href = `#profile/${post.reply_to.user.id}`;
+            replyLink.textContent = `@${escapeHTML(post.reply_to.user.name)}`;
+            replyDiv.appendChild(replyLink);
+            replyDiv.append(' さんに返信');
+            postMain.appendChild(replyDiv);
+        }
+
+        // 3. ヘッダー
+        const postHeader = document.createElement('div');
+        postHeader.className = 'post-header';
+        
+        const authorLink = document.createElement('a');
+        authorLink.href = `#profile/${author.id}`;
+        authorLink.className = 'post-author';
+        authorLink.textContent = escapeHTML(author.name || '不明');
+        postHeader.appendChild(authorLink);
+
+        const postTime = document.createElement('span');
+        postTime.className = 'post-time';
+        postTime.textContent = `#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
+        postHeader.appendChild(postTime);
+
+        // 4. メニュー (自分のポストのみ)
+        if (currentUser?.id === post.userid) {
+            const menuBtn = document.createElement('button');
+            menuBtn.className = 'post-menu-btn';
+            menuBtn.innerHTML = '…';
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById(`menu-${post.id}`).classList.toggle('hidden');
+            });
+            postHeader.appendChild(menuBtn);
+
+            const menu = document.createElement('div');
+            menu.id = `menu-${post.id}`;
+            menu.className = 'post-menu hidden';
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '削除';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deletePost(post.id);
+            });
+            menu.appendChild(deleteBtn);
+            postHeader.appendChild(menu);
+        }
+        postMain.appendChild(postHeader);
+
+        // 5. ポスト内容
+        const postContent = document.createElement('div');
+        postContent.className = 'post-content';
+        const contentP = document.createElement('p');
+        contentP.innerHTML = await formatPostContent(post.content);
+        postContent.appendChild(contentP);
+        postMain.appendChild(postContent);
+
+        // 6. 添付ファイル
         if (post.attachments && post.attachments.length > 0) {
-            attachmentsHTML += '<div class="attachments-container">';
+            const attachmentsContainer = document.createElement('div');
+            attachmentsContainer.className = 'attachments-container';
             for (const attachment of post.attachments) {
                 const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
                 const publicURL = publicUrlData.publicUrl;
                 
-                attachmentsHTML += '<div class="attachment-item">';
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'attachment-item';
+
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<img class="attachment-image" src="${publicURL}" alt="${escapeHTML(attachment.name)}">`;
+                    const img = document.createElement('img');
+                    img.src = publicURL;
+                    img.alt = escapeHTML(attachment.name);
+                    img.addEventListener('click', (e) => { e.stopPropagation(); openImageModal(publicURL); });
+                    itemDiv.appendChild(img);
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<video src="${publicURL}" controls></video>`;
+                    const video = document.createElement('video');
+                    video.src = publicURL;
+                    video.controls = true;
+                    video.addEventListener('click', e => e.stopPropagation());
+                    itemDiv.appendChild(video);
                 } else if (attachment.type === 'audio') {
-                    attachmentsHTML += `<audio src="${publicURL}" controls></audio>`;
+                    const audio = document.createElement('audio');
+                    audio.src = publicURL;
+                    audio.controls = true;
+                    audio.addEventListener('click', e => e.stopPropagation());
+                    itemDiv.appendChild(audio);
                 }
-                
-                if (attachment.type === 'file' || attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio') {
-                    attachmentsHTML += `<a class="attachment-download-link" href="#" data-url="${publicURL}" data-name="${escapeHTML(attachment.name)}">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
-                }
-                attachmentsHTML += '</div>';
+
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'attachment-download-link';
+                downloadLink.href = '#';
+                downloadLink.textContent = `ダウンロード: ${escapeHTML(attachment.name)}`;
+                downloadLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDownload(publicURL, attachment.name);
+                });
+                itemDiv.appendChild(downloadLink);
+                attachmentsContainer.appendChild(itemDiv);
             }
-            attachmentsHTML += '</div>';
+            postMain.appendChild(attachmentsContainer);
         }
 
-        const actionsHTML = currentUser ? `
-            <div class="post-actions">
-                <button class="reply-button" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
-                <button class="like-button ${isLiked ? 'liked' : ''}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
-                <button class="star-button ${isStarred ? 'starred' : ''}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
-            </div>` : '';
-        postEl.innerHTML = `
-            <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.scid}" class="user-icon" alt="${author.name}'s icon">
-            <div class="post-main">
-                ${replyHTML}
-                <div class="post-header">
-                    <a href="#profile/${author.id}" class="post-author">${escapeHTML(author.name || '不明')}</a>
-                    <span class="post-time">#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}</span>
-                    ${currentUser?.id === post.userid ? menuHTML : ''}
-                </div>
-                <div class="post-content"><p>${formattedContent}</p></div>
-                ${attachmentsHTML}
-                ${actionsHTML}
-            </div>`;
+        // 7. アクションボタン
+        if (currentUser) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'post-actions';
+
+            const { count: replyCountData } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
+
+            const replyBtn = document.createElement('button');
+            replyBtn.className = 'reply-button';
+            replyBtn.title = '返信';
+            replyBtn.innerHTML = `🗨 <span>${replyCountData || 0}</span>`;
+            replyBtn.addEventListener('click', e => { e.stopPropagation(); handleReplyClick(post.id, author.name); });
+            actionsDiv.appendChild(replyBtn);
+
+            const likeBtn = document.createElement('button');
+            const isLiked = currentUser.like?.includes(post.id);
+            likeBtn.className = `like-button ${isLiked ? 'liked' : ''}`;
+            likeBtn.innerHTML = `<span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span>`;
+            likeBtn.addEventListener('click', e => { e.stopPropagation(); handleLike(likeBtn, post.id); });
+            actionsDiv.appendChild(likeBtn);
+
+            const starBtn = document.createElement('button');
+            const isStarred = currentUser.star?.includes(post.id);
+            starBtn.className = `star-button ${isStarred ? 'starred' : ''}`;
+            starBtn.innerHTML = `<span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span>`;
+            starBtn.addEventListener('click', e => { e.stopPropagation(); handleStar(starBtn, post.id); });
+            actionsDiv.appendChild(starBtn);
+            
+            postMain.appendChild(actionsDiv);
+        }
+        
+        postEl.appendChild(postMain);
+
+        postEl.addEventListener('click', () => {
+             window.location.hash = `#post/${post.id}`;
+        });
+
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
     
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
@@ -854,11 +961,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (realtimeChannel) return;
         realtimeChannel = supabase.channel('nyax-feed')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, payload => {
-                // ▼▼▼ [修正点2] リアルタイム更新の対象画面を拡張 ▼▼▼
                 const mainScreenVisible = !document.getElementById('main-screen').classList.contains('hidden');
                 const detailScreenVisible = !document.getElementById('post-detail-screen').classList.contains('hidden');
                 if (mainScreenVisible || detailScreenVisible) {
-                    router();
+                    router(); // 画面全体を再読み込みする
                 }
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
@@ -868,67 +974,66 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    // ▼▼▼ [修正点1] イベント処理をイベントデリゲーションに統一 ▼▼▼
-    DOM.mainContent.addEventListener('click', (e) => {
+    document.getElementById('main-content').addEventListener('click', (e) => {
+        // すべてのクリックイベントをここで処理
         const target = e.target;
         const postElement = target.closest('.post');
-        if (!postElement) return; // ポスト以外のクリックは無視
-
-        const postId = postElement.dataset.postId;
         
-        // アクションボタンの処理
-        const menuButton = target.closest('.post-menu-btn');
-        const deleteButton = target.closest('.delete-btn');
-        const replyButton = target.closest('.reply-button');
-        const likeButton = target.closest('.like-button');
-        const starButton = target.closest('.star-button');
-        const imageAttachment = target.closest('.attachment-image');
-        const downloadLink = target.closest('.attachment-download-link');
-        
-        if (menuButton) {
+        // メニューボタン
+        if (target.closest('.post-menu-btn')) {
             e.stopPropagation();
-            window.togglePostMenu(postId);
+            const postId = postElement.dataset.postId;
+            togglePostMenu(postId);
             return;
         }
-        if (deleteButton) {
+        // 削除ボタン
+        if (target.closest('.delete-btn')) {
             e.stopPropagation();
-            window.deletePost(postId);
+            const postId = postElement.dataset.postId;
+            deletePost(postId);
             return;
         }
-        if(replyButton) {
+        // 返信ボタン
+        if (target.closest('.reply-button')) {
             e.stopPropagation();
-            window.handleReplyClick(postId, replyButton.dataset.username);
+            const postId = postElement.dataset.postId;
+            const username = target.closest('.reply-button').dataset.username;
+            handleReplyClick(postId, username);
             return;
         }
-        if(likeButton) {
+        // いいねボタン
+        if (target.closest('.like-button')) {
             e.stopPropagation();
-            window.handleLike(likeButton, postId);
+            const postId = postElement.dataset.postId;
+            handleLike(target.closest('.like-button'), postId);
             return;
         }
-        if(starButton) {
+        // お気に入りボタン
+        if (target.closest('.star-button')) {
             e.stopPropagation();
-            window.handleStar(starButton, postId);
+            const postId = postElement.dataset.postId;
+            handleStar(target.closest('.star-button'), postId);
             return;
         }
-        if(imageAttachment) {
+        // 画像プレビュー
+        if (target.matches('.attachment-item img')) {
             e.stopPropagation();
-            window.openImageModal(imageAttachment.src);
+            openImageModal(target.src);
             return;
         }
-        if(downloadLink) {
+        // ダウンロードリンク
+        if (target.matches('.attachment-download-link')) {
             e.preventDefault();
             e.stopPropagation();
-            window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name);
+            handleDownload(target.dataset.url, target.dataset.name);
             return;
         }
-        
-        // 上記以外で、インタラクティブでない要素がクリックされた場合に詳細ページへ遷移
-        if (!target.closest('a, video, audio')) {
-            window.location.hash = `#post/${postId}`;
+        // ポスト詳細ページへの遷移
+        if (postElement && !target.closest('a, video, audio, button')) {
+            window.location.hash = `#post/${postElement.dataset.postId}`;
         }
     });
 
-    // タブ切り替えのイベントリスナー
     const tabsContainer = document.querySelector('.timeline-tabs');
     if(tabsContainer) {
         tabsContainer.addEventListener('click', (e) => {
@@ -937,7 +1042,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
