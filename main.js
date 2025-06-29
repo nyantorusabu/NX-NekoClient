@@ -3,11 +3,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // 【【【 警告：これは極めて危険な実装です 】】】
-    // サービスロールキーはクライアントサイドに絶対に含めないでください。
-    // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
-    // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -311,7 +306,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // ▼▼▼ [修正点1] ポスト作成時にuser.post配列を更新するロジックを追加 ▼▼▼
+    // ▼▼▼ [修正点1, 4] ポスト処理とuser.postの更新ロジックを修正 ▼▼▼
     async function handlePostSubmit(container) {
         if (!currentUser) return alert("ログインが必要です。");
         const contentEl = container.querySelector('textarea');
@@ -336,23 +331,26 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             
             const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null, attachments: attachmentsData.length > 0 ? attachmentsData : null };
-            const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select('*, user(*), reply_to:reply_id(*, user(*))').single();
+            const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
             if(postError) throw postError;
 
-            // RPCを呼び出してuserテーブルのpost配列に新しいIDを追加
-            const { error: rpcError } = await supabase.rpc('append_to_array', { user_id: currentUser.id, column_name: 'post', new_value: newPost.id });
-            if (rpcError) throw new Error('ユーザーのポストリスト更新に失敗しました。');
+            // 投稿者のuser.post配列を更新
+            const currentPostIds = currentUser.post || [];
+            const updatedPostIds = [newPost.id, ...currentPostIds];
+            const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPostIds }).eq('id', currentUser.id);
+            if (userUpdateError) throw new Error('ユーザー情報の更新に失敗しました。');
             
             // ローカルのcurrentUserも更新
-            if (!currentUser.post) currentUser.post = [];
-            currentUser.post.push(newPost.id);
+            currentUser.post = updatedPostIds;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-            if (newPost.reply_id && newPost.reply_to?.user?.id) {
-                if (newPost.reply_to.user.id !== currentUser.id) {
-                    sendNotification(newPost.reply_to.user.id, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
+            if (replyingTo) {
+                const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
+                if (parentPost && parentPost.userid !== currentUser.id) {
+                    sendNotification(parentPost.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
                 }
             }
+            
             selectedFiles = [];
             contentEl.value = '';
             container.querySelector('.file-preview-container').innerHTML = '';
@@ -364,7 +362,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
+    // ▲▲▲ [修正点1, 4] ここまで ▼▼▼
     
     window.openImageModal = (src) => {
         DOM.imagePreviewModalContent.src = src;
@@ -374,13 +372,34 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.imagePreviewModal.classList.add('hidden');
         DOM.imagePreviewModalContent.src = '';
     }
+    
+    // ▼▼▼ [修正点2] JavaScriptによるファイルダウンロード処理 ▼▼▼
+    window.handleDownload = async (fileUrl, fileName) => {
+        try {
+            const response = await fetch(fileUrl);
+            if (!response.ok) throw new Error('ファイルの取得に失敗しました。');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (e) {
+            console.error('ダウンロードエラー:', e);
+            alert('ファイルのダウンロードに失敗しました。');
+        }
+    }
+    // ▲▲▲ [修正点2] ここまで ▼▼▼
 
-    // ▼▼▼ [修正点2, 3] ファイルのダウンロードとプレビューを修正 ▼▼▼
     async function renderPost(post, author, container, prepend = false) {
         if (!post || !author) return;
         const postEl = document.createElement('div'); postEl.className = 'post';
         postEl.onclick = (e) => {
-            if (!e.target.closest('button, a, video, audio, img')) {
+            if (!e.target.closest('button, a, video, audio, img')) { // インタラクティブ要素以外をクリックした場合
                 window.location.hash = `#post/${post.id}`;
             }
         };
@@ -401,13 +420,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 attachmentsHTML += '<div class="attachment-item">';
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')"></a>`;
+                    attachmentsHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
                 } else if (attachment.type === 'video') {
-                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><video src="${publicURL}" controls onclick="event.stopPropagation()"></video></a>`;
+                    attachmentsHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation()"></video>`;
                 } else if (attachment.type === 'audio') {
-                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" onclick="event.stopPropagation()"><audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio></a>`;
+                    attachmentsHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation()"></audio>`;
                 } else {
-                    attachmentsHTML += `<a href="${publicURL}" download="${escapeHTML(attachment.name)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(attachment.name)}</a>`;
+                    attachmentsHTML += `<a class="attachment-download-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">${escapeHTML(attachment.name)}</a>`;
+                }
+                if (attachment.type === 'image' || attachment.type === 'video') {
+                    attachmentsHTML += `<a class="attachment-download-link" href="#" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
                 }
                 attachmentsHTML += '</div>';
             }
@@ -435,7 +457,6 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
         if (prepend) container.prepend(postEl); else container.appendChild(postEl);
     }
-    // ▲▲▲ [修正点2, 3] ここまで ▼▼▼
     
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
