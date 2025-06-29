@@ -3,6 +3,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // 【【【 警告：これは極めて危険な実装です 】】】
+    // サービスロールキーはクライアントサイドに絶対に含めないでください。
+    // このキーがあれば、誰でもデータベースの全データを操作できてしまいます。
+    // この実装は開発用の一時的なものとし、本番環境では必ずEdge Function経由のアップロードに移行してください。
     const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
     const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
@@ -12,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let isLoadingMore = false;
     let observer;
-    const POSTS_PER_PAGE = 10; // ▼▼▼ [修正点4] 10件に変更 ▼▼▼
+    const POSTS_PER_PAGE = 10;
 
     // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -115,7 +120,6 @@ window.addEventListener('DOMContentLoaded', () => {
         return formattedText;
     }
     
-    // ▼▼▼ [修正点2] clearReplyをwindowスコープに移動 ▼▼▼
     window.clearReply = () => {
         replyingTo = null;
         const replyInfo = document.getElementById('reply-info');
@@ -123,9 +127,14 @@ window.addEventListener('DOMContentLoaded', () => {
         if (replyInfo) replyInfo.classList.add('hidden');
         if (replyInfoModal) replyInfoModal.classList.add('hidden');
     };
-    // ▲▲▲ [修正点2] ここまで ▲▲▲
 
-    // ▼▼▼ [修正点1] show...関数群をスコープ解決のため先に定義 ▼▼▼
+    async function switchTimelineTab(tab) {
+        if (tab === 'following' && !currentUser) return;
+        currentTimelineTab = tab;
+        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        await loadTimeline(tab, DOM.timeline, true);
+    }
+    
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
@@ -148,53 +157,42 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.exploreContent.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>';
     }
 
-    async function showSearchResults(query) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">検索結果: "${escapeHTML(query)}"</h2>`;
-        showScreen('search-results-screen');
-        const contentDiv = DOM.searchResultsContent;
-        contentDiv.innerHTML = '<div class="spinner"></div>';
-        try {
-            // ユーザー検索とポスト検索を並行して実行
-            const userSearchPromise = supabase.from('user').select('*').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
-            const postSearchPromise = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').ilike('content', `%${query}%`).order('time', { ascending: false });
+    async function showProfileScreen(userId) {
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
+        showScreen('profile-screen');
+        const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
+        profileHeader.innerHTML = '<div class="spinner"></div>'; profileTabs.innerHTML = '';
+        const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
+        if (error || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
+        
+        const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
+        const followerCount = countError ? '?' : followerCountData;
 
-            const [{ data: users, error: userError }, { data: posts, error: postError }] = await Promise.all([userSearchPromise, postSearchPromise]);
-
-            contentDiv.innerHTML = ''; // コンテンツをクリア
-
-            // ユーザー結果の表示
-            const userResultsContainer = document.createElement('div');
-            let userResultsHTML = `<h3 style="padding:1rem;">ユーザー</h3>`;
-            if (userError) {
-                console.error("ユーザー検索エラー:", userError);
-                userResultsHTML += `<p class="error-message">ユーザーの検索中にエラーが発生しました。</p>`;
-            } else if (users && users.length > 0) {
-                userResultsHTML += users.map(u => ` <div class="profile-card widget-item"> <div class="profile-card-info" style="display:flex; align-items:center; gap:0.8rem;"> <a href="#profile/${u.id}" style="display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"> <div> <span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span> <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span> <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p> </div> </a> </div> </div>`).join('');
-            } else {
-                userResultsHTML += `<p style="padding:1rem; text-align:center;">一致するユーザーは見つかりませんでした。</p>`;
-            }
-            userResultsContainer.innerHTML = userResultsHTML;
-            contentDiv.appendChild(userResultsContainer);
-
-            // ポスト結果の表示
-            const postResultsContainer = document.createElement('div');
-            let postResultsHTML = `<h3 style="padding:1rem; border-top:1px solid var(--border-color); margin-top:1rem; padding-top:1rem;">ポスト</h3>`;
-            postResultsContainer.innerHTML = postResultsHTML;
-            contentDiv.appendChild(postResultsContainer);
-
-            if (postError) {
-                console.error("ポスト検索エラー:", postError);
-                postResultsContainer.innerHTML += `<p class="error-message">ポストの検索中にエラーが発生しました。</p>`;
-            } else if (posts && posts.length > 0) {
-                for (const post of posts) { await renderPost(post, post.user, postResultsContainer); }
-            } else {
-                postResultsContainer.innerHTML += `<p style="padding:1rem; text-align:center;">一致するポストは見つかりませんでした。</p>`;
-            }
-
-        } catch (e) {
-            contentDiv.innerHTML = `<p class="error-message">検索結果の読み込みに失敗しました。</p>`;
-            console.error("検索結果表示エラー:", e);
+        profileHeader.innerHTML = `
+            <div class="header-top">
+                <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                <div id="follow-button-container" class="follow-button"></div>
+            </div>
+            <div class="profile-info">
+                <h2>${escapeHTML(user.name)}</h2>
+                <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
+                <p class="user-me">${escapeHTML(user.me || '')}</p>
+                <div class="user-stats">
+                    <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
+                    <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
+                </div>
+            </div>`;
+        if (currentUser && userId !== currentUser.id) {
+            const followButton = document.createElement('button');
+            followButton.id = `profile-follow-button-${userId}`;
+            const isFollowing = currentUser.follow?.includes(userId);
+            updateFollowButtonState(followButton, isFollowing);
+            followButton.onclick = () => handleFollowToggle(userId, followButton);
+            profileHeader.querySelector('#follow-button-container').appendChild(followButton);
         }
+        profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
+        profileTabs.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => loadProfileTabContent(user, button.dataset.tab)));
+        await loadProfileTabContent(user, 'posts');
     }
     
     async function showNotificationsScreen() {
@@ -237,8 +235,8 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(DOM.likesContent, "いいねしたポストはまだありません。", { ids: currentUser.like }, true); }
-    async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(DOM.starsContent, "お気に入りに登録したポストはまだありません。", { ids: currentUser.star }, true); }
+    async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsByIds(DOM.likesContent, "いいねしたポストはまだありません。", { ids: currentUser.like || [] }, true); }
+    async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsByIds(DOM.starsContent, "お気に入りに登録したポストはまだありません。", { ids: currentUser.star || [] }, true); }
 
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
@@ -270,44 +268,6 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (err) { contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`; }
     }
     
-    async function showProfileScreen(userId) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
-        showScreen('profile-screen');
-        const profileHeader = document.getElementById('profile-header'), profileTabs = document.getElementById('profile-tabs');
-        profileHeader.innerHTML = '<div class="spinner"></div>'; profileTabs.innerHTML = '';
-        const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
-        if (error || !user) { profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>'; return; }
-        
-        const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
-        const followerCount = countError ? '?' : followerCountData;
-
-        profileHeader.innerHTML = `
-            <div class="header-top">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
-                <div id="follow-button-container" class="follow-button"></div>
-            </div>
-            <div class="profile-info">
-                <h2>${escapeHTML(user.name)}</h2>
-                <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
-                <p class="user-me">${escapeHTML(user.me || '')}</p>
-                <div class="user-stats">
-                    <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
-                    <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
-                </div>
-            </div>`;
-        if (currentUser && userId !== currentUser.id) {
-            const followButton = document.createElement('button');
-            followButton.id = `profile-follow-button-${userId}`;
-            const isFollowing = currentUser.follow?.includes(userId);
-            updateFollowButtonState(followButton, isFollowing);
-            followButton.onclick = () => handleFollowToggle(userId, followButton);
-            profileHeader.querySelector('#follow-button-container').appendChild(followButton);
-        }
-        profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
-        profileTabs.querySelectorAll('.tab-button').forEach(button => button.addEventListener('click', () => loadProfileTabContent(user, button.dataset.tab)));
-        await loadProfileTabContent(user, 'posts');
-    }
-
     async function showSettingsScreen() {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
@@ -330,27 +290,35 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     // ▲▲▲ [修正点1] ここまで ▲▲▲
 
-    // --- 10. コンテンツ読み込み & レンダリング ---
+
+    // --- 5. ルーティングと画面管理 --- (routerは上で定義済み)
+    // --- 6. ナビゲーションとサイドバー --- (updateNavAndSidebars, loadRightSidebarは上で定義済み)
+    // --- 7. 認証とセッション --- (goToLoginPage, handleLogout, checkSession, subscribeToChangesは上で定義済み)
+    // --- 8. ポスト関連のUIとロジック --- (openPostModal, closePostModal, etc.は上で定義済み)
+
+    // ▼▼▼ [修正点1] loadPostsByIdsのロジックを修正 ▼▼▼
     async function loadPostsByIds(container, emptyMessage, options = {}, isInitial = true) {
         const page = isInitial ? 0 : parseInt(container.dataset.page || '0');
+        const footer = container.querySelector('.timeline-footer');
         if (isInitial) {
             container.innerHTML = '';
             showLoading(true);
         } else {
-            const footer = container.querySelector('.timeline-footer');
             if(footer) footer.innerHTML = '<div class="spinner"></div>';
         }
     
         try {
             let query = supabase.from('post').select('*, user(*)');
             
-            if (options.ids && options.ids.length > 0) {
+            if (options.ids) {
+                if (!options.ids || options.ids.length === 0) {
+                    if(isInitial) container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`;
+                    if (isInitial) showLoading(false);
+                    return;
+                }
                 query = query.in('id', options.ids);
             } else if(options.authorId) {
                 query = query.eq('userid', options.authorId);
-            } else {
-                if(isInitial) container.innerHTML = `<p style="padding: 2rem; text-align:center;">${emptyMessage}</p>`;
-                return;
             }
     
             const { data, error } = await query.order('time', { ascending: false }).range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
@@ -361,92 +329,28 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
+            if(footer) footer.remove();
             for (const p of data) { await renderPost(p, p.user, container); }
             
             container.dataset.page = page + 1;
 
-            const footer = container.querySelector('.timeline-footer') || document.createElement('div');
-            footer.className = 'timeline-footer';
-            container.appendChild(footer);
+            const newFooter = document.createElement('div');
+            newFooter.className = 'timeline-footer';
+            container.appendChild(newFooter);
             
             if (data.length < POSTS_PER_PAGE) {
                 if(observer) observer.disconnect();
-                footer.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">すべてのポストを読み込みました</p>';
+                newFooter.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">すべてのポストを読み込みました</p>';
             } else {
-                footer.innerHTML = '<div class="spinner"></div>';
+                newFooter.innerHTML = '<div class="spinner"></div>';
                 setupIntersectionObserver(container, () => loadPostsByIds(container, emptyMessage, options, false));
             }
         } catch (err) { container.innerHTML = `<p class="error-message">ポストの読み込みに失敗しました。</p>`; console.error("loadPostsByIds error:", err); }
         finally { if (isInitial) showLoading(false); }
     }
+    // ▲▲▲ [修正点1] ここまで ▲▲▲
 
-    async function loadTimeline(tab, container, isInitial = true) {
-        const page = isInitial ? 0 : parseInt(container.dataset.page || '0');
-        if (isInitial) {
-            container.innerHTML = '';
-            showLoading(true);
-        } else {
-            const footer = container.querySelector('.timeline-footer');
-            if(footer) footer.innerHTML = '<div class="spinner"></div>';
-        }
-        
-        try {
-            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
-            if (tab === 'following') {
-                if (currentUser?.follow?.length > 0) {
-                    query = query.in('userid', currentUser.follow);
-                } else {
-                    if(isInitial) container.innerHTML = `<p style="padding: 2rem; text-align: center;">まだ誰もフォローしていません。</p>`;
-                    if (isInitial) showLoading(false);
-                    return;
-                }
-            }
-
-            const { data: posts, error } = await query.order('time', { ascending: false }).range(page * POSTS_PER_PAGE, (page + 1) * POSTS_PER_PAGE - 1);
-            if (error) throw error;
-            
-            if (isInitial && posts.length === 0) {
-                container.innerHTML = `<p style="padding: 2rem; text-align: center;">${tab === 'following' ? 'フォローしているユーザーのポストはまだありません。' : 'まだポストがありません。'}</p>`;
-                return;
-            }
-            
-            for (const post of posts) { await renderPost(post, post.user || {}, container); }
-
-            container.dataset.page = page + 1;
-
-            const footer = container.querySelector('.timeline-footer') || document.createElement('div');
-            footer.className = 'timeline-footer';
-            container.appendChild(footer);
-
-            if (posts.length < POSTS_PER_PAGE) {
-                if (observer) observer.disconnect();
-                footer.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">すべてのポストを読み込みました</p>';
-            } else {
-                footer.innerHTML = '<div class="spinner"></div>';
-                setupIntersectionObserver(container, () => loadTimeline(tab, container, false));
-            }
-
-        } catch(err) { container.innerHTML = `<p class="error-message">${err.message}</p>`; console.error("loadTimeline error:", err);}
-        finally { if (isInitial) showLoading(false); }
-    }
-
-    function setupIntersectionObserver(container, callback) {
-        if (observer) observer.disconnect();
-        const target = container.querySelector('.timeline-footer');
-        if (!target) return;
-
-        observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && !isLoadingMore) {
-                isLoadingMore = true;
-                callback();
-                setTimeout(() => { isLoadingMore = false; }, 1000); // 連発防止
-            }
-        }, { threshold: 0.1 });
-        observer.observe(target);
-    }
-    
-    // --- 11. ユーザーアクション ---
-    // (変更なし)
+    // --- 11. ユーザーアクション --- (window. ... handleFollowToggle は上で定義済み)
 
     // --- 12. プロフィール関連 ---
     async function loadProfileTabContent(user, tab) {
@@ -478,8 +382,30 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(err) { contentDiv.innerHTML = `<p class="error-message">コンテンツの読み込みに失敗しました。</p>`; console.error("loadProfileTabContent error:", err);}
     }
     
+    async function handleUpdateSettings(event) {
+        event.preventDefault(); if (!currentUser) return;
+        const form = event.target;
+        const updatedData = {
+            name: form.querySelector('#setting-username').value.trim(),
+            me: form.querySelector('#setting-me').value.trim(),
+            settings: {
+                show_like: form.querySelector('#setting-show-like').checked,
+                show_follow: form.querySelector('#setting-show-follow').checked,
+                show_star: form.querySelector('#setting-show-star').checked,
+                show_scid: form.querySelector('#setting-show-scid').checked,
+            },
+        };
+        if (!updatedData.name) return alert('ユーザー名は必須です。');
+        const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
+        if (error) { alert('設定の更新に失敗しました。'); }
+        else {
+            alert('設定を更新しました。');
+            currentUser = data; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            window.location.hash = '';
+        }
+    }
+    
     // --- 13. 初期化処理 ---
-    // ▼▼▼ [修正点1] イベントデリゲーションの最終修正版 ▼▼▼
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
@@ -490,6 +416,19 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const profileTab = target.closest('#profile-tabs .tab-button');
+        if (profileTab) {
+            const userIdString = document.querySelector('#profile-header .user-id')?.textContent;
+            const match = userIdString?.match(/#(\d+)/);
+            if(match) {
+                const userId = parseInt(match[1]);
+                supabase.from('user').select('*').eq('id', userId).single().then(({data: user}) => {
+                    if (user) loadProfileTabContent(user, profileTab.dataset.tab);
+                });
+            }
+            return;
+        }
+        
         if (!postElement) return;
 
         const postId = postElement.dataset.postId;
@@ -536,7 +475,6 @@ window.addEventListener('DOMContentLoaded', () => {
             window.location.hash = `#post/${postId}`;
         }
     });
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
 
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
