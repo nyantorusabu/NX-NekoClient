@@ -394,7 +394,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!post || !author) return;
         const postEl = document.createElement('div');
         postEl.className = 'post';
-        postEl.dataset.postId = post.id; // データ属性にIDを設定
+        postEl.dataset.postId = post.id;
 
         const isLiked = currentUser?.like?.includes(post.id);
         const isStarred = currentUser?.star?.includes(post.id);
@@ -413,7 +413,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 attachmentsHTML += '<div class="attachment-item">';
                 if (attachment.type === 'image') {
-                    attachmentsHTML += `<img class="attachment-image" src="${publicURL}" alt="${escapeHTML(attachment.name)}" data-src="${publicURL}">`;
+                    attachmentsHTML += `<img class="attachment-image" src="${publicURL}" alt="${escapeHTML(attachment.name)}">`;
                 } else if (attachment.type === 'video') {
                     attachmentsHTML += `<video src="${publicURL}" controls></video>`;
                 } else if (attachment.type === 'audio') {
@@ -430,9 +430,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const actionsHTML = currentUser ? `
             <div class="post-actions">
-                <button class="reply-button" data-post-id="${post.id}" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
-                <button class="like-button ${isLiked ? 'liked' : ''}" data-post-id="${post.id}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
-                <button class="star-button ${isStarred ? 'starred' : ''}" data-post-id="${post.id}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
+                <button class="reply-button" data-username="${escapeHTML(author.name)}" title="返信">🗨 <span>${replyCount}</span></button>
+                <button class="like-button ${isLiked ? 'liked' : ''}"><span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span></button>
+                <button class="star-button ${isStarred ? 'starred' : ''}"><span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span></button>
             </div>` : '';
         postEl.innerHTML = `
             <img src="https://trampoline.turbowarp.org/avatars/by-username/${author.scid}" class="user-icon" alt="${author.name}'s icon">
@@ -853,9 +853,11 @@ window.addEventListener('DOMContentLoaded', () => {
     function subscribeToChanges() {
         if (realtimeChannel) return;
         realtimeChannel = supabase.channel('nyax-feed')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'post' }, payload => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, payload => {
+                // ▼▼▼ [修正点2] リアルタイム更新の対象画面を拡張 ▼▼▼
                 const mainScreenVisible = !document.getElementById('main-screen').classList.contains('hidden');
-                if ((payload.eventType === 'INSERT' || payload.eventType === 'DELETE') && mainScreenVisible) {
+                const detailScreenVisible = !document.getElementById('post-detail-screen').classList.contains('hidden');
+                if (mainScreenVisible || detailScreenVisible) {
                     router();
                 }
             })
@@ -870,8 +872,11 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
+        if (!postElement) return; // ポスト以外のクリックは無視
+
+        const postId = postElement.dataset.postId;
         
-        // --- ポストのアクションボタンの処理 ---
+        // アクションボタンの処理
         const menuButton = target.closest('.post-menu-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
@@ -879,35 +884,29 @@ window.addEventListener('DOMContentLoaded', () => {
         const starButton = target.closest('.star-button');
         const imageAttachment = target.closest('.attachment-image');
         const downloadLink = target.closest('.attachment-download-link');
-
+        
         if (menuButton) {
             e.stopPropagation();
-            const postId = postElement.dataset.postId;
             window.togglePostMenu(postId);
             return;
         }
         if (deleteButton) {
             e.stopPropagation();
-            const postId = postElement.dataset.postId;
             window.deletePost(postId);
             return;
         }
         if(replyButton) {
             e.stopPropagation();
-            const postId = replyButton.closest('.post').dataset.postId;
-            const username = replyButton.dataset.username;
-            window.handleReplyClick(postId, username);
+            window.handleReplyClick(postId, replyButton.dataset.username);
             return;
         }
         if(likeButton) {
             e.stopPropagation();
-            const postId = likeButton.closest('.post').dataset.postId;
             window.handleLike(likeButton, postId);
             return;
         }
         if(starButton) {
             e.stopPropagation();
-            const postId = starButton.closest('.post').dataset.postId;
             window.handleStar(starButton, postId);
             return;
         }
@@ -922,11 +921,10 @@ window.addEventListener('DOMContentLoaded', () => {
             window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name);
             return;
         }
-
-        // --- ポスト詳細ページへの遷移 ---
-        if (postElement && !target.closest('a, video, audio')) { // a, video, audioタグ以外
-            const postId = postElement.dataset.postId;
-            if(postId) window.location.hash = `#post/${postId}`;
+        
+        // 上記以外で、インタラクティブでない要素がクリックされた場合に詳細ページへ遷移
+        if (!target.closest('a, video, audio')) {
+            window.location.hash = `#post/${postId}`;
         }
     });
 
