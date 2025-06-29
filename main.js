@@ -55,7 +55,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const hash = window.location.hash || '#';
         showLoading(true);
         try {
-            if (hash.startsWith('#post/')) await showPostDetail(hash.substring(7));
+            // ▼▼▼ [修正点2] ポストIDを切り出す位置を修正 substring(7) -> substring(6) ▼▼▼
+            if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
+            // ▲▲▲ [修正点2] ここまで ▲▲▲
             else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
             else if (hash === '#settings' && currentUser) await showSettingsScreen();

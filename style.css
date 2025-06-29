@@ -31,6 +31,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #page-header h2 { margin: 0; font-size: 1.25rem; }
 .header-search-bar { display: flex; align-items: center; background-color: var(--bg-color); border-radius: 9999px; padding: 0.5rem 1rem; }
 .header-search-bar input { flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem; }
+/* ▼▼▼ [修正点1] 検索ボタンにCSSを適用 ▼▼▼ */
+.header-search-bar button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 9999px;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    transition: background-color 0.2s;
+}
+.header-search-bar button:hover {
+    background-color: var(--primary-hover-color);
+}
+/* ▲▲▲ [修正点1] ここまで ▲▲▲ */
 .timeline-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
 .timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; }
 .timeline-tab-button:hover { background-color: var(--bg-color); }
