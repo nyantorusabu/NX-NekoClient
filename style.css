@@ -12,7 +12,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #left-nav { position: sticky; top: 0; height: 100vh; width: 275px; padding: 0 1rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
 #nav-menu-top { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-top: 0.5rem; }
 .nav-item { display: flex; align-items: center; gap: 1.2rem; padding: 0.75rem; font-size: 1.25rem; font-weight: 400; text-decoration: none; color: var(--text-color); border-radius: 9999px; cursor: pointer; background: none; border: none; text-align: left; transition: background-color 0.2s; }
-/* ▼▼▼ [修正点2] 左メニューアイコンを枠線のみに ▼▼▼ */
 .nav-item svg {
     width: 1.75rem;
     height: 1.75rem;
@@ -20,24 +19,37 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     stroke: currentColor; /* 枠線色をテキスト色に合わせる */
     stroke-width: 2; /* 枠線の太さ */
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .nav-item:hover { background-color: var(--bg-color); }
 .nav-item.active { font-weight: 700; }
-/* ▼▼▼ [修正点2] アクティブ時のアイコンは塗りつぶしに戻す（ホームアイコンは特別処理） ▼▼▼ */
-.nav-item.active:not([href="#"]) svg { /* ホームアイコン以外のアクティブなアイコン */
+/* ▼▼▼ [修正点2, 6] アクティブ時のアイコンは塗りつぶしに戻す（ホーム、検索、設定アイコンは特別処理） ▼▼▼ */
+.nav-item.active:not([href="#"]):not([href="#explore"]):not([href="#settings"]) svg { /* ホーム、検索、設定アイコン以外 */
     fill: currentColor;
     stroke: none;
 }
-/* ホームアイコンのアクティブ状態はJSで設定したSVGパスと組み合わせてCSSで調整 */
-.nav-item[href="#"].active svg path:nth-child(1) { /* 家全体 */
+/* ホームアイコンのアクティブ状態 */
+.nav-item[href="#"].active svg path:nth-child(1) {
     fill: currentColor;
     stroke: none;
 }
-.nav-item[href="#"].active svg rect { /* ドアの部分 */
-    fill: white; /* 白で塗りつぶす */
+.nav-item[href="#"].active svg rect {
+    fill: white; /* ドアの部分は白で塗りつぶし */
     stroke: none; /* 枠線なし */
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
+/* 検索アイコンはアクティブでも線画のまま */
+.nav-item[href="#explore"].active svg {
+    fill: none !important;
+    stroke: currentColor !important;
+}
+/* 設定アイコンのアクティブ状態 */
+.nav-item[href="#settings"].active svg path {
+    fill: currentColor;
+    stroke: none;
+}
+.nav-item[href="#settings"].active svg circle {
+    fill: white;
+    stroke: none;
+}
+/* ▲▲▲ [修正点2, 6] ここまで ▼▼▼ */
 .nav-item-post { background-color: var(--primary-color); color: white; width: 90%; justify-content: center; font-size: 1.1rem; font-weight: 700; padding: 1rem; margin-top: 1rem; }
 .nav-item-post:hover { background-color: var(--primary-hover-color); }
 #nav-menu-bottom { padding-bottom: 1rem; }
@@ -48,34 +60,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .account-info .id { color: var(--secondary-text-color); }
 #login-button { width: 100%; justify-content: center; background-color: var(--primary-color); color: white; font-weight: 700; }
 
-/* ▼▼▼ [修正点8] 通知バッジのスタイル ▼▼▼ */
+/* ▼▼▼ [修正点7] 通知バッジのスタイル ▼▼▼ */
 .notification-badge {
     background-color: var(--primary-color);
     color: white;
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* 少し小さく */
     font-weight: bold;
     border-radius: 50%;
-    padding: 0.2em 0.5em; /* パディングを調整して円形に近く */
-    min-width: 1.5em; /* 1桁でも形を保つ */
+    width: 1.5em; /* 幅と高さを固定 */
+    height: 1.5em;
+    line-height: 1.5em; /* 縦方向の中央揃え */
     text-align: center;
     position: absolute;
     top: 0.6rem;
-    right: 0.6rem;
-    transform: translate(50%, -50%);
+    left: 2rem; /* アイコンの右側に配置 */
+    transform: translate(-50%, -50%); /* 微調整 */
     box-shadow: 0 0 0 2px white; /* 背景色との境目を強調 */
     z-index: 1; /* アイコンの上に表示 */
 }
-.nav-item .notification-badge { /* ナビアイテム内のバッジ */
-    left: calc(1.75rem + 1.2rem - 0.5em); /* アイコンとテキストの間、アイコンの幅 + ギャップ - バッジの半分の幅 */
-    top: 0.5rem;
-    transform: none; /* absolute位置決めなのでtransformリセット */
-    margin-left: -0.5em; /* 調整 */
-}
-/* 通知アイコンの親要素にposition: relativeを付与してバッジの基準にする */
 .nav-item[href="#notifications"] {
     position: relative;
 }
-/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
+/* ▲▲▲ [修正点7] ここまで ▼▼▼ */
 
 
 /* 中央メインコンテンツ */
@@ -84,78 +90,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #page-header h2 { margin: 0; font-size: 1.25rem; }
 .header-search-bar { display: flex; align-items: center; background-color: var(--bg-color); border-radius: 9999px; padding: 0.5rem 1rem; }
 .header-search-bar input { flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem; }
-/* 検索ボタンにCSSを適用 */
-.header-search-bar button {
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 9999px;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    cursor: pointer;
-    margin-left: 0.5rem;
-    transition: background-color 0.2s;
-    flex-shrink: 0;
-}
-.header-search-bar button:hover {
-    background-color: var(--primary-hover-color);
-}
-/* ▼▼▼ [修正点3] 検索アイコンは塗りつぶさない（ヘッダー） ▼▼▼ */
-.header-search-bar button svg {
-    fill: none; /* 塗りつぶしなし */
-    stroke: white; /* 枠線色を白に */
-    width: 20px;
-    height: 20px;
-}
-/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
+.header-search-bar button { background-color: var(--primary-color); color: white; border: none; border-radius: 9999px; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; margin-left: 0.5rem; transition: background-color 0.2s; flex-shrink: 0; }
+.header-search-bar button:hover { background-color: var(--primary-hover-color); }
+.header-search-bar button svg { fill: none; stroke: white; width: 20px; height: 20px; }
 
-/* ▼▼▼ [修正点7] ホームのタブとポスト枠をスクロールしても動かないようにする ▼▼▼ */
-.timeline-tabs-sticky-container {
-    position: sticky;
-    top: 56px; /* page-headerの高さ */
-    background-color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    z-index: 9;
-    border-bottom: 1px solid var(--border-color);
-}
-.timeline-tabs {
-    display: flex;
-    /* border-bottom: 1px solid var(--border-color); /* 親コンテナに移動 */
-}
-.post-form-sticky-container {
-    position: sticky;
-    top: calc(56px + 50px); /* page-headerの高さ + timeline-tabsの高さ */
-    background-color: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    z-index: 8; /* timeline-tabsより下 */
-    border-bottom: 1px solid var(--border-color); /* 投稿フォームの下線 */
-}
-/* ▲▲▲ [修正点7] ここまで ▼▼▼ */
-/* ▼▼▼ [修正点5] ホームのタブ切り替えテキストを中央寄せにする ▼▼▼ */
-.timeline-tab-button {
-    flex-grow: 1;
-    padding: 1rem;
-    border: none;
-    background: none;
-    font-size: 1rem;
-    cursor: pointer;
-    color: var(--secondary-text-color);
-    font-weight: 500;
-    position: relative;
-    text-align: center; /* 中央寄せ */
-}
-/* ▲▲▲ [修正点5] ここまで ▼▼▼ */
+/* ホームのタブとポスト枠をスクロールしても動かないようにする */
+.timeline-tabs-sticky-container { position: sticky; top: 56px; /* page-headerの高さ */ background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
+.timeline-tabs { display: flex; }
+.post-form-sticky-container { position: sticky; top: calc(56px + 50px); /* page-headerの高さ + timeline-tabsの高さ */ background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 8; border-bottom: 1px solid var(--border-color); }
+.timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; text-align: center; /* 中央寄せ */ }
 .timeline-tab-button:hover { background-color: var(--bg-color); }
 .timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
 .timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
 
 /* ポストフォーム */
-.post-form { padding: 1rem; /* border-bottom: 1px solid var(--border-color); */ display: flex; gap: 0.5rem; } /* border-bottomは親の.post-form-sticky-containerに移動 */
+.post-form { padding: 1rem; display: flex; gap: 0.5rem; }
 .post-form .user-icon { width: 48px; height: 48px; border-radius: 50%; }
 .post-form .form-content { flex-grow: 1; }
 .post-form textarea { width: 100%; min-height: 60px; border: none; padding: 0.5rem 0; box-sizing: border-box; resize: vertical; font-size: 1.25rem; outline: none; }
@@ -172,44 +121,20 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .post-author:hover { text-decoration: underline; }
 .post-time { font-size: 0.9rem; color: var(--secondary-text-color); }
 .post-content { margin-bottom: 1rem; white-space: pre-wrap; word-wrap: break-word; font-size: 1rem; cursor: pointer; }
+/* ▼▼▼ [修正点8] 自動リンク用aタグのスタイル ▼▼▼ */
+.post-content a { color: var(--primary-color); text-decoration: none; }
+.post-content a:hover { text-decoration: underline; }
+/* ▲▲▲ [修正点8] ここまで ▼▼▼ */
 .post-actions { display: flex; justify-content: space-around; align-items: center; max-width: 425px; }
 .post-actions button { background: none; border: none; color: var(--secondary-text-color); padding: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
 .like-button:hover, .like-button.liked { color: var(--like-color); }
 .star-button:hover, .star-button.starred { color: var(--star-color); }
 .post-actions .icon { font-size: 1.2rem; }
 .post-menu-btn { position: absolute; top: 0; right: 0; background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--secondary-text-color); }
-/* ▼▼▼ [修正点1] ポストメニューのスタイル ▼▼▼ */
-.post-menu {
-    position: absolute;
-    right: 0;
-    top: 25px; /* ボタンのすぐ下に表示 */
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 10;
-    min-width: 150px; /* メニューの最小幅 */
-    overflow: hidden; /* 角丸と合わせるため */
-}
-.post-menu button {
-    width: 100%;
-    padding: 0.8rem 1.2rem;
-    text-align: left;
-    background: none;
-    border: none;
-    color: var(--text-color);
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.post-menu button:hover {
-    background-color: var(--bg-color);
-}
-.post-menu .delete-btn {
-    color: #f4212e;
-    font-weight: bold;
-}
-/* ▲▲▲ [修正点1] ここまで ▼▼▼ */
+.post-menu { position: absolute; right: 0; top: 25px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 10; min-width: 150px; overflow: hidden; }
+.post-menu button { width: 100%; padding: 0.8rem 1.2rem; text-align: left; background: none; border: none; color: var(--text-color); font-size: 0.95rem; cursor: pointer; transition: background-color 0.2s; }
+.post-menu button:hover { background-color: var(--bg-color); }
+.post-menu .delete-btn { color: #f4212e; font-weight: bold; }
 .replying-to a { color: var(--primary-color); text-decoration: none; }
 
 /* 右側サイドバー */
@@ -218,69 +143,23 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .widget-title { font-size: 1.25rem; font-weight: 800; padding: 0.75rem 1rem; }
 .widget-item { padding: 0.75rem 1rem; cursor: pointer; transition: background-color 0.2s; }
 .widget-item:hover { background-color: #e7e7e8; }
-/* ▼▼▼ [修正点9] 右サイドバーの検索バーのスタイル ▼▼▼ */
-.sidebar-search-widget {
-    background-color: var(--bg-color);
-    border-radius: 9999px;
-    padding: 0.5rem 1rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-}
-.sidebar-search-widget input {
-    flex-grow: 1;
-    border: none;
-    background: transparent;
-    outline: none;
-    font-size: 1rem;
-}
-/* ▼▼▼ [修正点3] 右サイドバー検索アイコンは塗りつぶさない ▼▼▼ */
-.sidebar-search-widget svg {
-    width: 20px;
-    height: 20px;
-    fill: none; /* 塗りつぶしなし */
-    stroke: var(--secondary-text-color); /* 枠線色をテキスト色に合わせる */
-    margin-right: 0.5rem;
-}
-/* ▲▲▲ [修正点3] ここまで ▼▼▼ */
+.sidebar-search-widget { background-color: var(--bg-color); border-radius: 9999px; padding: 0.5rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; }
+.sidebar-search-widget input { flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem; }
+.sidebar-search-widget svg { width: 20px; height: 20px; fill: none; stroke: var(--secondary-text-color); margin-right: 0.5rem; }
 
 .recommend-user { display: flex; justify-content: space-between; align-items: center; }
 .recommend-user span { font-weight: 700; }
 /* おすすめユーザー・プロフィールフォローボタンのスタイル */
 .recommend-user button,
-#profile-header .follow-button button {
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    white-space: nowrap; /* テキストの折り返しを防ぐ */
-}
+#profile-header .follow-button button { padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 700; cursor: pointer; transition: background-color 0.2s, color 0.2s, border-color 0.2s; white-space: nowrap; }
 
 /* フォローしていない状態 (おすすめユーザー、プロフィール共通) */
-.follow-button-not-following {
-    background-color: var(--text-color); /* 黒 */
-    color: white;
-    border: 1px solid var(--text-color);
-}
-.follow-button-not-following:hover {
-    background-color: #272c30; /* 少し濃い黒 */
-    border-color: #272c30;
-}
+.follow-button-not-following { background-color: var(--text-color); color: white; border: 1px solid var(--text-color); }
+.follow-button-not-following:hover { background-color: #272c30; border-color: #272c30; }
 
 /* フォローしている状態 (おすすめユーザー、プロフィール共通) */
-.follow-button-following {
-    background-color: white; /* 白 */
-    color: var(--text-color); /* 黒文字 */
-    border: 1px solid var(--border-color); /* 薄いグレーの枠線 */
-}
-/* ▼▼▼ [修正点4] プロフィールのフォロー解除ホバー時のクラス（背景色を赤に） ▼▼▼ */
-.follow-button-following.follow-button-unfollow-hover { /* .follow-button-unfollow-hover クラスが追加された時 */
-    background-color: #f4212e !important; /* 強制的に赤 */
-    color: white !important; /* 白文字 */
-    border-color: #f4212e !important; /* 赤い枠線 */
-}
-/* ▲▲▲ [修正点4] ここまで ▼▼▼ */
+.follow-button-following { background-color: white; color: var(--text-color); border: 1px solid var(--border-color); }
+.follow-button-following:hover { background-color: #fce8ec; color: var(--like-color); border-color: var(--like-color); }
 
 /* 未ログイン時バナー */
 #login-banner { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--primary-color); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
@@ -294,7 +173,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* ポスト用モーダル */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-start; z-index: 1001; padding-top: 5vh; }
 .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 600px; position: relative; }
-.modal-close-btn { position: absolute; top: 1rem; left: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+/* ▼▼▼ [修正点4] ポストモーダルの閉じるボタン位置修正 ▼▼▼ */
+.modal-close-btn { position: absolute; top: 1rem; right: 1rem; background: #888; color: white; border-radius: 50%; width: 24px; height: 24px; border: none; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+/* ▲▲▲ [修正点4] ここまで ▼▼▼ */
 
 /* プロフィール画面 */
 #profile-header { padding: 1rem; border-bottom: 1px solid var(--border-color); }
