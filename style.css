@@ -539,6 +539,10 @@ body {
     margin-bottom: 1rem;
 }
 
+.sub-replies-container {
+    margin-top: 0.5rem;
+}
+
 /* 添付ファイル表示のスタイル */
 .attachments-container {
     display: flex;
