@@ -39,6 +39,8 @@ window.addEventListener('DOMContentLoaded', () => {
         screens: document.querySelectorAll('.screen'),
         postFormContainer: document.querySelector('.post-form-container'),
         postModal: document.getElementById('post-modal'),
+        editPostModal: document.getElementById('edit-post-modal'),
+        editPostModalContent: document.getElementById('edit-post-modal-content'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -605,11 +607,6 @@ window.addEventListener('DOMContentLoaded', () => {
         return postEl;
     }
 
-        
-        postEl.appendChild(postMain);
-        return postEl;
-    }
-
     // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
@@ -1009,6 +1006,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
                         for (const post of posts) {
                             const postEl = await renderPost(post, post.user || {});
+                            if (!postEl) continue;
                             const subRepliesContainer = postEl.querySelector('.sub-replies-container');
     
                             if (subRepliesContainer) {
@@ -1229,6 +1227,94 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
+
+async function openEditPostModal(postId) {
+        showLoading(true);
+        try {
+            const { data: post, error } = await supabase.from('post').select('content, attachments').eq('id', postId).single();
+            if (error || !post) throw new Error('ポスト情報の取得に失敗しました。');
+            
+            let attachmentsHTML = '';
+            if (post.attachments && post.attachments.length > 0) {
+                for (const attachment of post.attachments) {
+                    const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                    const publicURL = publicUrlData.publicUrl;
+                    
+                    let itemHTML = '';
+                    if (attachment.type === 'image') {
+                        itemHTML = `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" style="max-width: 100px; max-height: 100px; border-radius: 8px;">`;
+                    } else if (attachment.type === 'video') {
+                        itemHTML = `<span>📹 ${escapeHTML(attachment.name)}</span>`;
+                    } else if (attachment.type === 'audio') {
+                        itemHTML = `<span>🎵 ${escapeHTML(attachment.name)}</span>`;
+                    } else {
+                        itemHTML = `<span>📄 ${escapeHTML(attachment.name)}</span>`;
+                    }
+                    attachmentsHTML += `<div class="attachment-item" style="display: inline-block; margin: 4px;">${itemHTML}</div>`;
+                }
+            }
+
+            DOM.editPostModalContent.innerHTML = `
+                <div class="post-form" style="padding: 1rem;">
+                    <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="your icon">
+                    <div class="form-content">
+                        <textarea id="edit-post-textarea" style="width: 100%; min-height: 120px; font-size: 1.2rem; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; resize: vertical;" maxlength="280">${post.content}</textarea>
+                        ${attachmentsHTML ? `
+                            <div class="edit-modal-attachments">
+                                <p>添付ファイル（編集できません）</p>
+                                <div class="attachments-container">${attachmentsHTML}</div>
+                            </div>
+                        ` : ''}
+                        <div class="post-form-actions" style="justify-content: flex-end; padding-top: 1rem;">
+                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700;">保存</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId);
+            DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
+            DOM.editPostModal.classList.remove('hidden');
+            DOM.editPostModal.querySelector('#edit-post-textarea').focus();
+
+        } catch(e) {
+            console.error(e);
+            alert(e.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function handleUpdatePost(postId) {
+        const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
+        if (!newContent) {
+            alert('ポスト内容は空にできません。');
+            return;
+        }
+
+        const button = DOM.editPostModal.querySelector('#update-post-button');
+        button.disabled = true;
+        button.textContent = '保存中...';
+        showLoading(true);
+
+        try {
+            const { error } = await supabase.from('post').update({ content: newContent }).eq('id', postId);
+            if (error) throw error;
+            
+            DOM.editPostModal.classList.add('hidden');
+            const postContentElement = document.querySelector(`.post[data-post-id="${postId}"] .post-content p`);
+            if (postContentElement) {
+                postContentElement.innerHTML = await formatPostContent(newContent);
+            }
+        } catch(e) {
+            console.error(e);
+            alert('ポストの更新に失敗しました。');
+        } finally {
+            button.disabled = false;
+            button.textContent = '保存';
+            showLoading(false);
+        }
+    }
     
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
@@ -1270,7 +1356,7 @@ window.addEventListener('DOMContentLoaded', () => {
             .subscribe();
     }
     
-    // --- 13. 初期化処理 ---
+     // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
@@ -1279,6 +1365,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const postId = postElement.dataset.postId;
         
         const menuButton = target.closest('.post-menu-btn');
+        const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
         const likeButton = target.closest('.like-button');
@@ -1288,6 +1375,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
         if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
+        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
         if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
         if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
         if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
