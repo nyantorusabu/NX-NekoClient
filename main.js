@@ -829,7 +829,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
                     if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
                     
-                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid').in('id', user.follow);
+                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
                     fUsers?.forEach(u => {
@@ -839,7 +839,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         userLink.href = `#profile/${u.id}`;
                         userLink.className = 'profile-link';
                         userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                        userLink.innerHTML = `<img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
                         userCard.appendChild(userLink);
                         contentDiv.appendChild(userCard);
                     });
@@ -1146,37 +1146,48 @@ window.handleRecFollow = async (userId, button) => { if (!currentUser) return al
             .subscribe();
     }
     
-// --- 13. 初期化処理 ---
-DOM.mainContent.addEventListener('click', (e) => {
-    const target = e.target;
-    const postElement = target.closest('.post');
-    if (!postElement) return;
+    // --- 13. 初期化処理 ---
+    DOM.mainContent.addEventListener('click', (e) => {
+        const target = e.target;
+        const postElement = target.closest('.post');
+        if (!postElement) return;
 
-    const postId = postElement.dataset.postId;
-    
-    const menuButton = target.closest('.post-menu-btn');
-    const deleteButton = target.closest('.delete-btn');
-    const replyButton = target.closest('.reply-button');
-    const likeButton = target.closest('.like-button');
-    const starButton = target.closest('.star-button');
-    const imageAttachment = target.closest('.attachment-item img');
-    const downloadLink = target.closest('.attachment-download-link');
-    const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
+        const postId = postElement.dataset.postId;
+        
+        const menuButton = target.closest('.post-menu-btn');
+        const deleteButton = target.closest('.delete-btn');
+        const replyButton = target.closest('.reply-button');
+        const likeButton = target.closest('.like-button');
+        const starButton = target.closest('.star-button');
+        const imageAttachment = target.closest('.attachment-item img');
+        const downloadLink = target.closest('.attachment-download-link');
+        const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
-    if (menuButton) {
-        e.stopPropagation();
-        togglePostMenu(menuButton);
-        return;
+        if (menuButton) { e.stopPropagation(); togglePostMenu(postId); return; }
+        if (deleteButton) { e.stopPropagation(); deletePost(postId); return; }
+        if(replyButton) { e.stopPropagation(); handleReplyClick(postId, replyButton.dataset.username); return; }
+        if(likeButton) { e.stopPropagation(); handleLike(likeButton, postId); return; }
+        if(starButton) { e.stopPropagation(); handleStar(starButton, postId); return; }
+        if(imageAttachment) { e.stopPropagation(); openImageModal(imageAttachment.src); return; }
+        if(downloadLink) { e.preventDefault(); e.stopPropagation(); handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+        if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
+        
+        if (postElement && !target.closest('a, video, audio, button')) {
+            window.location.hash = `#post/${postElement.dataset.postId}`;
+        }
+    });
+
+    const tabsContainer = document.querySelector('.timeline-tabs');
+    if(tabsContainer) {
+        tabsContainer.addEventListener('click', (e) => {
+            if (e.target.matches('.timeline-tab-button')) {
+                switchTimelineTab(e.target.dataset.tab);
+            }
+        });
     }
-    if (deleteButton) { e.stopPropagation(); deletePost(postId); return; }
-    if(replyButton) { e.stopPropagation(); handleReplyClick(postId, replyButton.dataset.username); return; }
-    if(likeButton) { e.stopPropagation(); handleLike(likeButton, postId); return; }
-    if(starButton) { e.stopPropagation(); handleStar(starButton, postId); return; }
-    if(imageAttachment) { e.stopPropagation(); openImageModal(imageAttachment.src); return; }
-    if(downloadLink) { e.preventDefault(); e.stopPropagation(); handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-    if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
-    
-    if (postElement && !target.closest('a, video, audio, button')) {
-        window.location.hash = `#post/${postElement.dataset.postId}`;
-    }
+
+    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
+    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
+    window.addEventListener('hashchange', router);
+    checkSession();
 });
