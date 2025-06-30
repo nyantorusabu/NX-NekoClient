@@ -201,7 +201,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!isNaN(userId)) {
                 const isFollowing = currentUser?.follow?.includes(userId);
                 updateFollowButtonState(button, isFollowing);
-                button.onclick = () => handleFollowToggle(userId, button);
+                button.onclick = () => window.handleFollowToggle(userId, button);
             }
         });
     }
@@ -798,7 +798,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 followButton.id = `profile-follow-button-${userId}`;
                 const isFollowing = currentUser.follow?.includes(userId);
                 updateFollowButtonState(followButton, isFollowing);
-                followButton.onclick = () => handleFollowToggle(userId, followButton);
+                followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                 profileHeader.querySelector('#follow-button-container').appendChild(followButton);
             }
 
@@ -1078,10 +1078,10 @@ window.deletePost = async (postId) => {
         router();
     } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
     finally { showLoading(false); }
-};
-window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
-window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
-window.handleLike = async (button, postId) => {
+    };
+    window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
+    window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
+    window.handleLike = async (button, postId) => {
     if (!currentUser) return alert("ログインが必要です。");
     button.disabled = true;
     const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
@@ -1105,10 +1105,10 @@ window.handleLike = async (button, postId) => {
                 sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
             }
         }
-    }
-    button.disabled = false;
-};
-window.handleStar = async (button, postId) => {
+     }
+        button.disabled = false;
+    };
+    window.handleStar = async (button, postId) => {
     if (!currentUser) return alert("ログインが必要です。");
     button.disabled = true;
     const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
@@ -1132,10 +1132,32 @@ window.handleStar = async (button, postId) => {
                 sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
             }
         }
+     }
+        button.disabled = false;
+    };
+    
+    window.handleFollowToggle = async (targetUserId, button) => {
+        if (!currentUser) return alert("ログインが必要です。");
+        button.disabled = true;
+        const isFollowing = currentUser.follow?.includes(targetUserId);
+        const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
+        
+        const { error } = await supabase.from('user').update({ follow: updatedFollows }).eq('id', currentUser.id);
+        if (error) {
+            alert('フォロー状態の更新に失敗しました。');
+            button.disabled = false;
+        } else {
+            currentUser.follow = updatedFollows; // メモリ上のユーザー情報を更新
+            updateFollowButtonState(button, !isFollowing);
+            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
+            const followerCountSpan = document.querySelector('#follower-count strong');
+            if (followerCountSpan) {
+                const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
+                if (!newCountError) { followerCountSpan.textContent = newCount; } 
+                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
+            }
+        }
     }
-    button.disabled = false;
-};
-window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
     
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
