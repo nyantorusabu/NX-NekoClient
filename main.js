@@ -1053,14 +1053,25 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 11. ユーザーアクション ---
-function togglePostMenu(menuButton) {
-    // クリックされたボタンの親要素(.post-header)からメニュー(.post-menu)を探して表示を切り替える
-    const menu = menuButton.parentElement.querySelector('.post-menu');
-    menu?.classList.toggle('hidden');
-}
+     // --- 11. ユーザーアクション (変更なし) ---
+    window.togglePostMenu = (postId) => {
+        const targetMenu = document.getElementById(`menu-${postId}`);
+        if (!targetMenu) return;
+    
+        const isHidden = targetMenu.classList.contains('hidden');
+    
+        // まず、現在開いている他のメニューをすべて閉じる
+        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
+            if (menu.id !== `menu-${postId}`) {
+                menu.classList.add('hidden');
+            }
+        });
+    
+        // ターゲットメニューの表示状態を切り替える
+        targetMenu.classList.toggle('hidden');
+    };
 
-window.deletePost = async (postId) => {
+    window.deletePost = async (postId) => {
     if (!confirm('このポストを削除しますか？')) return;
     showLoading(true);
     try {
@@ -1243,6 +1254,18 @@ window.deletePost = async (postId) => {
         });
     }
 
+    document.addEventListener('click', (e) => {
+        // メニューボタン自身、またはメニューの内側がクリックされた場合は何もしない
+        if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
+            return;
+        }
+
+        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
+        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
+            menu.classList.add('hidden');
+        });
+    });
+    
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
