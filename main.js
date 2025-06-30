@@ -9,6 +9,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
+    let newIconDataUrl = null;
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -72,6 +73,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+    function getUserIconUrl(user) {
+        if (!user) return 'favicon.png';
+        return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+    }
 
     function updateFollowButtonState(buttonElement, isFollowing) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
@@ -176,11 +182,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
         if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
-        recHTML += data.map(user => {
+               recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
             const btnText = isFollowing ? 'フォロー中' : 'フォロー';
-            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
+            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="${getUserIconUrl(user)}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
         }).join('');
         if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
         DOM.rightSidebar.recommendations?.querySelectorAll('.recommend-user button').forEach(button => {
@@ -206,12 +212,12 @@ window.addEventListener('DOMContentLoaded', () => {
             currentUser.notice_count_fetched_recently = true;
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
-        if (currentUser) {
+         if (currentUser) {
             menuItems.push( { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, { name: 'いいね', hash: '#likes', icon: ICONS.likes }, { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, { name: '設定', hash: '#settings', icon: ICONS.settings } );
         }
         DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
-        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
+        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
@@ -229,18 +235,30 @@ window.addEventListener('DOMContentLoaded', () => {
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
         if(!confirm("ログアウトしますか？")) return;
-        currentUser = null; localStorage.removeItem('currentUser');
+        currentUser = null; localStorage.removeItem('nyaxUserId');
         if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
         window.location.hash = '#';
         router();
     }
-    function checkSession() {
-        const userJson = localStorage.getItem('currentUser');
-        currentUser = userJson ? JSON.parse(userJson) : null;
-        if(currentUser) subscribeToChanges();
+    async function checkSession() {
+        const userId = localStorage.getItem('nyaxUserId');
+        if (userId) {
+            try {
+                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
+                if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
+                currentUser = data;
+                subscribeToChanges();
+            } catch (error) {
+                console.error(error);
+                currentUser = null;
+                localStorage.removeItem('nyaxUserId');
+            }
+        } else {
+            currentUser = null;
+        }
         router();
     }
-
+    
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
@@ -272,7 +290,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function createPostFormHTML() {
         return `
             <div class="post-form">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
+                <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="your icon">
                 <div class="form-content">
                     <div id="reply-info" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
                     <textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea>
@@ -440,7 +458,7 @@ window.addEventListener('DOMContentLoaded', () => {
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
         const userIcon = document.createElement('img');
-        userIcon.src = `https://trampoline.turbowarp.org/avatars/by-username/${author.scid}`;
+        userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
         userIcon.alt = `${author.name}'s icon`;
         userIconLink.appendChild(userIcon);
@@ -747,7 +765,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             profileHeader.innerHTML = `
                 <div class="header-top">
-                    <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                    <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
                     <div id="follow-button-container" class="follow-button"></div>
                 </div>
                 <div class="profile-info">
@@ -837,10 +855,16 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
         showScreen('settings-screen');
+        newIconDataUrl = null; // 設定画面を開くたびにリセット
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
                 <label for="setting-username">ユーザー名:</label>
                 <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
+                
+                <label for="setting-icon-input">アイコン:</label>
+                <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
+
                 <label for="setting-me">自己紹介:</label>
                 <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
                 <fieldset><legend>公開設定</legend>
@@ -851,6 +875,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 </fieldset>
                 <button type="submit">設定を保存</button>
             </form>`;
+        
+        const iconInput = document.getElementById('setting-icon-input');
+        const iconPreview = document.getElementById('setting-icon-preview');
+        iconPreview.addEventListener('click', () => iconInput.click());
+        iconInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    newIconDataUrl = event.target.result;
+                    iconPreview.src = newIconDataUrl;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
         showLoading(false);
     }
@@ -961,14 +1001,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 show_scid: form.querySelector('#setting-show-scid').checked,
             },
         };
+        if (newIconDataUrl) {
+            updatedData.icon_data = newIconDataUrl;
+        }
+
         if (!updatedData.name) return alert('ユーザー名は必須です。');
         const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
         if (error) {
             alert('設定の更新に失敗しました。');
         } else {
             alert('設定を更新しました。');
-            currentUser = data;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            currentUser = data; // メモリ上のcurrentUserを更新
+            newIconDataUrl = null; // リセット
+            // localStorageはIDしか保存していないので更新不要
             window.location.hash = '';
         }
     }
