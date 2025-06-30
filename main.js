@@ -1398,6 +1398,7 @@ async function openEditPostModal(postId) {
         });
     }
 
+    // メニューの外側をクリックしたときにメニューを閉じるグローバルリスナー
     document.addEventListener('click', (e) => {
         // メニューボタン自身、またはメニューの内側がクリックされた場合は何もしない
         if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
