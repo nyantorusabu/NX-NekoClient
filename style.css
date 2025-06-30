@@ -522,6 +522,24 @@ body {
     background-color: var(--bg-color);
 }
 
+.edit-modal-attachments {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--secondary-text-color);
+}
+
+.edit-modal-attachments p {
+    margin: 0 0 0.5rem 0;
+    font-weight: bold;
+}
+
+.edit-modal-attachments .attachments-container {
+    pointer-events: none; /* 添付ファイルは編集不可のため操作を無効化 */
+}
+
 .post-menu .delete-btn {
     color: #f4212e;
     font-weight: bold;
