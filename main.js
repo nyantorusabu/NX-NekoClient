@@ -129,9 +129,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
-        // ▼▼▼ [修正点1] router関数の開始時に全画面ローディングを表示 ▼▼▼
         showLoading(true);
-        // ▲▲▲ [修正点1] ここまで ▼▼▼
 
         await updateNavAndSidebars();
         const hash = window.location.hash || '#';
@@ -155,11 +153,13 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
             showScreen('main-screen');
             DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
-        } finally {
-            // ▼▼▼ [修正点1] router関数の終了時に全画面ローディングを非表示 ▼▼▼
-            showLoading(false);
-            // ▲▲▲ [修正点1] ここまで ▼▼▼
+            showLoading(false); // エラー発生時はローディングを止める
         }
+        // ▼▼▼ [修正点1] finallyブロックのshowLoading(false)を削除し、各描画関数の最後に移動 ▼▼▼
+        // finally {
+        //     showLoading(false);
+        // }
+        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
     
     // --- 6. ナビゲーションとサイドバー ---
@@ -183,46 +183,18 @@ window.addEventListener('DOMContentLoaded', () => {
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
+        // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
             link.onclick = (e) => {
-                e.preventDefault();
-                window.location.hash = link.getAttribute('href');
+                // hashchangeイベントに任せるため、preventDefaultはしない
             };
         });
+        // ▲▲▲ [修正点2] ここまで ▼▼▼
         DOM.navMenuBottom.querySelector('button')?.addEventListener('click', currentUser ? handleLogout : goToLoginPage);
         DOM.navMenuTop.querySelector('.nav-item-post')?.addEventListener('click', () => openPostModal());
         loadRightSidebar();
     }
-    async function loadRightSidebar() {
-        if (DOM.rightSidebar.searchWidget) {
-            DOM.rightSidebar.searchWidget.innerHTML = ` <div class="sidebar-search-widget"> ${ICONS.explore} <input type="search" id="sidebar-search-input" placeholder="検索"> </div>`;
-            document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const query = e.target.value.trim();
-                    if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
-                }
-            });
-        }
-        const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
-        if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
-        let recHTML = '<div class="widget-title">おすすめユーザー</div>';
-        recHTML += data.map(user => {
-            const isFollowing = currentUser?.follow?.includes(user.id);
-            const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
-            const btnText = isFollowing ? 'フォロー中' : 'フォロー';
-            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
-        }).join('');
-        if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
-        DOM.rightSidebar.recommendations?.querySelectorAll('.recommend-user button').forEach(button => {
-            const userId = parseInt(button.dataset.userId);
-            if (!isNaN(userId)) {
-                const isFollowing = currentUser?.follow?.includes(userId);
-                updateFollowButtonState(button, isFollowing);
-                button.onclick = () => handleFollowToggle(userId, button);
-            }
-        });
-    }
-
+    
     // --- 7. 認証とセッション ---
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
@@ -581,6 +553,9 @@ window.addEventListener('DOMContentLoaded', () => {
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
+        // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
+        showLoading(false);
+        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
 
     async function showExploreScreen() {
@@ -592,19 +567,9 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('search-input').onkeydown = (e) => { if(e.key === 'Enter') performSearch(); };
         showScreen('explore-screen');
         DOM.exploreContent.innerHTML = `<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>`;
-    }
-
-    async function performSearch() {
-        const headerSearchInput = document.getElementById('search-input');
-        const sidebarSearchInput = document.getElementById('sidebar-search-input');
-        let query = '';
-        if (headerSearchInput && !document.getElementById('explore-screen')?.classList.contains('hidden')) {
-             query = headerSearchInput.value.trim();
-        } else if (sidebarSearchInput) {
-             query = sidebarSearchInput.value.trim();
-        }
-        if (!query) return;
-        window.location.hash = `#search/${encodeURIComponent(query)}`;
+        // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
+        showLoading(false);
+        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
 
     async function showSearchResults(query) {
@@ -639,6 +604,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
         postResultsContainer.innerHTML = `<h3 style="padding:1rem; border-top:1px solid var(--border-color); margin-top:1rem; padding-top:1rem;">ポスト</h3>`;
         await loadPostsWithPagination(postResultsContainer, 'search', { query });
+        showLoading(false);
     }
     
     async function showNotificationsScreen() {
@@ -646,6 +612,7 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
             showScreen('notifications-screen');
             DOM.notificationsContent.innerHTML = '<p style="padding: 2rem; text-align:center; color: var(--secondary-text-color);">通知を見るにはログインが必要です。</p>';
+            showLoading(false);
             return;
         }
         DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
@@ -681,10 +648,19 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsWithPagination(DOM.likesContent, 'likes', { ids: currentUser.like }); }
-    async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsWithPagination(DOM.starsContent, 'stars', { ids: currentUser.star }); }
+    async function showLikesScreen() {
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`;
+        showScreen('likes-screen');
+        await loadPostsWithPagination(DOM.likesContent, 'likes', { ids: currentUser.like });
+        showLoading(false);
+    }
+    async function showStarsScreen() {
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`;
+        showScreen('stars-screen');
+        await loadPostsWithPagination(DOM.starsContent, 'stars', { ids: currentUser.star });
+        showLoading(false);
+    }
 
-        // ▼▼▼ [修正点1] ポスト詳細の表示ロジックを再構築 ▼▼▼
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
         showScreen('post-detail-screen');
@@ -699,12 +675,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
                 const parentPostEl = await renderPost(post.reply_to, post.reply_to.user);
-                parentPostContainer.appendChild(parentPostEl);
+                if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
             
             const mainPostEl = await renderPost(post, post.user);
-            contentDiv.appendChild(mainPostEl);
+            if(mainPostEl) contentDiv.appendChild(mainPostEl);
             
             const repliesHeader = document.createElement('h3');
             repliesHeader.textContent = '返信';
@@ -714,145 +690,25 @@ window.addEventListener('DOMContentLoaded', () => {
             await loadPostsWithPagination(contentDiv, 'replies', { postId });
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
+        } finally {
+            showLoading(false);
         }
     }
-    // ▲▲▲ [修正点1] ここまで ▼▼▼
-
-    // ▼▼▼ [修正点1] ページネーションと無限スクロールのロジックを修正 ▼▼▼
-    async function loadPostsWithPagination(container, type, options = {}) {
-        currentPagination = { page: 0, hasMore: true, type, options };
-        
-        // 既存のトリガーがあれば削除
-        let trigger = container.querySelector('.load-more-trigger');
-        if (trigger) trigger.remove();
-        
-        trigger = document.createElement('div');
-        trigger.className = 'load-more-trigger';
-        container.appendChild(trigger);
-        
-        const loadMore = async () => {
-            if (isLoadingMore || !currentPagination.hasMore) return;
-            isLoadingMore = true;
-            trigger.innerHTML = '<div class="spinner"></div>';
-
-            const from = currentPagination.page * POSTS_PER_PAGE;
-            const to = from + POSTS_PER_PAGE - 1;
-
-            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
-
-            if (type === 'timeline') {
-                if (options.tab === 'following') {
-                    if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
-                    else { currentPagination.hasMore = false; }
-                }
-            } else if (type === 'search') {
-                query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
-                if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
-                else { query = query.in('id', options.ids); }
-            } else if (type === 'replies') {
-                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
-            }
-            
-            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
-
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
-            if (!currentPagination.hasMore) {
-                const existingPosts = container.querySelectorAll('.post').length;
-                trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
-                isLoadingMore = false;
-                if(postLoadObserver) postLoadObserver.unobserve(trigger);
-                return;
-            }
-
-            const { data: posts, error } = await query.range(from, to);
-
-            if (error) {
-                console.error("ポストの読み込みに失敗:", error);
-                trigger.innerHTML = '読み込みに失敗しました。';
-            } else {
-                if (posts.length > 0) {
-                    for (const post of posts) { 
-                        const postEl = await renderPost(post, post.user || {});
-                        if (postEl) trigger.before(postEl);
-                    }
-                    currentPagination.page++;
-                    if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
-                } else {
-                    currentPagination.hasMore = false;
-                }
-
-                if (!currentPagination.hasMore) {
-                    const existingPosts = container.querySelectorAll('.post').length;
-                    trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
-                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
-                } else {
-                    trigger.innerHTML = '';
-                }
-            }
-            isLoadingMore = false;
-        };
-        
-        postLoadObserver = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && !isLoadingMore) {
-                loadMore();
-            }
-        }, { rootMargin: '200px' });
-
-        postLoadObserver.observe(trigger);
-    }
-
-    async function switchTimelineTab(tab) {
-        if (tab === 'following' && !currentUser) return;
-        currentTimelineTab = tab;
-        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-        
-        if (postLoadObserver) postLoadObserver.disconnect();
-        DOM.timeline.innerHTML = '';
-        await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
-    }
     
-    // ▼▼▼ [修正点2] リアルタイム更新のロジックを修正 ▼▼▼
-    function subscribeToChanges() {
-        if (realtimeChannel) return;
-        realtimeChannel = supabase.channel('nyax-feed')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
-                const mainScreenEl = document.getElementById('main-screen');
-                if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
-                    // 既にインジケーターがあれば何もしない
-                    if (document.querySelector('.new-posts-indicator')) return;
-                    
-                    const indicator = document.createElement('div');
-                    indicator.className = 'new-posts-indicator';
-                    const button = document.createElement('button');
-                    button.textContent = '新しいポストを表示';
-                    button.onclick = () => {
-                        indicator.remove();
-                        router();
-                    };
-                    indicator.appendChild(button);
-                    DOM.mainContent.insertBefore(indicator, DOM.mainContent.firstChild.nextSibling);
-                }
-            })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
-                updateNavAndSidebars();
-            })
-            .subscribe();
-    }
-    // ▲▲▲ [修正点2] ここまで ▼▼▼
-        // --- 10. プロフィールと設定 ---
+    // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         profileHeader.innerHTML = '<div class="spinner"></div>';
-        profileTabs.innerHTML = ''; // タブも一旦クリア
+        profileTabs.innerHTML = '';
 
         try {
             const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
             if (error || !user) {
                 profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
+                showLoading(false);
                 return;
             }
             
@@ -895,6 +751,8 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(err) {
             profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
             console.error(err);
+        } finally {
+            showLoading(false);
         }
     }
 
@@ -964,8 +822,101 @@ window.addEventListener('DOMContentLoaded', () => {
                 <button type="submit">設定を保存</button>
             </form>`;
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+        showLoading(false);
+    }
+    
+    async function loadPostsWithPagination(container, type, options = {}) {
+        currentPagination = { page: 0, hasMore: true, type, options };
+        
+        let trigger = container.querySelector('.load-more-trigger');
+        if (trigger) trigger.remove();
+        
+        trigger = document.createElement('div');
+        trigger.className = 'load-more-trigger';
+        container.appendChild(trigger);
+        
+        const loadMore = async () => {
+            if (isLoadingMore || !currentPagination.hasMore) return;
+            isLoadingMore = true;
+            trigger.innerHTML = '<div class="spinner"></div>';
+
+            const from = currentPagination.page * POSTS_PER_PAGE;
+            const to = from + POSTS_PER_PAGE - 1;
+
+            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
+
+            if (type === 'timeline') {
+                if (options.tab === 'following') {
+                    if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
+                    else { currentPagination.hasMore = false; }
+                }
+            } else if (type === 'search') {
+                query = query.ilike('content', `%${options.query}%`);
+            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+                if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
+                else { query = query.in('id', options.ids); }
+            } else if (type === 'replies') {
+                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
+            }
+            
+            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
+
+            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
+            if (!currentPagination.hasMore) {
+                const existingPosts = container.querySelectorAll('.post').length;
+                trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
+                isLoadingMore = false;
+                if(postLoadObserver) postLoadObserver.unobserve(trigger);
+                return;
+            }
+
+            const { data: posts, error } = await query.range(from, to);
+
+            if (error) {
+                console.error("ポストの読み込みに失敗:", error);
+                trigger.innerHTML = '読み込みに失敗しました。';
+            } else {
+                if (posts.length > 0) {
+                    for (const post of posts) {
+                        const postEl = await renderPost(post, post.user || {});
+                        if (postEl) trigger.before(postEl);
+                    }
+                    currentPagination.page++;
+                    if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
+                } else {
+                    currentPagination.hasMore = false;
+                }
+
+                if (!currentPagination.hasMore) {
+                    const existingPosts = container.querySelectorAll('.post').length;
+                    trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
+                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
+                } else {
+                    trigger.innerHTML = '';
+                }
+            }
+            isLoadingMore = false;
+        };
+        
+        postLoadObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore) {
+                loadMore();
+            }
+        }, { rootMargin: '200px' });
+
+        postLoadObserver.observe(trigger);
     }
 
+    async function switchTimelineTab(tab) {
+        if (tab === 'following' && !currentUser) return;
+        currentTimelineTab = tab;
+        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        
+        if (postLoadObserver) postLoadObserver.disconnect();
+        DOM.timeline.innerHTML = '';
+        await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
+    }
+    
     async function handleUpdateSettings(event) {
         event.preventDefault();
         if (!currentUser) return;
@@ -988,7 +939,7 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('設定を更新しました。');
             currentUser = data;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            window.location.hash = ''; // ホームに戻る
+            window.location.hash = '';
         }
     }
     
