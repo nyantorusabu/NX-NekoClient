@@ -489,6 +489,8 @@ body {
     cursor: pointer;
     font-size: 1.2rem;
     color: var(--secondary-text-color);
+    padding: 0.25rem; /* クリック領域を確保 */
+    z-index: 5;       /* 他の要素との重なり順を明確化 */
 }
 
 .post-menu {
