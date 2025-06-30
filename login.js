@@ -75,7 +75,7 @@ window.addEventListener('DOMContentLoaded', () => {
             finalUser = createdUser;
         }
         
-        localStorage.setItem('currentUser', JSON.stringify(finalUser));
+        localStorage.setItem('nyaxUserId', finalUser.id);
         window.location.href = 'index.html';
     }
 

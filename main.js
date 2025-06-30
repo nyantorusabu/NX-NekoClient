@@ -9,6 +9,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
+    let newIconDataUrl = null;
+    let resetIconToDefault = false;
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -72,6 +74,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+
+    function getUserIconUrl(user) {
+        if (!user) return 'favicon.png';
+        return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+    }
 
     function updateFollowButtonState(buttonElement, isFollowing) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
@@ -163,7 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 6. ナビゲーションとサイドバー ---
-        async function loadRightSidebar() {
+    async function loadRightSidebar() {
         if (DOM.rightSidebar.searchWidget) {
             DOM.rightSidebar.searchWidget.innerHTML = ` <div class="sidebar-search-widget"> ${ICONS.explore} <input type="search" id="sidebar-search-input" placeholder="検索"> </div>`;
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
@@ -173,14 +180,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
+        
+        let query = supabase.from('user').select('id, name, scid, icon_data');
+        if (currentUser) {
+            query = query.neq('id', currentUser.id);
+        }
+        const { data, error } = await query.order('time', { ascending: false }).limit(3);
+
         if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
         recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
             const btnText = isFollowing ? 'フォロー中' : 'フォロー';
-            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
+            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="${getUserIconUrl(user)}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
         }).join('');
         if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
         DOM.rightSidebar.recommendations?.querySelectorAll('.recommend-user button').forEach(button => {
@@ -206,12 +219,12 @@ window.addEventListener('DOMContentLoaded', () => {
             currentUser.notice_count_fetched_recently = true;
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
-        if (currentUser) {
+         if (currentUser) {
             menuItems.push( { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, { name: 'いいね', hash: '#likes', icon: ICONS.likes }, { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, { name: '設定', hash: '#settings', icon: ICONS.settings } );
         }
         DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
-        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
+        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
@@ -229,18 +242,30 @@ window.addEventListener('DOMContentLoaded', () => {
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
         if(!confirm("ログアウトしますか？")) return;
-        currentUser = null; localStorage.removeItem('currentUser');
+        currentUser = null; localStorage.removeItem('nyaxUserId');
         if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
         window.location.hash = '#';
         router();
     }
-    function checkSession() {
-        const userJson = localStorage.getItem('currentUser');
-        currentUser = userJson ? JSON.parse(userJson) : null;
-        if(currentUser) subscribeToChanges();
+    async function checkSession() {
+        const userId = localStorage.getItem('nyaxUserId');
+        if (userId) {
+            try {
+                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
+                if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
+                currentUser = data;
+                subscribeToChanges();
+            } catch (error) {
+                console.error(error);
+                currentUser = null;
+                localStorage.removeItem('nyaxUserId');
+            }
+        } else {
+            currentUser = null;
+        }
         router();
     }
-
+    
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
@@ -272,7 +297,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function createPostFormHTML() {
         return `
             <div class="post-form">
-                <img src="https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}" class="user-icon" alt="your icon">
+                <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="your icon">
                 <div class="form-content">
                     <div id="reply-info" class="hidden" style="margin-bottom: 0.5rem; color: var(--secondary-text-color);"></div>
                     <textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea>
@@ -440,7 +465,7 @@ window.addEventListener('DOMContentLoaded', () => {
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
         const userIcon = document.createElement('img');
-        userIcon.src = `https://trampoline.turbowarp.org/avatars/by-username/${author.scid}`;
+        userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
         userIcon.alt = `${author.name}'s icon`;
         userIconLink.appendChild(userIcon);
@@ -594,7 +619,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="search" id="search-input" placeholder="検索">
             </div>`;
-        document.getElementById('search-input').onkeydown = (e) => { if(e.key === 'Enter') performSearch(); };
+        const searchInput = document.getElementById('search-input');
+        const performSearch = () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
+        };
+        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+
         showScreen('explore-screen');
         DOM.exploreContent.innerHTML = `<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>`;
         // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
@@ -614,7 +647,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.appendChild(postResultsContainer);
 
         userResultsContainer.innerHTML = '<div class="spinner"></div>';
-        const { data: users, error: userError } = await supabase.from('user').select('*').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
+        const { data: users, error: userError } = await supabase.from('user').select('id, name, scid, me, icon_data').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
         if (userError) console.error("ユーザー検索エラー:", userError);
         userResultsContainer.innerHTML = `<h3 style="padding:1rem;">ユーザー (${users?.length || 0}件)</h3>`;
         if (users && users.length > 0) {
@@ -624,7 +657,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 userLink.href = `#profile/${u.id}`;
                 userLink.className = 'profile-link';
                 userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                userLink.innerHTML = `<img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
                 userCard.appendChild(userLink);
                 userResultsContainer.appendChild(userCard);
             });
@@ -747,7 +780,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             profileHeader.innerHTML = `
                 <div class="header-top">
-                    <img src="https://trampoline.turbowarp.org/avatars/by-username/${user.scid}" class="user-icon-large" alt="${user.name}'s icon">
+                    <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
                     <div id="follow-button-container" class="follow-button"></div>
                 </div>
                 <div class="profile-info">
@@ -811,7 +844,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
                     if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
                     
-                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid').in('id', user.follow);
+                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
                     fUsers?.forEach(u => {
@@ -821,7 +854,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         userLink.href = `#profile/${u.id}`;
                         userLink.className = 'profile-link';
                         userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                        userLink.innerHTML = `<img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
                         userCard.appendChild(userLink);
                         contentDiv.appendChild(userCard);
                     });
@@ -837,10 +870,20 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
         showScreen('settings-screen');
+        newIconDataUrl = null;
+        resetIconToDefault = false;
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
                 <label for="setting-username">ユーザー名:</label>
                 <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
+                
+                <label for="setting-icon-input">アイコン:</label>
+                <div class="setting-icon-container">
+                    <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                    <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
+                </div>
+                <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
+
                 <label for="setting-me">自己紹介:</label>
                 <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
                 <fieldset><legend>公開設定</legend>
@@ -851,6 +894,31 @@ window.addEventListener('DOMContentLoaded', () => {
                 </fieldset>
                 <button type="submit">設定を保存</button>
             </form>`;
+        
+        const iconInput = document.getElementById('setting-icon-input');
+        const iconPreview = document.getElementById('setting-icon-preview');
+        
+        iconPreview.addEventListener('click', () => iconInput.click());
+        iconInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                resetIconToDefault = false;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    newIconDataUrl = event.target.result;
+                    iconPreview.src = newIconDataUrl;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('reset-icon-btn').addEventListener('click', () => {
+            resetIconToDefault = true;
+            newIconDataUrl = null;
+            iconInput.value = ''; // ファイル選択をクリア
+            iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
+        });
+
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
         showLoading(false);
     }
@@ -961,122 +1029,114 @@ window.addEventListener('DOMContentLoaded', () => {
                 show_scid: form.querySelector('#setting-show-scid').checked,
             },
         };
+        
+        if (resetIconToDefault) {
+            updatedData.icon_data = null;
+        } else if (newIconDataUrl) {
+            updatedData.icon_data = newIconDataUrl;
+        }
+
         if (!updatedData.name) return alert('ユーザー名は必須です。');
         const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
         if (error) {
             alert('設定の更新に失敗しました。');
         } else {
             alert('設定を更新しました。');
-            currentUser = data;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            currentUser = data; // メモリ上のcurrentUserを更新
+            newIconDataUrl = null; // リセット
+            resetIconToDefault = false; // リセット
             window.location.hash = '';
         }
     }
-    
-    // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (postId) => document.getElementById(`menu-${postId}`)?.classList.toggle('hidden');
-    window.deletePost = async (postId) => {
-        if (!confirm('このポストを削除しますか？')) return;
-        showLoading(true);
-        try {
-            const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
-            if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
-            if (postData.attachments && postData.attachments.length > 0) {
-                const fileIds = postData.attachments.map(file => file.id);
-                const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
-                if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
-            }
-            const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
-            if (deleteError) throw deleteError;
-            if (currentUser && currentUser.post?.includes(postId)) {
-                const updatedPosts = currentUser.post.filter(id => id !== postId);
-                const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
-                if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); } 
-                else { currentUser.post = updatedPosts; localStorage.setItem('currentUser', JSON.stringify(currentUser)); }
-            }
-            router();
-        } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
-        finally { showLoading(false); }
-    };
-    window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
-    window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
-    window.handleLike = async (button, postId) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-        const isLiked = currentUser.like?.includes(postId);
-        const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
-        const incrementValue = isLiked ? -1 : 1;
-        const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
-        if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
-        const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
-            alert('いいね数の更新に失敗しました。');
-        } else {
-            currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('liked', !isLiked);
-            iconSpan.textContent = isLiked ? '♡' : '♥';
-            if (!isLiked) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
-                }
-            }
+
+    // --- 11. ユーザーアクション ---
+function togglePostMenu(menuButton) {
+    // クリックされたボタンの親要素(.post-header)からメニュー(.post-menu)を探して表示を切り替える
+    const menu = menuButton.parentElement.querySelector('.post-menu');
+    menu?.classList.toggle('hidden');
+}
+
+window.deletePost = async (postId) => {
+    if (!confirm('このポストを削除しますか？')) return;
+    showLoading(true);
+    try {
+        const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
+        if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
+        if (postData.attachments && postData.attachments.length > 0) {
+            const fileIds = postData.attachments.map(file => file.id);
+            const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
+            if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
         }
-        button.disabled = false;
-    };
-    window.handleStar = async (button, postId) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-        const isStarred = currentUser.star?.includes(postId);
-        const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-        const incrementValue = isStarred ? -1 : 1;
-        const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
-        if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
-        const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
-            alert('お気に入り数の更新に失敗しました。');
-        } else {
-            currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('starred', !isStarred);
-            iconSpan.textContent = isStarred ? '★' : '☆';
-            if (!isStarred) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
-                }
-            }
+        const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
+        if (deleteError) throw deleteError;
+        if (currentUser && currentUser.post?.includes(postId)) {
+            const updatedPosts = currentUser.post.filter(id => id !== postId);
+            const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
+            if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); } 
+            else { currentUser.post = updatedPosts; localStorage.setItem('currentUser', JSON.stringify(currentUser)); }
         }
-        button.disabled = false;
-    };
-    window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
-    
-    async function handleFollowToggle(targetUserId, button) {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const isFollowing = currentUser.follow?.includes(targetUserId);
-        const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
-        
-        const { error } = await supabase.from('user').update({ follow: updatedFollows }).eq('id', currentUser.id);
-        if (error) { alert('フォロー状態の更新に失敗しました。'); } 
-        else {
-            currentUser.follow = updatedFollows; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateFollowButtonState(button, !isFollowing);
-            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
-            const followerCountSpan = document.querySelector('#follower-count strong');
-            if (followerCountSpan) {
-                const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
-                if (!newCountError) { followerCountSpan.textContent = newCount; } 
-                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
+        router();
+    } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
+    finally { showLoading(false); }
+};
+window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
+window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
+window.handleLike = async (button, postId) => {
+    if (!currentUser) return alert("ログインが必要です。");
+    button.disabled = true;
+    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
+    const isLiked = currentUser.like?.includes(postId);
+    const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
+    const incrementValue = isLiked ? -1 : 1;
+    const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
+    if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
+    const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
+    if (postError) {
+        await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
+        alert('いいね数の更新に失敗しました。');
+    } else {
+        currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+        button.classList.toggle('liked', !isLiked);
+        iconSpan.textContent = isLiked ? '♡' : '♥';
+        if (!isLiked) {
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
             }
         }
     }
-
+    button.disabled = false;
+};
+window.handleStar = async (button, postId) => {
+    if (!currentUser) return alert("ログインが必要です。");
+    button.disabled = true;
+    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
+    const isStarred = currentUser.star?.includes(postId);
+    const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
+    const incrementValue = isStarred ? -1 : 1;
+    const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
+    if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
+    const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
+    if (postError) {
+        await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
+        alert('お気に入り数の更新に失敗しました。');
+    } else {
+        currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+        button.classList.toggle('starred', !isStarred);
+        iconSpan.textContent = isStarred ? '★' : '☆';
+        if (!isStarred) {
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
+            }
+        }
+    }
+    button.disabled = false;
+};
+window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
+    
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
