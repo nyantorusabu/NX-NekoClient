@@ -137,6 +137,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 5. ルーティングと画面管理 ---
     async function router() {
         showLoading(true);
+        isLoadingMore = false; // ページ遷移時に読み込み状態をリセット
 
         await updateNavAndSidebars();
         const hash = window.location.hash || '#';
@@ -822,7 +823,8 @@ window.addEventListener('DOMContentLoaded', () => {
     async function loadProfileTabContent(user, tab) {
         document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
         const contentDiv = document.getElementById('profile-content');
-        
+
+        isLoadingMore = false; // 読み込み状態をリセット
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
@@ -1007,6 +1009,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function switchTimelineTab(tab) {
         if (tab === 'following' && !currentUser) return;
+        isLoadingMore = false; // 読み込み状態をリセット
         currentTimelineTab = tab;
         document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
         
@@ -1014,6 +1017,7 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.timeline.innerHTML = '';
         await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
     }
+    
     
     async function handleUpdateSettings(event) {
         event.preventDefault();
