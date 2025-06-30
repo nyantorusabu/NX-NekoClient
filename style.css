@@ -887,6 +887,16 @@ body {
     font-weight: 700;
 }
 
+#setting-icon-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-color);
+    margin-top: 0.5rem;
+    cursor: pointer;
+}
+
 #settings-form input[type="text"], #settings-form textarea {
     width: 100%;
     padding: 0.8rem;
