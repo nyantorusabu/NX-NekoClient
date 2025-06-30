@@ -11,6 +11,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let replyingTo = null;
     let newIconDataUrl = null;
     let resetIconToDefault = false;
+    let openedMenuPostId = null;
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -1055,20 +1056,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
      // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
+        // 既に他のメニューが開いていたら、それを閉じる
+        if (openedMenuPostId && openedMenuPostId !== postId) {
+            const oldMenu = document.getElementById(`menu-${openedMenuPostId}`);
+            if (oldMenu) oldMenu.classList.add('hidden');
+        }
+    
+        // ターゲットのメニューを取得して表示/非表示を切り替える
         const targetMenu = document.getElementById(`menu-${postId}`);
         if (!targetMenu) return;
     
         const isHidden = targetMenu.classList.contains('hidden');
-    
-        // まず、現在開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
-            if (menu.id !== `menu-${postId}`) {
-                menu.classList.add('hidden');
-            }
-        });
-    
-        // ターゲットメニューの表示状態を切り替える
-        targetMenu.classList.toggle('hidden');
+        
+        if (isHidden) {
+            targetMenu.classList.remove('hidden');
+            openedMenuPostId = postId; // 開いたメニューのIDを記録
+        } else {
+            targetMenu.classList.add('hidden');
+            openedMenuPostId = null; // 閉じたので記録をクリア
+        }
     };
 
     window.deletePost = async (postId) => {
@@ -1260,10 +1266,12 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
-        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
-            menu.classList.add('hidden');
-        });
+        // 開いているメニューがあれば閉じる
+        if (openedMenuPostId) {
+            const openedMenu = document.getElementById(`menu-${openedMenuPostId}`);
+            if (openedMenu) openedMenu.classList.add('hidden');
+            openedMenuPostId = null; // 記録をクリア
+        }
     });
     
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
