@@ -10,6 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
     let newIconDataUrl = null;
+    let resetIconToDefault = false;
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -169,7 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 6. ナビゲーションとサイドバー ---
-        async function loadRightSidebar() {
+    async function loadRightSidebar() {
         if (DOM.rightSidebar.searchWidget) {
             DOM.rightSidebar.searchWidget.innerHTML = ` <div class="sidebar-search-widget"> ${ICONS.explore} <input type="search" id="sidebar-search-input" placeholder="検索"> </div>`;
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
@@ -179,10 +180,16 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        const { data, error } = await supabase.rpc('get_recommended_users', { count_limit: 3 });
+        
+        let query = supabase.from('user').select('id, name, scid, icon_data');
+        if (currentUser) {
+            query = query.neq('id', currentUser.id);
+        }
+        const { data, error } = await query.order('time', { ascending: false }).limit(3);
+
         if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
-               recHTML += data.map(user => {
+        recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
             const btnText = isFollowing ? 'フォロー中' : 'フォロー';
@@ -612,7 +619,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="search" id="search-input" placeholder="検索">
             </div>`;
-        document.getElementById('search-input').onkeydown = (e) => { if(e.key === 'Enter') performSearch(); };
+        const searchInput = document.getElementById('search-input');
+        const performSearch = () => {
+            const query = searchInput.value.trim();
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
+        };
+        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+
         showScreen('explore-screen');
         DOM.exploreContent.innerHTML = `<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>`;
         // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
@@ -632,7 +647,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.appendChild(postResultsContainer);
 
         userResultsContainer.innerHTML = '<div class="spinner"></div>';
-        const { data: users, error: userError } = await supabase.from('user').select('*').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
+        const { data: users, error: userError } = await supabase.from('user').select('id, name, scid, me, icon_data').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
         if (userError) console.error("ユーザー検索エラー:", userError);
         userResultsContainer.innerHTML = `<h3 style="padding:1rem;">ユーザー (${users?.length || 0}件)</h3>`;
         if (users && users.length > 0) {
@@ -642,7 +657,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 userLink.href = `#profile/${u.id}`;
                 userLink.className = 'profile-link';
                 userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                userLink.innerHTML = `<img src="https://trampoline.turbowarp.org/avatars/by-username/${u.scid}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
                 userCard.appendChild(userLink);
                 userResultsContainer.appendChild(userCard);
             });
@@ -855,14 +870,18 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
         showScreen('settings-screen');
-        newIconDataUrl = null; // 設定画面を開くたびにリセット
+        newIconDataUrl = null;
+        resetIconToDefault = false;
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
                 <label for="setting-username">ユーザー名:</label>
                 <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
                 
                 <label for="setting-icon-input">アイコン:</label>
-                <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                <div class="setting-icon-container">
+                    <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                    <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
+                </div>
                 <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
 
                 <label for="setting-me">自己紹介:</label>
@@ -878,10 +897,12 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const iconInput = document.getElementById('setting-icon-input');
         const iconPreview = document.getElementById('setting-icon-preview');
+        
         iconPreview.addEventListener('click', () => iconInput.click());
         iconInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
+                resetIconToDefault = false;
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     newIconDataUrl = event.target.result;
@@ -889,6 +910,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             }
+        });
+
+        document.getElementById('reset-icon-btn').addEventListener('click', () => {
+            resetIconToDefault = true;
+            newIconDataUrl = null;
+            iconInput.value = ''; // ファイル選択をクリア
+            iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
         });
 
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
@@ -1001,7 +1029,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 show_scid: form.querySelector('#setting-show-scid').checked,
             },
         };
-        if (newIconDataUrl) {
+        
+        if (resetIconToDefault) {
+            updatedData.icon_data = null;
+        } else if (newIconDataUrl) {
             updatedData.icon_data = newIconDataUrl;
         }
 
@@ -1013,7 +1044,7 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('設定を更新しました。');
             currentUser = data; // メモリ上のcurrentUserを更新
             newIconDataUrl = null; // リセット
-            // localStorageはIDしか保存していないので更新不要
+            resetIconToDefault = false; // リセット
             window.location.hash = '';
         }
     }
