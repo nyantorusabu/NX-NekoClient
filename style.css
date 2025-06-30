@@ -887,6 +887,12 @@ body {
     font-weight: 700;
 }
 
+.setting-icon-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
 #setting-icon-preview {
     width: 80px;
     height: 80px;
@@ -895,6 +901,22 @@ body {
     border: 2px solid var(--border-color);
     margin-top: 0.5rem;
     cursor: pointer;
+}
+
+#reset-icon-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    background: none;
+    color: var(--secondary-text-color);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#reset-icon-btn:hover {
+    background-color: var(--bg-color);
+    border-color: var(--secondary-text-color);
 }
 
 #settings-form input[type="text"], #settings-form textarea {
