@@ -972,111 +972,95 @@ window.addEventListener('DOMContentLoaded', () => {
             window.location.hash = '';
         }
     }
-    
-    // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (postId) => document.getElementById(`menu-${postId}`)?.classList.toggle('hidden');
-    window.deletePost = async (postId) => {
-        if (!confirm('このポストを削除しますか？')) return;
-        showLoading(true);
-        try {
-            const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
-            if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
-            if (postData.attachments && postData.attachments.length > 0) {
-                const fileIds = postData.attachments.map(file => file.id);
-                const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
-                if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
-            }
-            const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
-            if (deleteError) throw deleteError;
-            if (currentUser && currentUser.post?.includes(postId)) {
-                const updatedPosts = currentUser.post.filter(id => id !== postId);
-                const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
-                if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); } 
-                else { currentUser.post = updatedPosts; localStorage.setItem('currentUser', JSON.stringify(currentUser)); }
-            }
-            router();
-        } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
-        finally { showLoading(false); }
-    };
-    window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
-    window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
-    window.handleLike = async (button, postId) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-        const isLiked = currentUser.like?.includes(postId);
-        const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
-        const incrementValue = isLiked ? -1 : 1;
-        const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
-        if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
-        const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
-            alert('いいね数の更新に失敗しました。');
-        } else {
-            currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('liked', !isLiked);
-            iconSpan.textContent = isLiked ? '♡' : '♥';
-            if (!isLiked) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
-                }
-            }
+
+    // --- 11. ユーザーアクション ---
+function togglePostMenu(menuButton) {
+    // クリックされたボタンの親要素(.post-header)からメニュー(.post-menu)を探して表示を切り替える
+    const menu = menuButton.parentElement.querySelector('.post-menu');
+    menu?.classList.toggle('hidden');
+}
+
+window.deletePost = async (postId) => {
+    if (!confirm('このポストを削除しますか？')) return;
+    showLoading(true);
+    try {
+        const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
+        if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
+        if (postData.attachments && postData.attachments.length > 0) {
+            const fileIds = postData.attachments.map(file => file.id);
+            const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
+            if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
         }
-        button.disabled = false;
-    };
-    window.handleStar = async (button, postId) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-        const isStarred = currentUser.star?.includes(postId);
-        const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-        const incrementValue = isStarred ? -1 : 1;
-        const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
-        if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
-        const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
-            alert('お気に入り数の更新に失敗しました。');
-        } else {
-            currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('starred', !isStarred);
-            iconSpan.textContent = isStarred ? '★' : '☆';
-            if (!isStarred) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
-                }
-            }
+        const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
+        if (deleteError) throw deleteError;
+        if (currentUser && currentUser.post?.includes(postId)) {
+            const updatedPosts = currentUser.post.filter(id => id !== postId);
+            const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
+            if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); } 
+            else { currentUser.post = updatedPosts; localStorage.setItem('currentUser', JSON.stringify(currentUser)); }
         }
-        button.disabled = false;
-    };
-    window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
-    
-    async function handleFollowToggle(targetUserId, button) {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        const isFollowing = currentUser.follow?.includes(targetUserId);
-        const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
-        
-        const { error } = await supabase.from('user').update({ follow: updatedFollows }).eq('id', currentUser.id);
-        if (error) { alert('フォロー状態の更新に失敗しました。'); } 
-        else {
-            currentUser.follow = updatedFollows; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            updateFollowButtonState(button, !isFollowing);
-            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
-            const followerCountSpan = document.querySelector('#follower-count strong');
-            if (followerCountSpan) {
-                const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
-                if (!newCountError) { followerCountSpan.textContent = newCount; } 
-                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
+        router();
+    } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
+    finally { showLoading(false); }
+};
+window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
+window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
+window.handleLike = async (button, postId) => {
+    if (!currentUser) return alert("ログインが必要です。");
+    button.disabled = true;
+    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
+    const isLiked = currentUser.like?.includes(postId);
+    const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
+    const incrementValue = isLiked ? -1 : 1;
+    const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
+    if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
+    const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
+    if (postError) {
+        await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
+        alert('いいね数の更新に失敗しました。');
+    } else {
+        currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+        button.classList.toggle('liked', !isLiked);
+        iconSpan.textContent = isLiked ? '♡' : '♥';
+        if (!isLiked) {
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
             }
         }
     }
-
+    button.disabled = false;
+};
+window.handleStar = async (button, postId) => {
+    if (!currentUser) return alert("ログインが必要です。");
+    button.disabled = true;
+    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
+    const isStarred = currentUser.star?.includes(postId);
+    const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
+    const incrementValue = isStarred ? -1 : 1;
+    const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
+    if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
+    const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
+    if (postError) {
+        await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
+        alert('お気に入り数の更新に失敗しました。');
+    } else {
+        currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+        button.classList.toggle('starred', !isStarred);
+        iconSpan.textContent = isStarred ? '★' : '☆';
+        if (!isStarred) {
+            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
+            }
+        }
+    }
+    button.disabled = false;
+};
+window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
+    
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
@@ -1117,48 +1101,37 @@ window.addEventListener('DOMContentLoaded', () => {
             .subscribe();
     }
     
-    // --- 13. 初期化処理 ---
-    DOM.mainContent.addEventListener('click', (e) => {
-        const target = e.target;
-        const postElement = target.closest('.post');
-        if (!postElement) return;
+// --- 13. 初期化処理 ---
+DOM.mainContent.addEventListener('click', (e) => {
+    const target = e.target;
+    const postElement = target.closest('.post');
+    if (!postElement) return;
 
-        const postId = postElement.dataset.postId;
-        
-        const menuButton = target.closest('.post-menu-btn');
-        const deleteButton = target.closest('.delete-btn');
-        const replyButton = target.closest('.reply-button');
-        const likeButton = target.closest('.like-button');
-        const starButton = target.closest('.star-button');
-        const imageAttachment = target.closest('.attachment-item img');
-        const downloadLink = target.closest('.attachment-download-link');
-        const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
+    const postId = postElement.dataset.postId;
+    
+    const menuButton = target.closest('.post-menu-btn');
+    const deleteButton = target.closest('.delete-btn');
+    const replyButton = target.closest('.reply-button');
+    const likeButton = target.closest('.like-button');
+    const starButton = target.closest('.star-button');
+    const imageAttachment = target.closest('.attachment-item img');
+    const downloadLink = target.closest('.attachment-download-link');
+    const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
-        if (menuButton) { e.stopPropagation(); togglePostMenu(postId); return; }
-        if (deleteButton) { e.stopPropagation(); deletePost(postId); return; }
-        if(replyButton) { e.stopPropagation(); handleReplyClick(postId, replyButton.dataset.username); return; }
-        if(likeButton) { e.stopPropagation(); handleLike(likeButton, postId); return; }
-        if(starButton) { e.stopPropagation(); handleStar(starButton, postId); return; }
-        if(imageAttachment) { e.stopPropagation(); openImageModal(imageAttachment.src); return; }
-        if(downloadLink) { e.preventDefault(); e.stopPropagation(); handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
-        
-        if (postElement && !target.closest('a, video, audio, button')) {
-            window.location.hash = `#post/${postElement.dataset.postId}`;
-        }
-    });
-
-    const tabsContainer = document.querySelector('.timeline-tabs');
-    if(tabsContainer) {
-        tabsContainer.addEventListener('click', (e) => {
-            if (e.target.matches('.timeline-tab-button')) {
-                switchTimelineTab(e.target.dataset.tab);
-            }
-        });
+    if (menuButton) {
+        e.stopPropagation();
+        togglePostMenu(menuButton);
+        return;
     }
-
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
-    window.addEventListener('hashchange', router);
-    checkSession();
+    if (deleteButton) { e.stopPropagation(); deletePost(postId); return; }
+    if(replyButton) { e.stopPropagation(); handleReplyClick(postId, replyButton.dataset.username); return; }
+    if(likeButton) { e.stopPropagation(); handleLike(likeButton, postId); return; }
+    if(starButton) { e.stopPropagation(); handleStar(starButton, postId); return; }
+    if(imageAttachment) { e.stopPropagation(); openImageModal(imageAttachment.src); return; }
+    if(downloadLink) { e.preventDefault(); e.stopPropagation(); handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+    if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
+    
+    if (postElement && !target.closest('a, video, audio, button')) {
+        window.location.hash = `#post/${postElement.dataset.postId}`;
+    }
 });
