@@ -686,7 +686,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    background-color: var(--primary-color);
+    background-color: #71c9f8; /* ご指定の背景色に変更 */
     color: white;
     padding: 1rem 2rem;
     display: flex;
@@ -705,38 +705,36 @@ body {
 #banner-login-button {
     background: white;
     color: black;
-    border-color: white;
+    border: none; /* 枠線を非表示に変更 */
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
-    border-radius: 9999px !important; /* 形状を強制 */
+    border-radius: 9999px !important;
     font-weight: 700;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    border: 1px solid;
+    transition: background-color 0.2s;
 }
 
 #banner-login-button:hover {
     background-color: #f0f0f0;
 }
 
-/* 参加ボタン: 薄い青背景、白文字 */
+/* 参加ボタン: 通常の青背景、白文字 */
 #banner-signup-button {
-    background: #8ecdf8; /* 薄めの青 */
+    background: var(--primary-color); /* 通常の青に変更 */
     color: white;
-    border-color: #8ecdf8;
+    border: none; /* 枠線を非表示に変更 */
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
-    border-radius: 9999px !important; /* 形状を強制 */
+    border-radius: 9999px !important;
     font-weight: 700;
     cursor: pointer;
     font-size: 0.9rem;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    border: 1px solid;
+    transition: background-color 0.2s;
 }
 
 #banner-signup-button:hover {
-    background-color: #71c9f8;
+    background-color: var(--primary-hover-color); /* ホバー色も対応 */
 }
 
 /* ポスト用モーダル */
