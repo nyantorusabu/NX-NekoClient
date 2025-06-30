@@ -596,6 +596,16 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(actionsDiv);
         }
         
+        // ツリー表示用のコンテナを追加
+        const subRepliesContainer = document.createElement('div');
+        subRepliesContainer.className = 'sub-replies-container';
+        postMain.appendChild(subRepliesContainer);
+
+        postEl.appendChild(postMain);
+        return postEl;
+    }
+
+        
         postEl.appendChild(postMain);
         return postEl;
     }
@@ -747,12 +757,14 @@ window.addEventListener('DOMContentLoaded', () => {
             const mainPostEl = await renderPost(post, post.user);
             if(mainPostEl) contentDiv.appendChild(mainPostEl);
             
+            const mainPostAuthorId = post.user.id; // メイン投稿者のIDを取得
+
             const repliesHeader = document.createElement('h3');
             repliesHeader.textContent = '返信';
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
-            await loadPostsWithPagination(contentDiv, 'replies', { postId });
+            await loadPostsWithPagination(contentDiv, 'replies', { postId, mainPostAuthorId }); // mainPostAuthorIdを渡す
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
         } finally {
@@ -978,10 +990,48 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (posts.length > 0) {
-                    for (const post of posts) {
-                        const postEl = await renderPost(post, post.user || {});
-                        if (postEl) trigger.before(postEl);
+                    if (type === 'replies') {
+                        // 返信のツリー表示特別処理
+                        const { mainPostAuthorId } = currentPagination.options;
+                        const replyIds = posts.map(p => p.id);
+                        
+                        const { data: allSubReplies } = await supabase.from('post')
+                            .select('*, user(*), reply_to:reply_id(*, user(*))')
+                            .in('reply_id', replyIds)
+                            .order('time', { ascending: true });
+    
+                        const subRepliesByParentId = (allSubReplies || []).reduce((acc, sub) => {
+                            const parentId = sub.reply_id;
+                            if (!acc[parentId]) acc[parentId] = [];
+                            acc[parentId].push(sub);
+                            return acc;
+                        }, {});
+    
+                        for (const post of posts) {
+                            const postEl = await renderPost(post, post.user || {});
+                            const subRepliesContainer = postEl.querySelector('.sub-replies-container');
+    
+                            if (subRepliesContainer) {
+                                const subRepliesForThisPost = subRepliesByParentId[post.id] || [];
+                                const relevantSubReplies = subRepliesForThisPost.filter(sub => 
+                                    sub.userid === mainPostAuthorId || sub.userid === post.userid
+                                );
+    
+                                for (const subReply of relevantSubReplies) {
+                                    const subReplyEl = await renderPost(subReply, subReply.user, { isThread: true });
+                                    if (subReplyEl) subRepliesContainer.appendChild(subReplyEl);
+                                }
+                            }
+                            trigger.before(postEl);
+                        }
+                    } else {
+                        // 通常のポスト描画処理
+                        for (const post of posts) {
+                            const postEl = await renderPost(post, post.user || {});
+                            if (postEl) trigger.before(postEl);
+                        }
                     }
+    
                     currentPagination.page++;
                     if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
                 } else {
