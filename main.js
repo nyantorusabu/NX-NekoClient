@@ -54,7 +54,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-      // --- 4. ユーティリティ関数 ---
+// --- 4. ユーティリティ関数 ---
     function showLoading(show) {
         DOM.loadingOverlay.classList.toggle('hidden', !show);
     }
@@ -161,6 +161,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // ▲▲▲ [修正点1] ここまで ▼▼▼
         }
     }
+    
     // --- 6. ナビゲーションとサイドバー ---
     async function updateNavAndSidebars() {
         const hash = window.location.hash || '#';
@@ -839,8 +840,7 @@ window.addEventListener('DOMContentLoaded', () => {
             .subscribe();
     }
     // ▲▲▲ [修正点2] ここまで ▼▼▼
-    
-    // --- 10. プロフィールと設定 ---
+        // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
         showScreen('profile-screen');
@@ -884,14 +884,12 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
-            // ▼▼▼ [修正点2] プロフィールタブのイベントリスナーを専用のイベントデリゲーションに移動 ▼▼▼
-            // profileTabs.querySelectorAll('.tab-button').forEach(button => {
-            //     button.addEventListener('click', (e) => {
-            //         e.stopPropagation();
-            //         loadProfileTabContent(user, button.dataset.tab);
-            //     });
-            // });
-            // ▲▲▲ [修正点2] ここまで ▼▼▼
+            profileTabs.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadProfileTabContent(user, button.dataset.tab);
+                });
+            });
 
             await loadProfileTabContent(user, 'posts');
         } catch(err) {
@@ -1139,35 +1137,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    // ▼▼▼ [修正点1, 2] イベントリスナーの再整理 ▼▼▼
-    // 左メニューとバナーのクリックイベント
-    document.addEventListener('click', (e) => {
+    DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
-        const navItem = target.closest('a.nav-item');
-        if (navItem) {
-            e.preventDefault();
-            window.location.hash = navItem.getAttribute('href');
-        }
-        if (target.id === 'banner-signup-button' || target.id === 'banner-login-button') {
-            goToLoginPage();
-        }
-    });
-
-    // 中央コンテンツ内のイベントデリゲーション
-    DOM.mainContent.addEventListener('click', async (e) => {
-        const target = e.target;
-
-        // プロフィールタブの切り替え
-        const profileTabButton = target.closest('#profile-tabs .tab-button');
-        if (profileTabButton) {
-            e.stopPropagation();
-            const profileScreen = document.getElementById('profile-screen');
-            if (profileScreen && profileScreen.userData) {
-                await loadProfileTabContent(profileScreen.userData, profileTabButton.dataset.tab);
-            }
-            return;
-        }
-
         const postElement = target.closest('.post');
         if (!postElement) return;
 
@@ -1196,7 +1167,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ホームのタイムラインタブ切り替え
     const tabsContainer = document.querySelector('.timeline-tabs');
     if(tabsContainer) {
         tabsContainer.addEventListener('click', (e) => {
@@ -1206,5 +1176,8 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
+    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
     checkSession();
+});
