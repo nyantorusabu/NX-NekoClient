@@ -54,7 +54,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- 4. ユーティリティ関数 ---
+      // --- 4. ユーティリティ関数 ---
     function showLoading(show) {
         DOM.loadingOverlay.classList.toggle('hidden', !show);
     }
@@ -129,7 +129,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
+        // ▼▼▼ [修正点1] router関数の開始時に全画面ローディングを表示 ▼▼▼
         showLoading(true);
+        // ▲▲▲ [修正点1] ここまで ▼▼▼
+
         await updateNavAndSidebars();
         const hash = window.location.hash || '#';
 
@@ -153,10 +156,11 @@ window.addEventListener('DOMContentLoaded', () => {
             showScreen('main-screen');
             DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
         } finally {
+            // ▼▼▼ [修正点1] router関数の終了時に全画面ローディングを非表示 ▼▼▼
             showLoading(false);
+            // ▲▲▲ [修正点1] ここまで ▼▼▼
         }
     }
-
     // --- 6. ナビゲーションとサイドバー ---
     async function updateNavAndSidebars() {
         const hash = window.location.hash || '#';
@@ -416,12 +420,18 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function renderPost(post, author) {
+    async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        
+        const { prepend = false, isThread = false } = options;
+
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
+        if (isThread) {
+            postEl.style.marginLeft = '20px';
+            postEl.style.borderLeft = '2px solid var(--border-color)';
+            postEl.style.paddingLeft = '1rem';
+        }
 
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
@@ -559,100 +569,8 @@ window.addEventListener('DOMContentLoaded', () => {
         postEl.appendChild(postMain);
         return postEl;
     }
-    
-    // --- 10. コンテンツ読み込み & レンダリング ---
-    async function loadPostsWithPagination(container, type, options = {}) {
-        currentPagination = { page: 0, hasMore: true, type, options };
-        
-        let trigger = container.querySelector('.load-more-trigger');
-        if (trigger) trigger.remove();
-        
-        trigger = document.createElement('div');
-        trigger.className = 'load-more-trigger';
-        container.appendChild(trigger);
-        
-        const loadMore = async () => {
-            if (isLoadingMore || !currentPagination.hasMore) return;
-            isLoadingMore = true;
-            trigger.innerHTML = '<div class="spinner"></div>';
 
-            const from = currentPagination.page * POSTS_PER_PAGE;
-            const to = from + POSTS_PER_PAGE - 1;
-
-            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
-
-            if (type === 'timeline') {
-                if (options.tab === 'following') {
-                    if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
-                    else { currentPagination.hasMore = false; }
-                }
-            } else if (type === 'search') {
-                query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
-                if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
-                else { query = query.in('id', options.ids); }
-            } else if (type === 'replies') {
-                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
-            }
-            
-            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
-
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
-            if (!currentPagination.hasMore) {
-                const existingPosts = container.querySelectorAll('.post').length;
-                trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
-                isLoadingMore = false;
-                if(postLoadObserver) postLoadObserver.unobserve(trigger);
-                return;
-            }
-
-            const { data: posts, error } = await query.range(from, to);
-
-            if (error) {
-                console.error("ポストの読み込みに失敗:", error);
-                trigger.innerHTML = '読み込みに失敗しました。';
-            } else {
-                if (posts.length > 0) {
-                    for (const post of posts) { 
-                        const postEl = await renderPost(post, post.user || {});
-                        if (postEl) trigger.before(postEl);
-                    }
-                    currentPagination.page++;
-                    if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
-                } else {
-                    currentPagination.hasMore = false;
-                }
-
-                if (!currentPagination.hasMore) {
-                    const existingPosts = container.querySelectorAll('.post').length;
-                    trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
-                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
-                } else {
-                    trigger.innerHTML = '';
-                }
-            }
-            isLoadingMore = false;
-        };
-        
-        postLoadObserver = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && !isLoadingMore) {
-                loadMore();
-            }
-        }, { rootMargin: '200px' });
-
-        postLoadObserver.observe(trigger);
-    }
-
-    async function switchTimelineTab(tab) {
-        if (tab === 'following' && !currentUser) return;
-        currentTimelineTab = tab;
-        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-        
-        if (postLoadObserver) postLoadObserver.disconnect();
-        DOM.timeline.innerHTML = '';
-        await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
-    }
-    
+    // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
@@ -762,21 +680,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function showLikesScreen() {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`;
-        showScreen('likes-screen');
-        if(postLoadObserver) postLoadObserver.disconnect();
-        DOM.likesContent.innerHTML = '';
-        await loadPostsWithPagination(DOM.likesContent, 'likes', { ids: currentUser.like || [] });
-    }
-    async function showStarsScreen() {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`;
-        showScreen('stars-screen');
-        if(postLoadObserver) postLoadObserver.disconnect();
-        DOM.starsContent.innerHTML = '';
-        await loadPostsWithPagination(DOM.starsContent, 'stars', { ids: currentUser.star || [] });
-    }
+    async function showLikesScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`; showScreen('likes-screen'); await loadPostsWithPagination(DOM.likesContent, 'likes', { ids: currentUser.like }); }
+    async function showStarsScreen() { DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`; showScreen('stars-screen'); await loadPostsWithPagination(DOM.starsContent, 'stars', { ids: currentUser.star }); }
 
+        // ▼▼▼ [修正点1] ポスト詳細の表示ロジックを再構築 ▼▼▼
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
         showScreen('post-detail-screen');
@@ -791,12 +698,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
                 const parentPostEl = await renderPost(post.reply_to, post.reply_to.user);
-                if(parentPostEl) parentPostContainer.appendChild(parentPostEl);
+                parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
             
             const mainPostEl = await renderPost(post, post.user);
-            if(mainPostEl) contentDiv.appendChild(mainPostEl);
+            contentDiv.appendChild(mainPostEl);
             
             const repliesHeader = document.createElement('h3');
             repliesHeader.textContent = '返信';
@@ -808,6 +715,130 @@ window.addEventListener('DOMContentLoaded', () => {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
         }
     }
+    // ▲▲▲ [修正点1] ここまで ▼▼▼
+
+    // ▼▼▼ [修正点1] ページネーションと無限スクロールのロジックを修正 ▼▼▼
+    async function loadPostsWithPagination(container, type, options = {}) {
+        currentPagination = { page: 0, hasMore: true, type, options };
+        
+        // 既存のトリガーがあれば削除
+        let trigger = container.querySelector('.load-more-trigger');
+        if (trigger) trigger.remove();
+        
+        trigger = document.createElement('div');
+        trigger.className = 'load-more-trigger';
+        container.appendChild(trigger);
+        
+        const loadMore = async () => {
+            if (isLoadingMore || !currentPagination.hasMore) return;
+            isLoadingMore = true;
+            trigger.innerHTML = '<div class="spinner"></div>';
+
+            const from = currentPagination.page * POSTS_PER_PAGE;
+            const to = from + POSTS_PER_PAGE - 1;
+
+            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
+
+            if (type === 'timeline') {
+                if (options.tab === 'following') {
+                    if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
+                    else { currentPagination.hasMore = false; }
+                }
+            } else if (type === 'search') {
+                query = query.ilike('content', `%${options.query}%`);
+            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+                if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
+                else { query = query.in('id', options.ids); }
+            } else if (type === 'replies') {
+                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
+            }
+            
+            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
+
+            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
+            if (!currentPagination.hasMore) {
+                const existingPosts = container.querySelectorAll('.post').length;
+                trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
+                isLoadingMore = false;
+                if(postLoadObserver) postLoadObserver.unobserve(trigger);
+                return;
+            }
+
+            const { data: posts, error } = await query.range(from, to);
+
+            if (error) {
+                console.error("ポストの読み込みに失敗:", error);
+                trigger.innerHTML = '読み込みに失敗しました。';
+            } else {
+                if (posts.length > 0) {
+                    for (const post of posts) { 
+                        const postEl = await renderPost(post, post.user || {});
+                        if (postEl) trigger.before(postEl);
+                    }
+                    currentPagination.page++;
+                    if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
+                } else {
+                    currentPagination.hasMore = false;
+                }
+
+                if (!currentPagination.hasMore) {
+                    const existingPosts = container.querySelectorAll('.post').length;
+                    trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
+                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
+                } else {
+                    trigger.innerHTML = '';
+                }
+            }
+            isLoadingMore = false;
+        };
+        
+        postLoadObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore) {
+                loadMore();
+            }
+        }, { rootMargin: '200px' });
+
+        postLoadObserver.observe(trigger);
+    }
+
+    async function switchTimelineTab(tab) {
+        if (tab === 'following' && !currentUser) return;
+        currentTimelineTab = tab;
+        document.querySelectorAll('.timeline-tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+        
+        if (postLoadObserver) postLoadObserver.disconnect();
+        DOM.timeline.innerHTML = '';
+        await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
+    }
+    
+    // ▼▼▼ [修正点2] リアルタイム更新のロジックを修正 ▼▼▼
+    function subscribeToChanges() {
+        if (realtimeChannel) return;
+        realtimeChannel = supabase.channel('nyax-feed')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
+                const mainScreenEl = document.getElementById('main-screen');
+                if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
+                    // 既にインジケーターがあれば何もしない
+                    if (document.querySelector('.new-posts-indicator')) return;
+                    
+                    const indicator = document.createElement('div');
+                    indicator.className = 'new-posts-indicator';
+                    const button = document.createElement('button');
+                    button.textContent = '新しいポストを表示';
+                    button.onclick = () => {
+                        indicator.remove();
+                        router();
+                    };
+                    indicator.appendChild(button);
+                    DOM.mainContent.insertBefore(indicator, DOM.mainContent.firstChild.nextSibling);
+                }
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
+                updateNavAndSidebars();
+            })
+            .subscribe();
+    }
+    // ▲▲▲ [修正点2] ここまで ▼▼▼
     
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
@@ -853,14 +884,14 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
-            
-            // プロフィールタブのクリックイベントリスナーをここで設定
-            profileTabs.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    loadProfileTabContent(user, button.dataset.tab);
-                });
-            });
+            // ▼▼▼ [修正点2] プロフィールタブのイベントリスナーを専用のイベントデリゲーションに移動 ▼▼▼
+            // profileTabs.querySelectorAll('.tab-button').forEach(button => {
+            //     button.addEventListener('click', (e) => {
+            //         e.stopPropagation();
+            //         loadProfileTabContent(user, button.dataset.tab);
+            //     });
+            // });
+            // ▲▲▲ [修正点2] ここまで ▼▼▼
 
             await loadProfileTabContent(user, 'posts');
         } catch(err) {
@@ -962,15 +993,9 @@ window.addEventListener('DOMContentLoaded', () => {
             window.location.hash = ''; // ホームに戻る
         }
     }
-
-    // --- 11. ユーザーアクション ---
-    window.togglePostMenu = (postId) => {
-        const menu = document.getElementById(`menu-${postId}`);
-        if (menu) {
-            menu.classList.toggle('hidden');
-        }
-    };
-
+    
+    // --- 11. ユーザーアクション (変更なし) ---
+    window.togglePostMenu = (postId) => document.getElementById(`menu-${postId}`)?.classList.toggle('hidden');
     window.deletePost = async (postId) => {
         if (!confirm('このポストを削除しますか？')) return;
         showLoading(true);
@@ -980,9 +1005,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (postData.attachments && postData.attachments.length > 0) {
                 const fileIds = postData.attachments.map(file => file.id);
                 const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
-                if (storageError) {
-                    console.error('ストレージのファイル削除に失敗:', storageError.message);
-                }
+                if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
             }
             const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
             if (deleteError) throw deleteError;
@@ -996,18 +1019,8 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
         finally { showLoading(false); }
     };
-
-    window.handleReplyClick = (postId, username) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        openPostModal({ id: postId, name: username });
-    };
-
-    window.clearReply = () => {
-        replyingTo = null;
-        const replyInfo = document.getElementById('reply-info');
-        if (replyInfo) replyInfo.classList.add('hidden');
-    };
-
+    window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
+    window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
     window.handleLike = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
@@ -1015,24 +1028,17 @@ window.addEventListener('DOMContentLoaded', () => {
         const isLiked = currentUser.like?.includes(postId);
         const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
         const incrementValue = isLiked ? -1 : 1;
-        
         const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
-        if (userError) {
-            alert('いいねの更新に失敗しました。');
-            button.disabled = false;
-            return;
-        }
-
+        if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
         if (postError) {
             await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
             alert('いいね数の更新に失敗しました。');
         } else {
-            currentUser.like = updatedLikes;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('liked', !isLiked);
-            iconSpan.textContent = isLiked ? '♥' : '♡';
+            iconSpan.textContent = isLiked ? '♡' : '♥';
             if (!isLiked) {
                 const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
                 if (postData?.userid && postData.userid !== currentUser.id) {
@@ -1042,7 +1048,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         button.disabled = false;
     };
-
     window.handleStar = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
@@ -1050,21 +1055,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const isStarred = currentUser.star?.includes(postId);
         const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
         const incrementValue = isStarred ? -1 : 1;
-
         const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
-        if (userError) {
-            alert('お気に入りの更新に失敗しました。');
-            button.disabled = false;
-            return;
-        }
-
+        if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
         const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
         if (postError) {
             await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
             alert('お気に入り数の更新に失敗しました。');
         } else {
-            currentUser.star = updatedStars;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('starred', !isStarred);
             iconSpan.textContent = isStarred ? '★' : '☆';
@@ -1077,12 +1075,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         button.disabled = false;
     };
-
-    window.handleRecFollow = async (userId, button) => {
-        if (!currentUser) return alert("ログインが必要です。");
-        button.disabled = true;
-        await handleFollowToggle(userId, button);
-    };
+    window.handleRecFollow = async (userId, button) => { if (!currentUser) return alert("ログインが必要です。"); button.disabled = true; await handleFollowToggle(userId, button); };
     
     async function handleFollowToggle(targetUserId, button) {
         if (!currentUser) return alert("ログインが必要です。");
@@ -1091,24 +1084,16 @@ window.addEventListener('DOMContentLoaded', () => {
         const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
         
         const { error } = await supabase.from('user').update({ follow: updatedFollows }).eq('id', currentUser.id);
-        if (error) {
-            alert('フォロー状態の更新に失敗しました。');
-        } else {
-            currentUser.follow = updatedFollows;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        if (error) { alert('フォロー状態の更新に失敗しました。'); } 
+        else {
+            currentUser.follow = updatedFollows; localStorage.setItem('currentUser', JSON.stringify(currentUser));
             updateFollowButtonState(button, !isFollowing);
-            if (!isFollowing) {
-                sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`);
-            }
+            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
             const followerCountSpan = document.querySelector('#follower-count strong');
             if (followerCountSpan) {
                 const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
-                if (!newCountError) {
-                    followerCountSpan.textContent = newCount;
-                } else {
-                    console.error("フォロワー数の再取得に失敗:", newCountError);
-                    followerCountSpan.textContent = '?';
-                }
+                if (!newCountError) { followerCountSpan.textContent = newCount; } 
+                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
             }
         }
     }
@@ -1119,6 +1104,8 @@ window.addEventListener('DOMContentLoaded', () => {
         realtimeChannel = supabase.channel('nyax-feed')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
+                
+                // ▼▼▼ [修正点1, 2] ボタンの挿入位置を変更 ▼▼▼
                 if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
@@ -1132,11 +1119,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                     indicator.appendChild(button);
                     
+                    // ポストフォームコンテナの前に挿入する
                     const postFormStickyContainer = mainScreenEl.querySelector('.post-form-sticky-container');
                     if (postFormStickyContainer) {
                         mainScreenEl.insertBefore(indicator, postFormStickyContainer);
                     }
                 } else if (!document.getElementById('post-detail-screen').classList.contains('hidden')) {
+                // ▲▲▲ [修正点1, 2] ここまで ▼▼▼
                     const currentPostId = window.location.hash.substring(6);
                     if (payload.new.reply_id === currentPostId) {
                         router();
@@ -1150,21 +1139,36 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 13. 初期化処理 ---
-    DOM.mainContent.addEventListener('click', (e) => {
+    // ▼▼▼ [修正点1, 2] イベントリスナーの再整理 ▼▼▼
+    // 左メニューとバナーのクリックイベント
+    document.addEventListener('click', (e) => {
         const target = e.target;
-        const postElement = target.closest('.post');
-        
+        const navItem = target.closest('a.nav-item');
+        if (navItem) {
+            e.preventDefault();
+            window.location.hash = navItem.getAttribute('href');
+        }
+        if (target.id === 'banner-signup-button' || target.id === 'banner-login-button') {
+            goToLoginPage();
+        }
+    });
+
+    // 中央コンテンツ内のイベントデリゲーション
+    DOM.mainContent.addEventListener('click', async (e) => {
+        const target = e.target;
+
         // プロフィールタブの切り替え
         const profileTabButton = target.closest('#profile-tabs .tab-button');
         if (profileTabButton) {
             e.stopPropagation();
             const profileScreen = document.getElementById('profile-screen');
             if (profileScreen && profileScreen.userData) {
-                loadProfileTabContent(profileScreen.userData, profileTabButton.dataset.tab);
+                await loadProfileTabContent(profileScreen.userData, profileTabButton.dataset.tab);
             }
             return;
         }
 
+        const postElement = target.closest('.post');
         if (!postElement) return;
 
         const postId = postElement.dataset.postId;
@@ -1192,6 +1196,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ホームのタイムラインタブ切り替え
     const tabsContainer = document.querySelector('.timeline-tabs');
     if(tabsContainer) {
         tabsContainer.addEventListener('click', (e) => {
@@ -1201,8 +1206,5 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
     checkSession();
-});
