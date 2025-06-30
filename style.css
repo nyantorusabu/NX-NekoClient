@@ -702,9 +702,11 @@ body {
 }
 
 #login-banner-actions button {
+    -webkit-appearance: none; /* Safari, Chromeなどの古いブラウザ対応 */
+    appearance: none; /* ブラウザのデフォルトスタイルをリセット */
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
-    border-radius: 9999px !important; /* !importantを追加して形状を強制 */
+    border-radius: 9999px !important; /* 形状を強制 */
     font-weight: 700;
     cursor: pointer;
     font-size: 0.9rem;
@@ -731,7 +733,7 @@ body {
 }
 
 #banner-signup-button:hover {
-    background-color: #71c9f8; /* ホバーで少し濃くする */
+    background-color: #71c9f8;
 }
 
 /* ポスト用モーダル */
