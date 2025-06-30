@@ -716,7 +716,7 @@ body {
 }
 
 #banner-login-button:hover {
-    background-color: #f0f0f0;
+    background-color: var(--primary-hover-color);
 }
 
 /* 参加ボタン: 通常の青背景、白文字 */
@@ -734,7 +734,7 @@ body {
 }
 
 #banner-signup-button:hover {
-    background-color: var(--primary-hover-color); /* ホバー色も対応 */
+    background-color: #f0f0f0; /* ホバー色も対応 */
 }
 
 /* ポスト用モーダル */
