@@ -1231,13 +1231,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const downloadLink = target.closest('.attachment-download-link');
         const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
-        if (menuButton) { e.stopPropagation(); togglePostMenu(postId); return; }
-        if (deleteButton) { e.stopPropagation(); deletePost(postId); return; }
-        if(replyButton) { e.stopPropagation(); handleReplyClick(postId, replyButton.dataset.username); return; }
-        if(likeButton) { e.stopPropagation(); handleLike(likeButton, postId); return; }
-        if(starButton) { e.stopPropagation(); handleStar(starButton, postId); return; }
-        if(imageAttachment) { e.stopPropagation(); openImageModal(imageAttachment.src); return; }
-        if(downloadLink) { e.preventDefault(); e.stopPropagation(); handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
+        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
+        if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
+        if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
+        if(starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
+        if(imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
+        if(downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
         if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
         
         if (postElement && !target.closest('a, video, audio, button')) {
