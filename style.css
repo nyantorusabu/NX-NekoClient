@@ -701,9 +701,11 @@ body {
     font-size: 1.1rem;
 }
 
-#login-banner-actions button {
-    -webkit-appearance: none; /* Safari, Chromeなどの古いブラウザ対応 */
-    appearance: none; /* ブラウザのデフォルトスタイルをリセット */
+/* ログインボタン: 白背景、黒文字 */
+#banner-login-button {
+    background: white;
+    color: black;
+    border-color: white;
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
     border-radius: 9999px !important; /* 形状を強制 */
@@ -712,13 +714,6 @@ body {
     font-size: 0.9rem;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     border: 1px solid;
-}
-
-/* ログインボタン: 白背景、黒文字 */
-#banner-login-button {
-    background: white;
-    color: black;
-    border-color: white;
 }
 
 #banner-login-button:hover {
@@ -730,6 +725,14 @@ body {
     background: #8ecdf8; /* 薄めの青 */
     color: white;
     border-color: #8ecdf8;
+    margin-left: 1rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px !important; /* 形状を強制 */
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    border: 1px solid;
 }
 
 #banner-signup-button:hover {
