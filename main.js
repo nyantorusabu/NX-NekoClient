@@ -453,25 +453,28 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-        if (!post || !author) return null;
-        const { prepend = false, isThread = false } = options;
+        if (!post || !author) return null; // Postの編集機能より前の時点でのコードに合わせるため、一部引数を削除
+        const { prepend = false, isReplyThread = false } = options;
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
-        if (isThread) {
-            postEl.style.marginLeft = '20px';
-            postEl.style.borderLeft = '2px solid var(--border-color)';
-            postEl.style.paddingLeft = '1rem';
+        
+        if (isReplyThread) {
+            postEl.classList.add('reply-thread-item');
         }
 
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
+        userIconLink.style.position = 'relative'; // z-indexと背景のため
+        userIconLink.style.zIndex = '1';
+
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
         userIcon.alt = `${author.name}'s icon`;
+        userIcon.style.backgroundColor = 'white'; // 線がアイコンを透過しないように
         userIconLink.appendChild(userIcon);
         postEl.appendChild(userIconLink);
 
@@ -507,19 +510,31 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
+            // メニューボタンに直接イベントリスナーを設定
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.togglePostMenu(post.id);
+            });
             postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
             menu.className = 'post-menu hidden';
 
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.textContent = '編集';
+            menu.appendChild(editBtn);
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = '削除';
             menu.appendChild(deleteBtn);
+            
             postHeader.appendChild(menu);
         }
-        postMain.appendChild(postHeader);
+        
+        postMain.appendChild(postHeader); // postHeaderの準備が完了してからpostMainに追加
 
         const postContent = document.createElement('div');
         postContent.className = 'post-content';
@@ -738,11 +753,36 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('post-detail-screen');
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
+
+        // 返信を再帰的に取得・描画する内部関数
+        const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
+            if (depth > 5) return; // 5階層より深い返信は取得しない
+
+            const { data: replies, error } = await supabase.from('post')
+                .select('*, user(*), reply_to:reply_id(*, user(*))')
+                .eq('reply_id', parentId)
+                .order('time', { ascending: true });
+
+            if (error || !replies || replies.length === 0) return;
+
+            for (const reply of replies) {
+                const replyEl = await renderPost(reply, reply.user, { isReplyThread: true });
+                if (replyEl) container.appendChild(replyEl);
+
+                // メイン投稿者か、この返信の投稿者による更なる返信があれば再帰的に取得
+                if (reply.userid === mainPostAuthorId || (reply.user && reply.userid === reply.user.id)) {
+                    await fetchAndRenderRepliesRecursive(reply.id, replyEl.querySelector('.post-main'), mainPostAuthorId, depth + 1);
+                }
+            }
+        };
+
         try {
             const { data: post, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').eq('id', postId).single();
             if (error || !post) throw new Error('ポストが見つかりません。');
-            contentDiv.innerHTML = '';
             
+            contentDiv.innerHTML = '';
+
+            // 親ポストがあれば表示
             if (post.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
@@ -750,18 +790,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
-            
-            const mainPostEl = await renderPost(post, post.user);
-            if(mainPostEl) contentDiv.appendChild(mainPostEl);
-            
-            const mainPostAuthorId = post.user.id; // メイン投稿者のIDを取得
 
+            // メインポストを表示
+            const mainPostEl = await renderPost(post, post.user);
+            if (mainPostEl) contentDiv.appendChild(mainPostEl);
+            
             const repliesHeader = document.createElement('h3');
             repliesHeader.textContent = '返信';
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
-            await loadPostsWithPagination(contentDiv, 'replies', { postId, mainPostAuthorId }); // mainPostAuthorIdを渡す
+            // 返信の再帰的取得を開始
+            const repliesContainer = document.createElement('div');
+            contentDiv.appendChild(repliesContainer);
+            await fetchAndRenderRepliesRecursive(postId, repliesContainer, post.user.id, 1);
+
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
         } finally {
@@ -987,47 +1030,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (posts.length > 0) {
-                    if (type === 'replies') {
-                        // 返信のツリー表示特別処理
-                        const { mainPostAuthorId } = currentPagination.options;
-                        const replyIds = posts.map(p => p.id);
-                        
-                        const { data: allSubReplies } = await supabase.from('post')
-                            .select('*, user(*), reply_to:reply_id(*, user(*))')
-                            .in('reply_id', replyIds)
-                            .order('time', { ascending: true });
-    
-                        const subRepliesByParentId = (allSubReplies || []).reduce((acc, sub) => {
-                            const parentId = sub.reply_id;
-                            if (!acc[parentId]) acc[parentId] = [];
-                            acc[parentId].push(sub);
-                            return acc;
-                        }, {});
-    
-                        for (const post of posts) {
-                            const postEl = await renderPost(post, post.user || {});
-                            if (!postEl) continue;
-                            const subRepliesContainer = postEl.querySelector('.sub-replies-container');
-    
-                            if (subRepliesContainer) {
-                                const subRepliesForThisPost = subRepliesByParentId[post.id] || [];
-                                const relevantSubReplies = subRepliesForThisPost.filter(sub => 
-                                    sub.userid === mainPostAuthorId || sub.userid === post.userid
-                                );
-    
-                                for (const subReply of relevantSubReplies) {
-                                    const subReplyEl = await renderPost(subReply, subReply.user, { isThread: true });
-                                    if (subReplyEl) subRepliesContainer.appendChild(subReplyEl);
-                                }
-                            }
-                            trigger.before(postEl);
-                        }
-                    } else {
-                        // 通常のポスト描画処理
-                        for (const post of posts) {
-                            const postEl = await renderPost(post, post.user || {});
-                            if (postEl) trigger.before(postEl);
-                        }
+                    // 通常のポスト描画処理
+                    for (const post of posts) {
+                        const postEl = await renderPost(post, post.user || {});
+                        if (postEl) trigger.before(postEl);
                     }
     
                     currentPagination.page++;
@@ -1356,7 +1362,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-     // --- 13. 初期化処理 ---
+      // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
@@ -1364,7 +1370,6 @@ async function openEditPostModal(postId) {
 
         const postId = postElement.dataset.postId;
         
-        const menuButton = target.closest('.post-menu-btn');
         const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
@@ -1374,7 +1379,6 @@ async function openEditPostModal(postId) {
         const downloadLink = target.closest('.attachment-download-link');
         const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
-        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
         if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
         if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
         if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
