@@ -570,30 +570,36 @@ body {
 }
 
 /* 返信ツリーの垂直線スタイル */
-.post.is-reply-thread > .user-icon-link::before,
-.post.is-reply-thread > .user-icon-link::after {
+.post.is-reply-thread {
+    position: relative;
+}
+/* 上側の線 */
+.post.is-reply-thread::before {
     content: '';
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: calc(100% - 2rem); /* アイコン上端から上へ */
+    left: calc(1rem + 24px); 
     width: 2px;
+    height: 1rem;
     background-color: var(--border-color);
-    z-index: -1;
+    z-index: 0;
 }
-/* アイコンの上の線 */
-.post.is-reply-thread > .user-icon-link::before {
-    bottom: 100%;
-    height: 1rem; /* .postのpadding-topに合わせる */
+/* 下側の線 */
+.post.is-reply-thread::after {
+    content: '';
+    position: absolute;
+    top: calc(1rem + 48px); /* アイコン下端から下へ */
+    left: calc(1rem + 24px); 
+    width: 2px;
+    height: calc(100% - 1rem - 48px); /* ポストの高さに合わせて調整 */
+    background-color: var(--border-color);
+    z-index: 0;
 }
-/* アイコンの下の線 */
-.post.is-reply-thread > .user-icon-link::after {
-    top: 100%;
-    height: 100vh; /* とりあえず画面下まで伸ばす */
-}
-/* 最後の返信ポストの下の線を消す */
-.post.is-reply-thread:last-child > .user-icon-link::after {
-    display: none;
-}
+
+/* ツリーの最初と最後の要素で不要な線を非表示にするためのクラス */
+.post.is-reply-thread.is-tree-start::before { display: none; }
+.post.is-reply-thread.is-tree-end::after { display: none; }
+
 
 /* アイコンが線の上に表示されるように調整 */
 .post .user-icon-link {
