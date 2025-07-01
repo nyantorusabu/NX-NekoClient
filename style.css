@@ -693,10 +693,7 @@ body {
 .recommend-user span {
     font-weight: 700;
 }
-
-.follow-button-not-following {
-    background-color: var(--text-color);
-    color: white;
+.profile-follow-button {
     border: 1px solid var(--text-color);
     padding: 0.5rem 1rem;
     border-radius: 9999px;
@@ -704,6 +701,11 @@ body {
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     white-space: nowrap;
+}
+
+.follow-button-not-following {
+    background-color: var(--text-color);
+    color: white;
 }
 
 .follow-button-not-following:hover {
@@ -715,13 +717,6 @@ body {
 .follow-button-following {
     background-color: white;
     color: var(--text-color);
-    border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    white-space: nowrap;
 }
 
 .follow-button-following:hover {
