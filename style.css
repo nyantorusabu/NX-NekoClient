@@ -86,27 +86,36 @@ body {
 /* デフォルトでは塗りつぶさない */
 .nav-item.active svg {
     fill: none;
+    stroke-width: 2.5; /* アクティブ時は枠線を太く */
 }
 
 /* ホームタブのみアクティブ時に特別に塗りつぶす */
 .nav-item[href="#"].active svg path {
     fill: currentColor;
+    stroke: none; /* 塗りつぶすので枠線は不要 */
 }
 .nav-item[href="#"].active svg rect {
     fill: white;
     stroke: currentColor;
-    stroke-width: 1.5;
+    stroke-width: 1;
 }
 
-/* 検索とメッセージ(DM)は枠線を太くする */
+/* 検索とメッセージ(DM)は枠線を太くするだけ */
 .nav-item[href="#explore"].active svg,
 .nav-item[href^="#dm"].active svg {
     stroke-width: 2.5;
 }
 
-/* その他のアイコンはシンプルに塗りつぶす */
+/* その他のアイコンはシンプルに塗りつぶし、枠線を消す */
 .nav-item.active:not([href="#"]):not([href="#explore"]):not([href^="#dm"]) svg {
     fill: currentColor;
+    stroke: none;
+}
+
+/* 設定アイコンの中央の円を白に */
+.nav-item[href="#settings"].active svg circle {
+    fill: white;
+    stroke: none;
 }
 
 .nav-item-post {
@@ -694,17 +703,7 @@ body {
     font-weight: 700;
 }
 
-.recommend-user button, #profile-header .follow-button button {
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    white-space: nowrap;
-}
-
-.profile-follow-button {
-    border: 1px solid var(--text-color);
+.recommend-user button, .profile-follow-button button {
     padding: 0.5rem 1rem;
     border-radius: 9999px;
     font-weight: 700;
@@ -883,7 +882,7 @@ body {
 #profile-header .dm-button {
     padding: 0.5rem;
     border-radius: 50%;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--text-color); /* 枠線の色を黒に変更 */
     background: none;
     cursor: pointer;
     display: flex;
@@ -1139,11 +1138,12 @@ body {
     text-align: right;
 }
 .dm-message {
-    padding: 0.5rem 1rem;
+    padding: 0.8rem 1rem; /* パディングを調整 */
     border-radius: 16px;
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-weight: normal; /* 太字になるのを防ぐ */
+    font-weight: 400; /* 太字をリセット */
+    line-height: 1.4; /* 行間を調整 */
 }
 .dm-message.sent {
     background-color: var(--primary-color);
@@ -1199,6 +1199,14 @@ body {
     margin: auto;
     text-align: center;
     color: var(--secondary-text-color);
+}
+
+/* DM管理モーダルのボタンスタイル */
+
+/* DM作成/管理モーダルのはみ出し修正 */
+#create-dm-modal input,
+#dm-manage-modal input {
+    box-sizing: border-box;
 }
 
 /* DM管理モーダルのボタンスタイル */
