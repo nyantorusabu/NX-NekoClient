@@ -468,6 +468,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
+        // クリックイベントを直接設定
+        userIconLink.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            window.location.hash = `#profile/${author.id}`;
+        });
 
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
@@ -753,7 +758,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // 返信を再帰的に取得・描画する内部関数
         const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
-            if (depth > 5) return; // 5階層より深い返信は取得しない
+            // if (depth > 5) return; // 階層の上限を撤廃
 
             const { data: replies, error } = await supabase.from('post')
                 .select('*, user(*), reply_to:reply_id(*, user(*))')
@@ -762,16 +767,26 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (error || !replies || replies.length === 0) return;
 
-            for (const reply of replies) {
-                const replyEl = await renderPost(reply, reply.user, { isReplyThread: true });
-                if (replyEl) container.appendChild(replyEl);
-
-                // メイン投稿者か、この返信の投稿者自身による更なる返信があれば再帰的に取得
+            // ツリー分岐の対象となる返信のみをフィルタリング
+            const relevantReplies = replies.filter(reply => {
                 const isAuthor = (reply.user && reply.userid === reply.user.id);
-                if (reply.userid === mainPostAuthorId || isAuthor) {
-                    await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
+                return reply.userid === mainPostAuthorId || isAuthor;
+            });
+
+            if (relevantReplies.length === 0) return;
+
+            relevantReplies.forEach(async (reply, index) => {
+                const replyEl = await renderPost(reply, reply.user, { isReplyThread: true });
+                if (replyEl) {
+                    // ツリーの開始と終了を判定してクラスを付与
+                    if (index === 0) replyEl.classList.add('is-tree-start');
+                    if (index === relevantReplies.length - 1) replyEl.classList.add('is-tree-end');
+                    container.appendChild(replyEl);
                 }
-            }
+                
+                // 再帰呼び出し (depthはスタックオーバーフロー防止のため一応渡しておく)
+                await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
+            });
         };
 
         try {
@@ -1001,6 +1016,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
 
             if (type === 'timeline') {
+                query = query.is('reply_id', null); // 返信ではないトップレベルのポストのみを取得
                 if (options.tab === 'following') {
                     if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
                     else { currentPagination.hasMore = false; }
@@ -1399,7 +1415,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-       // --- 13. 初期化処理 ---
+        // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
@@ -1415,21 +1431,23 @@ async function openEditPostModal(postId) {
         const starButton = target.closest('.star-button');
         const imageAttachment = target.closest('.attachment-item img');
         const downloadLink = target.closest('.attachment-download-link');
-        const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
-
-        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
-        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
-        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
-        if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
-        if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
-        if(starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
-        if(imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
-        if(downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
         
-        if (postElement && !target.closest('a, video, audio, button')) {
-            window.location.hash = `#post/${postElement.dataset.postId}`;
+        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合は何もしない
+        if (menuButton || editButton || deleteButton || replyButton || likeButton || starButton || imageAttachment || downloadLink || target.closest('a')) {
+             // 各ボタンの処理はここで継続
+            if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); }
+            if (editButton) { e.stopPropagation(); openEditPostModal(postId); }
+            if (deleteButton) { e.stopPropagation(); window.deletePost(postId); }
+            if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); }
+            if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); }
+            if(starButton) { e.stopPropagation(); window.handleStar(starButton, postId); }
+            if(imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); }
+            if(downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); }
+            return;
         }
+        
+        // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
+        window.location.hash = `#post/${postElement.dataset.postId}`;
     });
 
     const tabsContainer = document.querySelector('.timeline-tabs');
