@@ -12,6 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let newIconDataUrl = null;
     let resetIconToDefault = false;
     let openedMenuPostId = null;
+    let currentDmChannel = null;
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -21,7 +22,9 @@ window.addEventListener('DOMContentLoaded', () => {
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
+        dm: `<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
         notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
         likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
         stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
@@ -52,6 +55,10 @@ window.addEventListener('DOMContentLoaded', () => {
         postDetailContent: document.getElementById('post-detail-content'),
         searchResultsScreen: document.getElementById('search-results-screen'),
         searchResultsContent: document.getElementById('search-results-content'),
+        dmScreen: document.getElementById('dm-screen'),
+        dmContent: document.getElementById('dm-content'),
+        createDmModal: document.getElementById('create-dm-modal'),
+        createDmModalContent: document.getElementById('create-dm-modal-content'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
@@ -154,6 +161,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
             else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
+            else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
+            else if (hash === '#dm') await showDmScreen();
             else if (hash === '#settings' && currentUser) await showSettingsScreen();
             else if (hash === '#explore') await showExploreScreen();
             else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
@@ -225,9 +234,16 @@ window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
          if (currentUser) {
-            menuItems.push( { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, { name: 'いいね', hash: '#likes', icon: ICONS.likes }, { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, { name: '設定', hash: '#settings', icon: ICONS.settings } );
+            menuItems.push(
+                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, 
+                { name: 'いいね', hash: '#likes', icon: ICONS.likes }, 
+                { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, 
+                { name: 'DM', hash: '#dm', icon: ICONS.dm },
+                { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, 
+                { name: '設定', hash: '#settings', icon: ICONS.settings }
+            );
         }
-        DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
+        DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash.startsWith(item.hash) ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
@@ -814,6 +830,78 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- [新規追加] DM画面関連 ---
+    async function showDmScreen(dmId = null) {
+        if (!currentUser) return router();
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">ダイレクトメッセージ</h2>`;
+        showScreen('dm-screen');
+        DOM.dmContent.innerHTML = '<div class="spinner"></div>';
+
+        const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
+        if (error) { DOM.dmContent.innerHTML = 'DMの読み込みに失敗しました。'; return; }
+
+        let dmListHTML = dms.map(dm => `
+            <div class="dm-list-item ${dm.id === dmId ? 'active' : ''}" onclick="window.location.hash='#dm/${dm.id}'">
+                <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
+            </div>
+        `).join('');
+
+        DOM.dmContent.innerHTML = `
+            <div id="dm-list-container">
+                <button onclick="openCreateDmModal()" style="width:100%; padding: 1rem; font-weight: bold;">新しいメッセージ</button>
+                ${dmListHTML}
+            </div>
+            <div id="dm-conversation-container"></div>
+        `;
+
+        if (dmId) {
+            await showDmConversation(dmId);
+        } else {
+            document.getElementById('dm-conversation-container').innerHTML = `<div class="dm-welcome-message"><h3>DMを選択するか、新しいDMを作成してください。</h3></div>`;
+        }
+        showLoading(false);
+    }
+
+    async function showDmConversation(dmId) {
+        const container = document.getElementById('dm-conversation-container');
+        container.innerHTML = '<div class="spinner"></div>';
+        
+        const { data: dm, error } = await supabase.from('dm').select('*').eq('id', dmId).single();
+        if (error || !dm || !dm.member.includes(currentUser.id)) {
+            container.innerHTML = 'DMが見つからないか、アクセス権がありません。';
+            return;
+        }
+
+        const messagesHTML = (dm.post || []).slice().reverse().map(msg => `
+            <div class="dm-message ${msg.userid === currentUser.id ? 'sent' : 'received'}">
+                ${escapeHTML(msg.content)}
+            </div>
+        `).join('');
+        
+        container.innerHTML = `
+            <div class="dm-conversation-view">${messagesHTML}</div>
+            <div class="dm-message-form">
+                <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
+                <button id="send-dm-btn">送信</button>
+            </div>
+        `;
+        document.getElementById('send-dm-btn').onclick = () => sendDmMessage(dmId);
+
+        if (currentDmChannel) supabase.removeChannel(currentDmChannel);
+        currentDmChannel = supabase.channel(`dm-${dmId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, payload => {
+                const newPost = payload.new.post;
+                if(newPost && newPost.length > 0) {
+                    const latestMessage = newPost[newPost.length - 1];
+                    const view = document.querySelector('.dm-conversation-view');
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = `dm-message ${latestMessage.userid === currentUser.id ? 'sent' : 'received'}`;
+                    msgDiv.textContent = latestMessage.content;
+                    view.prepend(msgDiv); // flex-direction: column-reverseなので先頭に追加
+                }
+            }).subscribe();
+    }
+    
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `
@@ -854,12 +942,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>`;
 
             if (currentUser && userId !== currentUser.id) {
+                const actionsContainer = profileHeader.querySelector('#profile-actions');
+                // DMボタン
+                const dmButton = document.createElement('button');
+                dmButton.className = 'dm-button';
+                dmButton.title = 'メッセージを送信';
+                dmButton.innerHTML = ICONS.dm;
+                dmButton.onclick = () => handleDmButtonClick(userId);
+                actionsContainer.appendChild(dmButton);
+
+                // フォローボタン
                 const followButton = document.createElement('button');
-                followButton.id = `profile-follow-button-${userId}`;
                 const isFollowing = currentUser.follow?.includes(userId);
                 updateFollowButtonState(followButton, isFollowing);
                 followButton.onclick = () => window.handleFollowToggle(userId, followButton);
-                profileHeader.querySelector('#follow-button-container').appendChild(followButton);
+                actionsContainer.appendChild(followButton);
             }
 
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
@@ -1363,7 +1460,66 @@ async function openEditPostModal(postId) {
         } catch(e) { console.error(e); alert('ポストの更新に失敗しました。'); } 
         finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
     }
+    
+// // --- [新規追加] DM操作関数 ---
+    async function handleDmButtonClick(targetUserId) {
+        if (!currentUser) return;
+        // 1対1のDMが既に存在するかチェック
+        const { data: existingDm, error } = await supabase.from('dm')
+            .select('id')
+            .contains('member', [currentUser.id, targetUserId])
+            .eq('member', JSON.stringify([currentUser.id, targetUserId].sort())) // メンバーが完全に一致するものを探す
+            .single();
 
+        if (existingDm) {
+            window.location.hash = `#dm/${existingDm.id}`;
+        } else {
+            if (confirm(`${targetUserId}さんとの新しいDMを作成しますか？`)) {
+                const { data: newDm, error: createError } = await supabase.from('dm').insert({
+                    host_id: currentUser.id,
+                    member: [currentUser.id, targetUserId].sort(), // 常にソートして一意性を保つ
+                    title: `${currentUser.name}, ${targetUserId}`
+                }).select('id').single();
+
+                if (createError) {
+                    alert('DMの作成に失敗しました。');
+                } else {
+                    window.location.hash = `#dm/${newDm.id}`;
+                }
+            }
+        }
+    }
+    
+    async function sendDmMessage(dmId) {
+        const input = document.getElementById('dm-message-input');
+        const content = input.value.trim();
+        if (!content) return;
+        input.disabled = true;
+
+        const message = {
+            id: crypto.randomUUID(),
+            time: new Date().toISOString(),
+            userid: currentUser.id,
+            reply_id: null,
+            content: content,
+            attachments: [] // 今回は添付ファイルは未実装
+        };
+
+        const { error } = await supabase.rpc('append_to_dm_post', {
+            dm_id_in: dmId,
+            new_message_in: message
+        });
+
+        if (error) {
+            alert('メッセージの送信に失敗しました。');
+            console.error(error);
+        } else {
+            input.value = '';
+        }
+        input.disabled = false;
+        input.focus();
+    }
+    
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
