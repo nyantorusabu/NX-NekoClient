@@ -703,7 +703,17 @@ body {
     font-weight: 700;
 }
 
-.recommend-user button, .profile-follow-button button {
+.recommend-user button, {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+
+.profile-follow-button button {
+border: 1px solid var(--text-color);
     padding: 0.5rem 1rem;
     border-radius: 9999px;
     font-weight: 700;
