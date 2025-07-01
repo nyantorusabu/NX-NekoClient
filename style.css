@@ -96,8 +96,7 @@ body {
 }
 .nav-item[href="#"].active svg rect {
     fill: white;
-    stroke: currentColor;
-    stroke-width: 1;
+    stroke: none; /* 枠線を非表示に変更 */
 }
 
 /* 検索とメッセージ(DM)は枠線を太くするだけ */
@@ -1108,6 +1107,11 @@ body {
 .dm-manage-btn:hover {
     background-color: #e0e0e0;
 }
+#dm-conversation-container {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+}
 .dm-conversation-view {
     flex-grow: 1;
     overflow-y: auto;
@@ -1117,9 +1121,10 @@ body {
 }
 .dm-message-container {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem; /* メッセージ間の間隔を調整 */
+    gap: 0.8rem; /* アイコンと吹き出しの間隔を調整 */
+    margin-bottom: 1rem;
     max-width: 80%;
+    align-items: flex-end; /* アイコンと吹き出しの下端を揃える */
 }
 .dm-message-container.sent {
     align-self: flex-end;
@@ -1133,37 +1138,38 @@ body {
     height: 32px;
     border-radius: 50%;
     flex-shrink: 0;
-    align-self: flex-end;
+    /* align-self は削除し、親のalign-itemsで制御 */
 }
 .dm-message-wrapper {
     display: flex;
     flex-direction: column;
+}
+.dm-message-container.sent .dm-message-wrapper {
+    align-items: flex-end;
+}
+.dm-message-container.received .dm-message-wrapper {
+    align-items: flex-start;
 }
 .dm-message-meta {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
     margin-bottom: 0.25rem;
 }
-.dm-message-container.sent .dm-message-meta {
-    text-align: right;
-}
 .dm-message {
-    padding: 0.8rem 1rem; /* パディングを調整 */
+    padding: 0.8rem 1rem;
     border-radius: 16px;
     white-space: pre-wrap;
     word-wrap: break-word;
     font-weight: 400; /* 太字をリセット */
-    line-height: 1.4; /* 行間を調整 */
+    line-height: 1.4;
 }
 .dm-message.sent {
     background-color: var(--primary-color);
     color: white;
-    align-self: flex-end;
     border-bottom-right-radius: 4px;
 }
 .dm-message.received {
     background-color: var(--bg-color);
-    align-self: flex-start;
     border-bottom-left-radius: 4px;
 }
 .dm-message-form {
