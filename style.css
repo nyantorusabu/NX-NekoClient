@@ -1138,11 +1138,11 @@ body {
     height: 32px;
     border-radius: 50%;
     flex-shrink: 0;
-    /* align-self は削除し、親のalign-itemsで制御 */
 }
 .dm-message-wrapper {
     display: flex;
     flex-direction: column;
+    flex: 1; /* アイコンの隣の残りのスペースをすべて使う */
 }
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end;
