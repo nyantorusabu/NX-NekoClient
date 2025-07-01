@@ -712,13 +712,13 @@ body {
 }
 
 .profile-follow-button button {
-    border: 1px solid var(--text-color);
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-    white-space: nowrap;
+    border: 1px solid var(--text-color) !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 9999px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s !important;
+    white-space: nowrap !important;
 }
 
 .follow-button-not-following {
