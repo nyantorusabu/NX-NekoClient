@@ -510,11 +510,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            // メニューボタンに直接イベントリスナーを設定
-            menuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.togglePostMenu(post.id);
-            });
             postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
@@ -534,7 +529,7 @@ window.addEventListener('DOMContentLoaded', () => {
             postHeader.appendChild(menu);
         }
         
-        postMain.appendChild(postHeader); // postHeaderの準備が完了してからpostMainに追加
+        postMain.appendChild(postHeader);
 
         const postContent = document.createElement('div');
         postContent.className = 'post-content';
@@ -770,8 +765,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (replyEl) container.appendChild(replyEl);
 
                 // メイン投稿者か、この返信の投稿者による更なる返信があれば再帰的に取得
-                if (reply.userid === mainPostAuthorId || (reply.user && reply.userid === reply.user.id)) {
-                    await fetchAndRenderRepliesRecursive(reply.id, replyEl.querySelector('.post-main'), mainPostAuthorId, depth + 1);
+                const isAuthor = (reply.user && reply.userid === reply.user.id);
+                if (reply.userid === mainPostAuthorId || isAuthor) {
+                    await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
                 }
             }
         };
@@ -1005,16 +1001,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+             } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
-            } else if (type === 'replies') {
-                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
             }
             
-            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
+            query = query.order('time', { ascending: false });
 
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
+            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。' };
             if (!currentPagination.hasMore) {
                 const existingPosts = container.querySelectorAll('.post').length;
                 trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
@@ -1370,6 +1364,7 @@ async function openEditPostModal(postId) {
 
         const postId = postElement.dataset.postId;
         
+        const menuButton = target.closest('.post-menu-btn');
         const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
@@ -1379,6 +1374,7 @@ async function openEditPostModal(postId) {
         const downloadLink = target.closest('.attachment-download-link');
         const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
 
+        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
         if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
         if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
         if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
