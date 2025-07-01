@@ -207,6 +207,30 @@ body {
     z-index: 10;
 }
 
+.header-with-back-button {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.header-back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.header-back-btn:hover {
+    background-color: var(--bg-color);
+}
+.header-back-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 #page-header h2 {
     margin: 0;
     font-size: 1.25rem;
@@ -522,21 +546,47 @@ body {
     background-color: var(--bg-color);
 }
 
+.edit-modal-attachments {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--secondary-text-color);
+}
+
+.edit-modal-attachments p {
+    margin: 0 0 0.5rem 0;
+    font-weight: bold;
+}
+
+.edit-modal-attachments .attachments-container {
+    pointer-events: none; /* 添付ファイルは編集不可のため操作を無効化 */
+}
+
 .post-menu .delete-btn {
     color: #f4212e;
     font-weight: bold;
+}
+
+/* アイコンが縦に伸びるのを防ぎ、クリック範囲をアイコンの高さに限定する */
+.post .user-icon-link {
+    align-self: flex-start;
 }
 
 .replying-to a {
     color: var(--primary-color);
     text-decoration: none;
 }
-
 .parent-post-container {
     padding-left: 1rem;
     border-left: 2px solid var(--border-color);
     margin-left: 24px;
     margin-bottom: 1rem;
+}
+
+.sub-replies-container {
+    margin-top: 0.5rem;
 }
 
 /* 添付ファイル表示のスタイル */

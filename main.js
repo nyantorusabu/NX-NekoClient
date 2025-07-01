@@ -11,13 +11,14 @@ window.addEventListener('DOMContentLoaded', () => {
     let replyingTo = null;
     let newIconDataUrl = null;
     let resetIconToDefault = false;
+    let openedMenuPostId = null;
     
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
     const POSTS_PER_PAGE = 10;
 
-    // --- 2. アイコンSVG定義 ---
+     // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
@@ -27,6 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
+        back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -38,6 +40,8 @@ window.addEventListener('DOMContentLoaded', () => {
         screens: document.querySelectorAll('.screen'),
         postFormContainer: document.querySelector('.post-form-container'),
         postModal: document.getElementById('post-modal'),
+        editPostModal: document.getElementById('edit-post-modal'),
+        editPostModalContent: document.getElementById('edit-post-modal-content'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -451,20 +455,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, isThread = false } = options;
+        const { prepend = false } = options; // isReplyThread オプションを削除
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
-        if (isThread) {
-            postEl.style.marginLeft = '20px';
-            postEl.style.borderLeft = '2px solid var(--border-color)';
-            postEl.style.paddingLeft = '1rem';
-        }
-
+        
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
+        // 個別のイベントリスナーは削除
+
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
@@ -504,18 +505,25 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn);
+            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
             menu.className = 'post-menu hidden';
 
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.textContent = '編集';
+            menu.appendChild(editBtn);
+
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = '削除';
             menu.appendChild(deleteBtn);
+            
             postHeader.appendChild(menu);
         }
+        
         postMain.appendChild(postHeader);
 
         const postContent = document.createElement('div');
@@ -595,6 +603,11 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(actionsDiv);
         }
         
+        // ツリー表示用のコンテナを追加
+        const subRepliesContainer = document.createElement('div');
+        subRepliesContainer.className = 'sub-replies-container';
+        postMain.appendChild(subRepliesContainer);
+
         postEl.appendChild(postMain);
         return postEl;
     }
@@ -726,15 +739,52 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showPostDetail(postId) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+                <h2 id="page-title">ポスト</h2>
+            </div>`;
         showScreen('post-detail-screen');
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
+
+        // 返信を再帰的に取得・描画する内部関数
+        const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
+            // if (depth > 5) return; // 階層の上限を撤廃
+
+            const { data: replies, error } = await supabase.from('post')
+                .select('*, user(*), reply_to:reply_id(*, user(*))')
+                .eq('reply_id', parentId)
+                .order('time', { ascending: true });
+
+            if (error || !replies || replies.length === 0) return;
+
+            // ツリー分岐の対象となる返信のみをフィルタリング
+            const relevantReplies = replies.filter(reply => {
+                const isAuthor = (reply.user && reply.userid === reply.user.id);
+                return reply.userid === mainPostAuthorId || isAuthor;
+            });
+
+            if (relevantReplies.length === 0) return;
+
+            relevantReplies.forEach(async (reply, index) => {
+                const replyEl = await renderPost(reply, reply.user); // isReplyThreadオプションを削除
+                if (replyEl) {
+                    container.appendChild(replyEl);
+                }
+                
+                // 再帰呼び出し (depthはスタックオーバーフロー防止のため一応渡しておく)
+                await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
+            });
+        };
+
         try {
             const { data: post, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').eq('id', postId).single();
             if (error || !post) throw new Error('ポストが見つかりません。');
-            contentDiv.innerHTML = '';
             
+            contentDiv.innerHTML = '';
+
+            // 親ポストがあれば表示
             if (post.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
@@ -742,16 +792,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
-            
+
+            // メインポストを表示
             const mainPostEl = await renderPost(post, post.user);
-            if(mainPostEl) contentDiv.appendChild(mainPostEl);
+            if (mainPostEl) contentDiv.appendChild(mainPostEl);
             
             const repliesHeader = document.createElement('h3');
             repliesHeader.textContent = '返信';
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
-            await loadPostsWithPagination(contentDiv, 'replies', { postId });
+            // 返信の再帰的取得を開始
+            const repliesContainer = document.createElement('div');
+            contentDiv.appendChild(repliesContainer);
+            await fetchAndRenderRepliesRecursive(postId, repliesContainer, post.user.id, 1);
+
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
         } finally {
@@ -761,7 +816,11 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+                <h2 id="page-title">プロフィール</h2>
+            </div>`;
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
@@ -946,22 +1005,21 @@ window.addEventListener('DOMContentLoaded', () => {
             let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
 
             if (type === 'timeline') {
+                query = query.is('reply_id', null); // 返信ではないトップレベルのポストのみを取得
                 if (options.tab === 'following') {
                     if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
                     else { currentPagination.hasMore = false; }
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+             } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
-            } else if (type === 'replies') {
-                query = query.eq('reply_id', options.postId).order('time', { ascending: true });
             }
             
-            if (type !== 'replies') { query = query.order('time', { ascending: false }); }
+            query = query.order('time', { ascending: false });
 
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: '' };
+            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。' };
             if (!currentPagination.hasMore) {
                 const existingPosts = container.querySelectorAll('.post').length;
                 trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
@@ -977,10 +1035,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (posts.length > 0) {
+                    // 通常のポスト描画処理
                     for (const post of posts) {
                         const postEl = await renderPost(post, post.user || {});
                         if (postEl) trigger.before(postEl);
                     }
+    
                     currentPagination.page++;
                     if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
                 } else {
@@ -1055,20 +1115,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
      // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
+        // 既に他のメニューが開いていたら、それを閉じる
+        if (openedMenuPostId && openedMenuPostId !== postId) {
+            const oldMenu = document.getElementById(`menu-${openedMenuPostId}`);
+            if (oldMenu) oldMenu.classList.add('hidden');
+        }
+    
+        // ターゲットのメニューを取得して表示/非表示を切り替える
         const targetMenu = document.getElementById(`menu-${postId}`);
         if (!targetMenu) return;
     
         const isHidden = targetMenu.classList.contains('hidden');
-    
-        // まず、現在開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
-            if (menu.id !== `menu-${postId}`) {
-                menu.classList.add('hidden');
-            }
-        });
-    
-        // ターゲットメニューの表示状態を切り替える
-        targetMenu.classList.toggle('hidden');
+        
+        if (isHidden) {
+            targetMenu.classList.remove('hidden');
+            openedMenuPostId = postId; // 開いたメニューのIDを記録
+        } else {
+            targetMenu.classList.add('hidden');
+            openedMenuPostId = null; // 閉じたので記録をクリア
+        }
     };
 
     window.deletePost = async (postId) => {
@@ -1173,7 +1238,132 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
+async function openEditPostModal(postId) {
+        showLoading(true);
+        try {
+            const { data: post, error } = await supabase.from('post').select('content, attachments').eq('id', postId).single();
+            if (error || !post) throw new Error('ポスト情報の取得に失敗しました。');
+            
+            let currentAttachments = post.attachments || [];
+            let filesToDelete = new Set();
+            let filesToAdd = [];
+
+            const renderAttachments = () => {
+                let existingAttachmentsHTML = '';
+                currentAttachments.forEach((attachment, index) => {
+                    if (filesToDelete.has(attachment.id)) return;
+                    existingAttachmentsHTML += `
+                        <div class="file-preview-item">
+                            <span>${attachment.type === 'image' ? '🖼️' : '📎'} ${escapeHTML(attachment.name)}</span>
+                            <button class="file-preview-remove" data-id="${attachment.id}" data-type="existing">×</button>
+                        </div>`;
+                });
+
+                let newAttachmentsHTML = '';
+                filesToAdd.forEach((file, index) => {
+                    newAttachmentsHTML += `
+                        <div class="file-preview-item">
+                            <span>${file.type.startsWith('image/') ? '🖼️' : '📎'} ${escapeHTML(file.name)}</span>
+                            <button class="file-preview-remove" data-index="${index}" data-type="new">×</button>
+                        </div>`;
+                });
+                return existingAttachmentsHTML + newAttachmentsHTML;
+            };
+
+            const updatePreview = () => {
+                const container = DOM.editPostModalContent.querySelector('.file-preview-container');
+                if (container) container.innerHTML = renderAttachments();
+            };
+
+            DOM.editPostModalContent.innerHTML = `
+                <div class="post-form" style="padding: 1rem;">
+                    <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="your icon">
+                    <div class="form-content">
+                        <textarea id="edit-post-textarea" class="post-form-textarea">${post.content}</textarea>
+                        <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">${renderAttachments()}</div>
+                        <div class="post-form-actions" style="padding-top: 1rem;">
+                            <button type="button" class="attachment-button" title="ファイルを追加">${ICONS.attachment}</button>
+                            <input type="file" id="edit-file-input" class="hidden" multiple>
+                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId, currentAttachments, filesToAdd, Array.from(filesToDelete));
+            DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
+            
+            DOM.editPostModal.querySelector('.attachment-button').onclick = () => {
+                DOM.editPostModal.querySelector('#edit-file-input').click();
+            };
+
+            DOM.editPostModal.querySelector('#edit-file-input').onchange = (e) => {
+                filesToAdd.push(...Array.from(e.target.files));
+                updatePreview();
+            };
+
+            DOM.editPostModal.querySelector('.file-preview-container').onclick = (e) => {
+                if (e.target.classList.contains('file-preview-remove')) {
+                    const type = e.target.dataset.type;
+                    if (type === 'existing') {
+                        filesToDelete.add(e.target.dataset.id);
+                    } else if (type === 'new') {
+                        const index = parseInt(e.target.dataset.index);
+                        filesToAdd.splice(index, 1);
+                    }
+                    updatePreview();
+                }
+            };
+
+            DOM.editPostModal.classList.remove('hidden');
+            DOM.editPostModal.querySelector('#edit-post-textarea').focus();
+
+        } catch(e) { console.error(e); alert(e.message); } 
+        finally { showLoading(false); }
+    }
+
+    async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
+        const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
+        const button = DOM.editPostModal.querySelector('#update-post-button');
+        button.disabled = true; button.textContent = '保存中...';
+        showLoading(true);
+
+        try {
+            // 1. ファイルを削除
+            if (filesToDeleteIds.length > 0) {
+                const { error: deleteError } = await supabaseAdmin.storage.from('nyax').remove(filesToDeleteIds);
+                if (deleteError) console.error('ストレージのファイル削除に失敗:', deleteError);
+            }
+
+            // 2. ファイルをアップロード
+            let newUploadedAttachments = [];
+            if (filesToAdd.length > 0) {
+                for (const file of filesToAdd) {
+                    const fileId = crypto.randomUUID();
+                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    newUploadedAttachments.push({ type: fileType, id: fileId, name: file.name });
+                }
+            }
+            
+            // 3. 添付ファイルリストを更新
+            let finalAttachments = originalAttachments.filter(att => !filesToDeleteIds.includes(att.id));
+            finalAttachments.push(...newUploadedAttachments);
+
+            // 4. ポスト情報をDBで更新
+            const { error: postUpdateError } = await supabase.from('post').update({ content: newContent, attachments: finalAttachments.length > 0 ? finalAttachments : null }).eq('id', postId);
+            if (postUpdateError) throw postUpdateError;
+            
+            DOM.editPostModal.classList.add('hidden');
+            router(); // 画面を再読み込みして変更を反映
+
+        } catch(e) { console.error(e); alert('ポストの更新に失敗しました。'); } 
+        finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
+    }
+
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
@@ -1223,26 +1413,27 @@ window.addEventListener('DOMContentLoaded', () => {
         const postId = postElement.dataset.postId;
         
         const menuButton = target.closest('.post-menu-btn');
+        const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
         const likeButton = target.closest('.like-button');
         const starButton = target.closest('.star-button');
         const imageAttachment = target.closest('.attachment-item img');
         const downloadLink = target.closest('.attachment-download-link');
-        const profileLink = target.closest('.user-icon-link, .post-author, .replying-to a, .profile-link');
-
-        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
-        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
-        if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
-        if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
-        if(starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
-        if(imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
-        if(downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if(profileLink) { e.preventDefault(); e.stopPropagation(); window.location.hash = profileLink.getAttribute('href'); return; }
         
-        if (postElement && !target.closest('a, video, audio, button')) {
-            window.location.hash = `#post/${postElement.dataset.postId}`;
-        }
+        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
+        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
+        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
+        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
+        if (replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
+        if (likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
+        if (starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
+        if (imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
+        if (downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+        if (target.closest('a')) { return; } // aタグのクリックはブラウザのデフォルト挙動に任せる
+        
+        // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
+        window.location.hash = `#post/${postElement.dataset.postId}`;
     });
 
     const tabsContainer = document.querySelector('.timeline-tabs');
@@ -1254,16 +1445,19 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // メニューの外側をクリックしたときにメニューを閉じるグローバルリスナー
     document.addEventListener('click', (e) => {
         // メニューボタン自身、またはメニューの内側がクリックされた場合は何もしない
         if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
             return;
         }
 
-        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
-        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
-            menu.classList.add('hidden');
-        });
+        // 開いているメニューがあれば閉じる
+        if (openedMenuPostId) {
+            const openedMenu = document.getElementById(`menu-${openedMenuPostId}`);
+            if (openedMenu) openedMenu.classList.add('hidden');
+            openedMenuPostId = null; // 記録をクリア
+        }
     });
     
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
