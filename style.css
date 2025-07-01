@@ -553,12 +553,14 @@ body {
     content: '';
     position: absolute;
     top: 0;
-    left: 24px; /* アイコンの水平中心 */
+    /* (padding-left 1rem) + (icon-width 48px / 2) */
+    left: calc(1rem + 24px); 
     width: 2px;
-    height: 1rem; /* 上のポストとの間隔（padding-top） */
+    height: 1rem; /* .postのpadding-topに合わせる */
     background-color: var(--border-color);
-    z-index: 0; /* 線を最背面に */
+    z-index: 0;
 }
+
 /* アイコンが線の上に表示されるように調整 */
 .post .user-icon-link {
     position: relative;
