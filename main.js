@@ -830,7 +830,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- [新規追加] DM画面関連 ---
+     // --- [新規追加] DM画面関連 ---
     async function showDmScreen(dmId = null) {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ダイレクトメッセージ</h2>`;
@@ -838,7 +838,7 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.dmContent.innerHTML = '<div class="spinner"></div>';
 
         const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
-        if (error) { DOM.dmContent.innerHTML = 'DMの読み込みに失敗しました。'; return; }
+        if (error) { DOM.dmContent.innerHTML = 'DMの読み込みに失敗しました。'; console.error(error); return; }
 
         let dmListHTML = dms.map(dm => `
             <div class="dm-list-item ${dm.id === dmId ? 'active' : ''}" onclick="window.location.hash='#dm/${dm.id}'">
@@ -943,20 +943,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (currentUser && userId !== currentUser.id) {
                 const actionsContainer = profileHeader.querySelector('#profile-actions');
-                // DMボタン
-                const dmButton = document.createElement('button');
-                dmButton.className = 'dm-button';
-                dmButton.title = 'メッセージを送信';
-                dmButton.innerHTML = ICONS.dm;
-                dmButton.onclick = () => handleDmButtonClick(userId);
-                actionsContainer.appendChild(dmButton);
+                if (actionsContainer) { // ★★★ nullチェックを追加 ★★★
+                    // DMボタン
+                    const dmButton = document.createElement('button');
+                    dmButton.className = 'dm-button';
+                    dmButton.title = 'メッセージを送信';
+                    dmButton.innerHTML = ICONS.dm;
+                    dmButton.onclick = () => handleDmButtonClick(userId);
+                    actionsContainer.appendChild(dmButton);
 
-                // フォローボタン
-                const followButton = document.createElement('button');
-                const isFollowing = currentUser.follow?.includes(userId);
-                updateFollowButtonState(followButton, isFollowing);
-                followButton.onclick = () => window.handleFollowToggle(userId, followButton);
-                actionsContainer.appendChild(followButton);
+                    // フォローボタン
+                    const followButton = document.createElement('button');
+                    const isFollowing = currentUser.follow?.includes(userId);
+                    updateFollowButtonState(followButton, isFollowing);
+                    followButton.onclick = () => window.handleFollowToggle(userId, followButton);
+                    actionsContainer.appendChild(followButton);
+                }
             }
 
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
@@ -1461,14 +1463,16 @@ async function openEditPostModal(postId) {
         finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
     }
     
-// // --- [新規追加] DM操作関数 ---
+    // --- [新規追加] DM操作関数 ---
     async function handleDmButtonClick(targetUserId) {
         if (!currentUser) return;
+        const members = [currentUser.id, targetUserId].sort();
+
         // 1対1のDMが既に存在するかチェック
         const { data: existingDm, error } = await supabase.from('dm')
             .select('id')
-            .contains('member', [currentUser.id, targetUserId])
-            .eq('member', JSON.stringify([currentUser.id, targetUserId].sort())) // メンバーが完全に一致するものを探す
+            .contains('member', members)
+            .eq('member', `{${members.join(',')}}`) // ★★★ integer[]型に合わせた形式に変更 ★★★
             .single();
 
         if (existingDm) {
@@ -1477,7 +1481,7 @@ async function openEditPostModal(postId) {
             if (confirm(`${targetUserId}さんとの新しいDMを作成しますか？`)) {
                 const { data: newDm, error: createError } = await supabase.from('dm').insert({
                     host_id: currentUser.id,
-                    member: [currentUser.id, targetUserId].sort(), // 常にソートして一意性を保つ
+                    member: members,
                     title: `${currentUser.name}, ${targetUserId}`
                 }).select('id').single();
 
