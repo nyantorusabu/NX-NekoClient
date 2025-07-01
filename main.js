@@ -1005,7 +1005,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const followButton = document.createElement('button');
                     const isFollowing = currentUser.follow?.includes(userId);
                     updateFollowButtonState(followButton, isFollowing);
-                    followButton.classList.add('profile-follow-button'); // 共通クラスを追加
+                    followButton.classList.add('profile-follow-button');
                     followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                     actionsContainer.appendChild(followButton);
                 }
