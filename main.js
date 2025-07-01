@@ -455,24 +455,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, isReplyThread = false } = options;
+        const { prepend = false } = options; // isReplyThread オプションを削除
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
         
-        if (isReplyThread) {
-            postEl.classList.add('is-reply-thread');
-        }
-
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
-        // クリックイベントを直接設定
-        userIconLink.addEventListener('click', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            window.location.hash = `#profile/${author.id}`;
-        });
+        // 個別のイベントリスナーは削除
 
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
@@ -776,11 +768,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (relevantReplies.length === 0) return;
 
             relevantReplies.forEach(async (reply, index) => {
-                const replyEl = await renderPost(reply, reply.user, { isReplyThread: true });
+                const replyEl = await renderPost(reply, reply.user); // isReplyThreadオプションを削除
                 if (replyEl) {
-                    // ツリーの開始と終了を判定してクラスを付与
-                    if (index === 0) replyEl.classList.add('is-tree-start');
-                    if (index === relevantReplies.length - 1) replyEl.classList.add('is-tree-end');
                     container.appendChild(replyEl);
                 }
                 
@@ -1415,7 +1404,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-        // --- 13. 初期化処理 ---
+    // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
@@ -1432,19 +1421,16 @@ async function openEditPostModal(postId) {
         const imageAttachment = target.closest('.attachment-item img');
         const downloadLink = target.closest('.attachment-download-link');
         
-        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合は何もしない
-        if (menuButton || editButton || deleteButton || replyButton || likeButton || starButton || imageAttachment || downloadLink || target.closest('a')) {
-             // 各ボタンの処理はここで継続
-            if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); }
-            if (editButton) { e.stopPropagation(); openEditPostModal(postId); }
-            if (deleteButton) { e.stopPropagation(); window.deletePost(postId); }
-            if(replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); }
-            if(likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); }
-            if(starButton) { e.stopPropagation(); window.handleStar(starButton, postId); }
-            if(imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); }
-            if(downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); }
-            return;
-        }
+        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
+        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
+        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
+        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
+        if (replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
+        if (likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
+        if (starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
+        if (imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
+        if (downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+        if (target.closest('a')) { return; } // aタグのクリックはブラウザのデフォルト挙動に任せる
         
         // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
         window.location.hash = `#post/${postElement.dataset.postId}`;
