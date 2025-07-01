@@ -702,23 +702,14 @@ body {
     font-weight: 700;
 }
 
-.recommend-user button, #profile-header .follow-button button, {
-    padding: 0.5rem 1rem !important;
-    border-radius: 9999px !important;
-    font-weight: 700 !important;
-    cursor: pointer !important;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s !important;
-    white-space: nowrap !important;
-}
-
-.profile-follow-button button {
-    border: 1px solid var(--text-color) !important;
-    padding: 0.5rem 1rem !important;
-    border-radius: 9999px !important;
-    font-weight: 700 !important;
-    cursor: pointer !important;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s !important;
-    white-space: nowrap !important;
+/* ★★★ フォローボタンの形状問題を解決 ★★★ */
+.recommend-user button, .profile-follow-button {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px !important; /* !importantで形状を強制 */
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap;
 }
 
 .follow-button-not-following {
@@ -1083,35 +1074,6 @@ body {
     display: flex;
     flex-direction: column;
 }
-.dm-list-item {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.dm-list-item:hover, .dm-list-item.active {
-    background-color: var(--bg-color);
-}
-.dm-list-item-title {
-    font-weight: bold;
-}
-.dm-manage-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-}
-.dm-manage-btn:hover {
-    background-color: #e0e0e0;
-}
-#dm-conversation-container {
-    width: 60%;
-    display: flex;
-    flex-direction: column;
-}
 .dm-conversation-view {
     flex-grow: 1;
     overflow-y: auto;
@@ -1119,9 +1081,11 @@ body {
     display: flex;
     flex-direction: column-reverse; /* 新しいメッセージが下に来るように */
 }
+
+/* ★★★ DMメッセージのレイアウト問題を解決 ★★★ */
 .dm-message-container {
     display: flex;
-    gap: 0.8rem; /* アイコンと吹き出しの間隔を調整 */
+    gap: 0.8rem;
     margin-bottom: 1rem;
     max-width: 80%;
     align-items: flex-end; /* アイコンと吹き出しの下端を揃える */
@@ -1142,25 +1106,22 @@ body {
 .dm-message-wrapper {
     display: flex;
     flex-direction: column;
-    flex: 1; /* アイコンの隣の残りのスペースをすべて使う */
-}
-.dm-message-container.sent .dm-message-wrapper {
-    align-items: flex-end;
-}
-.dm-message-container.received .dm-message-wrapper {
-    align-items: flex-start;
 }
 .dm-message-meta {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
     margin-bottom: 0.25rem;
+    padding: 0 0.5rem;
+}
+.dm-message-container.sent .dm-message-meta {
+    text-align: right;
 }
 .dm-message {
     padding: 0.8rem 1rem;
-    border-radius: 16px;
+    border-radius: 18px; /* 角を少し丸く */
     white-space: pre-wrap;
     word-wrap: break-word;
-    font-weight: 400; /* 太字をリセット */
+    font-weight: 400; /* 文字の太さを明示的に指定 */
     line-height: 1.4;
 }
 .dm-message.sent {
@@ -1170,6 +1131,7 @@ body {
 }
 .dm-message.received {
     background-color: var(--bg-color);
+    color: var(--text-color); /* 文字色を明示 */
     border-bottom-left-radius: 4px;
 }
 .dm-message-form {
