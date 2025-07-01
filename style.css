@@ -1054,20 +1054,40 @@ body {
     display: flex;
     flex-direction: column;
 }
-.dm-new-message-btn {
-    width: 100%;
-    padding: 1rem;
-    font-weight: bold;
-    font-size: 1rem;
-    color: var(--primary-color);
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    background-color: white;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
 .dm-new-message-btn:hover {
     background-color: var(--bg-color);
+}
+
+/* ★★★ DM一覧のレイアウト崩れを修正 ★★★ */
+.dm-list-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem; /* タイトルとボタンの間隔 */
+}
+.dm-list-item:hover, .dm-list-item.active {
+    background-color: var(--bg-color);
+}
+.dm-list-item-title {
+    font-weight: bold;
+    flex-grow: 1; /* 利用可能なスペースを埋める */
+    white-space: nowrap; /* 折り返しを防ぐ */
+    overflow: hidden; /* はみ出しを隠す */
+    text-overflow: ellipsis; /* 省略記号(...)を表示 */
+}
+.dm-manage-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    flex-shrink: 0; /* ボタンが縮まないようにする */
+}
+.dm-manage-btn:hover {
+    background-color: #e0e0e0;
 }
 #dm-conversation-container {
     width: 60%;
@@ -1082,7 +1102,7 @@ body {
     flex-direction: column-reverse; /* 新しいメッセージが下に来るように */
 }
 
-/* ★★★ DMメッセージのレイアウト問題を解決 ★★★ */
+/* ★★★ DMメッセージのレイアウト崩れを修正 ★★★ */
 .dm-message-container {
     display: flex;
     gap: 0.8rem;
@@ -1106,6 +1126,7 @@ body {
 .dm-message-wrapper {
     display: flex;
     flex-direction: column;
+    /* flex: 1; を削除。これがレイアウト崩れの主原因でした */
 }
 .dm-message-meta {
     font-size: 0.8rem;
