@@ -13,6 +13,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let resetIconToDefault = false;
     let openedMenuPostId = null;
     let currentDmChannel = null;
+    let lastRenderedMessageId = null;
     let allUsersCache = {};
     
     let isLoadingMore = false;
@@ -92,6 +93,26 @@ window.addEventListener('DOMContentLoaded', () => {
     function getUserIconUrl(user) {
         if (!user) return 'favicon.png';
         return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+    }
+
+    function renderDmMessage(msg) {
+        if (msg.type === 'system') {
+            return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
+        }
+        const user = allUsersCache[msg.userid] || {};
+        const sent = msg.userid === currentUser.id;
+        const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+        return `
+        <div class="dm-message-container ${sent ? 'sent' : 'received'}">
+            <img src="${getUserIconUrl(user)}" class="dm-message-icon">
+            <div class="dm-message-wrapper">
+                <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
+                <div class="dm-message">
+                    ${escapeHTML(msg.content)}
+                </div>
+            </div>
+        </div>`;
     }
 
     function updateFollowButtonState(buttonElement, isFollowing) {
@@ -888,20 +909,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const memberIds = dm.member.filter(id => !allUsersCache[id]);
         if(memberIds.length > 0) {
             const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
-            users.forEach(u => allUsersCache[u.id] = u);
+            if(users) users.forEach(u => allUsersCache[u.id] = u);
         }
-
-        const messagesHTML = (dm.post || []).slice().reverse().map(msg => {
-            const user = allUsersCache[msg.userid] || {};
-            const sent = msg.userid === currentUser.id;
-            return `
-            <div class="dm-message-container ${sent ? 'sent' : 'received'}">
-                <img src="${getUserIconUrl(user)}" class="dm-message-icon">
-                <div class="dm-message">
-                    ${escapeHTML(msg.content)}
-                </div>
-            </div>`
-        }).join('');
+        
+        const posts = dm.post || [];
+        const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
         
         container.innerHTML = `
             <div class="dm-conversation-view">${messagesHTML}</div>
@@ -919,17 +931,22 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         document.getElementById('send-dm-btn').onclick = () => sendDmMessage(dmId);
 
+        lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
+
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
         currentDmChannel = supabase.channel(`dm-${dmId}`)
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, payload => {
                 const newPost = payload.new.post;
                 if(newPost && newPost.length > 0) {
                     const latestMessage = newPost[newPost.length - 1];
+                    if(latestMessage.id === lastRenderedMessageId) return;
+
                     const view = document.querySelector('.dm-conversation-view');
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = `dm-message ${latestMessage.userid === currentUser.id ? 'sent' : 'received'}`;
-                    msgDiv.textContent = latestMessage.content;
-                    view.prepend(msgDiv); // flex-direction: column-reverseなので先頭に追加
+                    if(view) {
+                        const msgHTML = renderDmMessage(latestMessage);
+                        view.insertAdjacentHTML('afterbegin', msgHTML);
+                        lastRenderedMessageId = latestMessage.id;
+                    }
                 }
             }).subscribe();
     }
@@ -1245,7 +1262,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 11. ユーザーアクション (変更なし) ---
+     // --- 11. ユーザーアクション ---
     window.togglePostMenu = (postId) => {
         // 既に他のメニューが開いていたら、それを閉じる
         if (openedMenuPostId && openedMenuPostId !== postId) {
@@ -1334,13 +1351,13 @@ window.addEventListener('DOMContentLoaded', () => {
             await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
             alert('お気に入り数の更新に失敗しました。');
         } else {
-            currentUser.star = updatedStars; 
-            localStorage.setItem('currentUser', JSON.stringify(currentUser)); // この行が抜けていた
+            currentUser.star = updatedStars;
+            // localStorageはIDしか保持しないので更新不要
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('starred', !isStarred);
-        iconSpan.textContent = isStarred ? '★' : '☆';
-        if (!isStarred) {
-            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+            iconSpan.textContent = isStarred ? '☆' : '★'; // アイコンのトグルを修正
+            if (!isStarred) {
+                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
             if (postData?.userid && postData.userid !== currentUser.id) {
                 sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
             }
@@ -1485,7 +1502,7 @@ async function openEditPostModal(postId) {
                             ${memberDetails.map(m => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
                                     <span>${escapeHTML(m.name)} (#${m.id}) ${m.id === dm.host_id ? '(ホスト)' : ''}</span>
-                                    ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}">削除</button>` : ''}
+                                    ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">削除</button>` : ''}
                                 </div>`).join('')}
                         </div>
                     </div>
@@ -1495,12 +1512,12 @@ async function openEditPostModal(postId) {
                         <div id="dm-add-member-results" style="margin-top: 0.5rem; max-height: 150px; overflow-y: auto;"></div>
                     </div>
                     <hr>
-                    <button id="disband-dm-btn" style="color: red; align-self: flex-end;">DMを解散</button>
+                    <button id="disband-dm-btn" style="align-self: flex-end;">DMを解散</button>
                 `;
             } else {
                 html += `
                     <p>このDMから退出しますか？<br>一度退出すると、再度招待されない限り参加できません。</p>
-                    <button id="leave-dm-btn" style="color: red; align-self: flex-end;">DMから退出</button>
+                    <button id="leave-dm-btn" style="align-self: flex-end;">DMから退出</button>
                 `;
             }
             html += `</div>`;
@@ -1512,7 +1529,9 @@ async function openEditPostModal(postId) {
                 document.getElementById('disband-dm-btn').onclick = () => handleDisbandDm(dmId);
                 
                 document.querySelectorAll('.remove-member-btn').forEach(btn => {
-                    btn.onclick = () => handleRemoveDmMember(dmId, parseInt(btn.dataset.userId));
+                    const userId = parseInt(btn.dataset.userId);
+                    const userName = btn.dataset.userName;
+                    btn.onclick = () => handleRemoveDmMember(dmId, userId, userName);
                 });
                 
                 const searchInput = document.getElementById('dm-add-member-search');
@@ -1534,7 +1553,11 @@ async function openEditPostModal(postId) {
                 });
                 resultsContainer.addEventListener('click', (e) => {
                     const userDiv = e.target.closest('[data-user-id]');
-                    if (userDiv) handleAddDmMember(dmId, parseInt(userDiv.dataset.userId));
+                    if (userDiv) {
+                        const userId = parseInt(userDiv.dataset.userId);
+                        const userName = userDiv.querySelector('strong').textContent;
+                        handleAddDmMember(dmId, userId, userName);
+                    }
                 });
 
             } else {
@@ -1558,8 +1581,8 @@ async function openEditPostModal(postId) {
         }
     }
 
-    async function handleRemoveDmMember(dmId, userIdToRemove) {
-        if (!confirm(`このユーザーをDMから削除しますか？`)) return;
+    async function handleRemoveDmMember(dmId, userIdToRemove, userNameToRemove) {
+        if (!confirm(`${userNameToRemove}さんをDMから削除しますか？`)) return;
 
         const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
         const updatedMembers = dm.member.filter(id => id !== userIdToRemove);
@@ -1568,13 +1591,15 @@ async function openEditPostModal(postId) {
         if (error) {
             alert('メンバーの削除に失敗しました。');
         } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToRemove}さんを強制退出させました`);
+            await sendNotification(userIdToRemove, `${currentUser.name}さんによってDMから削除されました。`);
             alert('メンバーを削除しました。');
             openDmManageModal(dmId); // モーダルを再描画
         }
     }
 
-    async function handleAddDmMember(dmId, userIdToAdd) {
-        if (!confirm(`このユーザーをDMに追加しますか？`)) return;
+    async function handleAddDmMember(dmId, userIdToAdd, userNameToAdd) {
+        if (!confirm(`${userNameToAdd}さんをDMに追加しますか？`)) return;
 
         const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
         if (dm.member.includes(userIdToAdd)) {
@@ -1587,6 +1612,8 @@ async function openEditPostModal(postId) {
         if (error) {
             alert('メンバーの追加に失敗しました。');
         } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToAdd}さんを招待しました`);
+            await sendNotification(userIdToAdd, `${currentUser.name}さんがあなたをDMに招待しました。`);
             alert('メンバーを追加しました。');
             openDmManageModal(dmId); // モーダルを再描画
         }
@@ -1602,6 +1629,7 @@ async function openEditPostModal(postId) {
         if (error) {
             alert('DMからの退出に失敗しました。');
         } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが退出しました`);
             alert('DMから退出しました。');
             DOM.dmManageModal.classList.add('hidden');
             window.location.hash = '#dm';
@@ -1621,8 +1649,25 @@ async function openEditPostModal(postId) {
         }
     }
 
+    async function sendSystemDmMessage(dmId, content) {
+        const message = {
+            id: crypto.randomUUID(),
+            time: new Date().toISOString(),
+            type: 'system',
+            content: content,
+        };
+        await supabase.rpc('append_to_dm_post', { dm_id_in: dmId, new_message_in: message });
+    }
+
     async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
         const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
+        const editPostTextarea = DOM.editPostModal.querySelector('#edit-post-textarea');
+        editPostTextarea.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds);
+            }
+        });
         const button = DOM.editPostModal.querySelector('#update-post-button');
         button.disabled = true; button.textContent = '保存中...';
         showLoading(true);
@@ -1762,7 +1807,7 @@ async function openEditPostModal(postId) {
             userid: currentUser.id,
             reply_id: null,
             content: content,
-            attachments: [] // 今回は添付ファイルは未実装
+            attachments: []
         };
 
         const { error } = await supabase.rpc('append_to_dm_post', {
