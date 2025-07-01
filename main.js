@@ -18,7 +18,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
     const POSTS_PER_PAGE = 10;
 
-    // --- 2. アイコンSVG定義 ---
+     // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
@@ -28,6 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
         profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
+        back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -453,7 +454,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-        if (!post || !author) return null; // Postの編集機能より前の時点でのコードに合わせるため、一部引数を削除
+        if (!post || !author) return null;
         const { prepend = false, isReplyThread = false } = options;
 
         const postEl = document.createElement('div');
@@ -461,20 +462,17 @@ window.addEventListener('DOMContentLoaded', () => {
         postEl.dataset.postId = post.id;
         
         if (isReplyThread) {
-            postEl.classList.add('reply-thread-item');
+            postEl.classList.add('is-reply-thread');
         }
 
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
-        userIconLink.style.position = 'relative'; // z-indexと背景のため
-        userIconLink.style.zIndex = '1';
 
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
         userIcon.alt = `${author.name}'s icon`;
-        userIcon.style.backgroundColor = 'white'; // 線がアイコンを透過しないように
         userIconLink.appendChild(userIcon);
         postEl.appendChild(userIconLink);
 
@@ -744,7 +742,11 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showPostDetail(postId) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">ポスト</h2>`;
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+                <h2 id="page-title">ポスト</h2>
+            </div>`;
         showScreen('post-detail-screen');
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
@@ -810,7 +812,11 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">プロフィール</h2>`;
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+                <h2 id="page-title">プロフィール</h2>
+            </div>`;
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
@@ -1234,88 +1240,125 @@ async function openEditPostModal(postId) {
             const { data: post, error } = await supabase.from('post').select('content, attachments').eq('id', postId).single();
             if (error || !post) throw new Error('ポスト情報の取得に失敗しました。');
             
-            let attachmentsHTML = '';
-            if (post.attachments && post.attachments.length > 0) {
-                for (const attachment of post.attachments) {
-                    const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
-                    const publicURL = publicUrlData.publicUrl;
-                    
-                    let itemHTML = '';
-                    if (attachment.type === 'image') {
-                        itemHTML = `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" style="max-width: 100px; max-height: 100px; border-radius: 8px;">`;
-                    } else if (attachment.type === 'video') {
-                        itemHTML = `<span>📹 ${escapeHTML(attachment.name)}</span>`;
-                    } else if (attachment.type === 'audio') {
-                        itemHTML = `<span>🎵 ${escapeHTML(attachment.name)}</span>`;
-                    } else {
-                        itemHTML = `<span>📄 ${escapeHTML(attachment.name)}</span>`;
-                    }
-                    attachmentsHTML += `<div class="attachment-item" style="display: inline-block; margin: 4px;">${itemHTML}</div>`;
-                }
-            }
+            let currentAttachments = post.attachments || [];
+            let filesToDelete = new Set();
+            let filesToAdd = [];
+
+            const renderAttachments = () => {
+                let existingAttachmentsHTML = '';
+                currentAttachments.forEach((attachment, index) => {
+                    if (filesToDelete.has(attachment.id)) return;
+                    existingAttachmentsHTML += `
+                        <div class="file-preview-item">
+                            <span>${attachment.type === 'image' ? '🖼️' : '📎'} ${escapeHTML(attachment.name)}</span>
+                            <button class="file-preview-remove" data-id="${attachment.id}" data-type="existing">×</button>
+                        </div>`;
+                });
+
+                let newAttachmentsHTML = '';
+                filesToAdd.forEach((file, index) => {
+                    newAttachmentsHTML += `
+                        <div class="file-preview-item">
+                            <span>${file.type.startsWith('image/') ? '🖼️' : '📎'} ${escapeHTML(file.name)}</span>
+                            <button class="file-preview-remove" data-index="${index}" data-type="new">×</button>
+                        </div>`;
+                });
+                return existingAttachmentsHTML + newAttachmentsHTML;
+            };
+
+            const updatePreview = () => {
+                const container = DOM.editPostModalContent.querySelector('.file-preview-container');
+                if (container) container.innerHTML = renderAttachments();
+            };
 
             DOM.editPostModalContent.innerHTML = `
                 <div class="post-form" style="padding: 1rem;">
                     <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="your icon">
                     <div class="form-content">
-                        <textarea id="edit-post-textarea" style="width: 100%; min-height: 120px; font-size: 1.2rem; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; resize: vertical;" maxlength="280">${post.content}</textarea>
-                        ${attachmentsHTML ? `
-                            <div class="edit-modal-attachments">
-                                <p>添付ファイル（編集できません）</p>
-                                <div class="attachments-container">${attachmentsHTML}</div>
-                            </div>
-                        ` : ''}
-                        <div class="post-form-actions" style="justify-content: flex-end; padding-top: 1rem;">
-                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700;">保存</button>
+                        <textarea id="edit-post-textarea" class="post-form-textarea">${post.content}</textarea>
+                        <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">${renderAttachments()}</div>
+                        <div class="post-form-actions" style="padding-top: 1rem;">
+                            <button type="button" class="attachment-button" title="ファイルを追加">${ICONS.attachment}</button>
+                            <input type="file" id="edit-file-input" class="hidden" multiple>
+                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
                         </div>
                     </div>
                 </div>
             `;
             
-            DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId);
+            DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId, currentAttachments, filesToAdd, Array.from(filesToDelete));
             DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
+            
+            DOM.editPostModal.querySelector('.attachment-button').onclick = () => {
+                DOM.editPostModal.querySelector('#edit-file-input').click();
+            };
+
+            DOM.editPostModal.querySelector('#edit-file-input').onchange = (e) => {
+                filesToAdd.push(...Array.from(e.target.files));
+                updatePreview();
+            };
+
+            DOM.editPostModal.querySelector('.file-preview-container').onclick = (e) => {
+                if (e.target.classList.contains('file-preview-remove')) {
+                    const type = e.target.dataset.type;
+                    if (type === 'existing') {
+                        filesToDelete.add(e.target.dataset.id);
+                    } else if (type === 'new') {
+                        const index = parseInt(e.target.dataset.index);
+                        filesToAdd.splice(index, 1);
+                    }
+                    updatePreview();
+                }
+            };
+
             DOM.editPostModal.classList.remove('hidden');
             DOM.editPostModal.querySelector('#edit-post-textarea').focus();
 
-        } catch(e) {
-            console.error(e);
-            alert(e.message);
-        } finally {
-            showLoading(false);
-        }
+        } catch(e) { console.error(e); alert(e.message); } 
+        finally { showLoading(false); }
     }
 
-    async function handleUpdatePost(postId) {
+    async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
         const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
-        if (!newContent) {
-            alert('ポスト内容は空にできません。');
-            return;
-        }
-
         const button = DOM.editPostModal.querySelector('#update-post-button');
-        button.disabled = true;
-        button.textContent = '保存中...';
+        button.disabled = true; button.textContent = '保存中...';
         showLoading(true);
 
         try {
-            const { error } = await supabase.from('post').update({ content: newContent }).eq('id', postId);
-            if (error) throw error;
+            // 1. ファイルを削除
+            if (filesToDeleteIds.length > 0) {
+                const { error: deleteError } = await supabaseAdmin.storage.from('nyax').remove(filesToDeleteIds);
+                if (deleteError) console.error('ストレージのファイル削除に失敗:', deleteError);
+            }
+
+            // 2. ファイルをアップロード
+            let newUploadedAttachments = [];
+            if (filesToAdd.length > 0) {
+                for (const file of filesToAdd) {
+                    const fileId = crypto.randomUUID();
+                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    newUploadedAttachments.push({ type: fileType, id: fileId, name: file.name });
+                }
+            }
+            
+            // 3. 添付ファイルリストを更新
+            let finalAttachments = originalAttachments.filter(att => !filesToDeleteIds.includes(att.id));
+            finalAttachments.push(...newUploadedAttachments);
+
+            // 4. ポスト情報をDBで更新
+            const { error: postUpdateError } = await supabase.from('post').update({ content: newContent, attachments: finalAttachments.length > 0 ? finalAttachments : null }).eq('id', postId);
+            if (postUpdateError) throw postUpdateError;
             
             DOM.editPostModal.classList.add('hidden');
-            const postContentElement = document.querySelector(`.post[data-post-id="${postId}"] .post-content p`);
-            if (postContentElement) {
-                postContentElement.innerHTML = await formatPostContent(newContent);
-            }
-        } catch(e) {
-            console.error(e);
-            alert('ポストの更新に失敗しました。');
-        } finally {
-            button.disabled = false;
-            button.textContent = '保存';
-            showLoading(false);
-        }
+            router(); // 画面を再読み込みして変更を反映
+
+        } catch(e) { console.error(e); alert('ポストの更新に失敗しました。'); } 
+        finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
     }
-    
+
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
