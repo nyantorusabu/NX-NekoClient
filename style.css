@@ -73,7 +73,7 @@ body {
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
-    transition: stroke-width 0.2s;
+    transition: stroke-width 0.2s, fill 0.2s;
 }
 
 .nav-item:hover {
@@ -88,14 +88,14 @@ body {
     fill: none;
 }
 
-/* ホームタブのみアクティブ時に塗りつぶす */
-.nav-item[href="#"].active svg path:nth-child(1),
-.nav-item[href="#"].active svg rect {
+/* ホームタブのみアクティブ時に特別に塗りつぶす */
+.nav-item[href="#"].active svg path {
     fill: currentColor;
 }
 .nav-item[href="#"].active svg rect {
-    stroke: white; /* アイコン内の白い四角の境界線 */
-    stroke-width: 2;
+    fill: white;
+    stroke: currentColor;
+    stroke-width: 1.5;
 }
 
 /* 検索とメッセージ(DM)は枠線を太くする */
@@ -104,6 +104,7 @@ body {
     stroke-width: 2.5;
 }
 
+/* その他のアイコンはシンプルに塗りつぶす */
 .nav-item.active:not([href="#"]):not([href="#explore"]):not([href^="#dm"]) svg {
     fill: currentColor;
 }
@@ -890,6 +891,10 @@ body {
     fill: none;
 }
 
+#profile-header .follow-button button {
+    border-radius: 9999px !important; /* 強制的に丸くする */
+}
+
 #profile-header .profile-info {
     margin-top: 1rem;
 }
@@ -1099,7 +1104,7 @@ body {
 .dm-message-container {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem; /* メッセージ間の間隔を調整 */
     max-width: 80%;
 }
 .dm-message-container.sent {
@@ -1115,6 +1120,18 @@ body {
     border-radius: 50%;
     flex-shrink: 0;
     align-self: flex-end;
+}
+.dm-message-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+.dm-message-meta {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+    margin-bottom: 0.25rem;
+}
+.dm-message-container.sent .dm-message-meta {
+    text-align: right;
 }
 .dm-message {
     padding: 0.5rem 1rem;
@@ -1166,10 +1183,46 @@ body {
     height: 20px;
     fill: white;
 }
+.dm-system-message {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+    text-align: center;
+    padding: 0.5rem;
+    width: 100%;
+}
 .dm-welcome-message {
     margin: auto;
     text-align: center;
     color: var(--secondary-text-color);
+}
+
+/* DM管理モーダルのボタンスタイル */
+#dm-manage-modal-content button {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: none;
+}
+#dm-manage-modal-content button:hover {
+    background-color: var(--bg-color);
+}
+#dm-manage-modal-content #save-dm-title-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+#dm-manage-modal-content .remove-member-btn,
+#dm-manage-modal-content #leave-dm-btn,
+#dm-manage-modal-content #disband-dm-btn {
+    color: var(--like-color);
+    border-color: #fdd8e5;
+}
+#dm-manage-modal-content .remove-member-btn:hover,
+#dm-manage-modal-content #leave-dm-btn:hover,
+#dm-manage-modal-content #disband-dm-btn:hover {
+    background-color: #fef0f4;
 }
 
 /* ローディング */
