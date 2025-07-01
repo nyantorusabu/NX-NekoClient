@@ -870,7 +870,32 @@ body {
     border-radius: 50%;
 }
 
+#profile-header .profile-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+#profile-header .dm-button {
+    padding: 0.5rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#profile-header .dm-button:hover {
+    background-color: var(--bg-color);
+}
+#profile-header .dm-button svg {
+    width: 20px;
+    height: 20px;
+}
+
 #profile-header .profile-info {
+    margin-top: 1rem;
+}
     margin-top: 1rem;
 }
 
@@ -1009,6 +1034,88 @@ body {
     color: white;
     font-weight: 700;
     cursor: pointer;
+}
+
+/* DM画面のスタイル */
+#dm-content {
+    display: flex;
+    height: calc(100vh - 57px); /* ヘッダー分を引く */
+}
+#dm-list-container {
+    width: 40%;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+}
+#dm-conversation-container {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+}
+.dm-list-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+.dm-list-item:hover, .dm-list-item.active {
+    background-color: var(--bg-color);
+}
+.dm-list-item-title {
+    font-weight: bold;
+}
+.dm-conversation-view {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column-reverse; /* 新しいメッセージが下に来るように */
+}
+.dm-message {
+    max-width: 70%;
+    padding: 0.5rem 1rem;
+    border-radius: 16px;
+    margin-bottom: 0.5rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.dm-message.sent {
+    background-color: var(--primary-color);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+.dm-message.received {
+    background-color: var(--bg-color);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+.dm-message-form {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+}
+.dm-message-form textarea {
+    flex-grow: 1;
+    resize: none;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.5rem;
+    font-size: 1rem;
+}
+.dm-message-form button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+.dm-welcome-message {
+    margin: auto;
+    text-align: center;
+    color: var(--secondary-text-color);
 }
 
 /* ローディング */
