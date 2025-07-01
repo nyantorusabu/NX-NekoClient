@@ -569,45 +569,9 @@ body {
     font-weight: bold;
 }
 
-/* 返信ツリーの垂直線スタイル */
-.post.is-reply-thread {
-    position: relative;
-}
-/* 上側の線 */
-.post.is-reply-thread::before {
-    content: '';
-    position: absolute;
-    bottom: calc(100% - 2rem); /* アイコン上端から上へ */
-    left: calc(1rem + 24px); 
-    width: 2px;
-    height: 1rem;
-    background-color: var(--border-color);
-    z-index: 0;
-}
-/* 下側の線 */
-.post.is-reply-thread::after {
-    content: '';
-    position: absolute;
-    top: calc(1rem + 48px); /* アイコン下端から下へ */
-    left: calc(1rem + 24px); 
-    width: 2px;
-    height: calc(100% - 1rem - 48px); /* ポストの高さに合わせて調整 */
-    background-color: var(--border-color);
-    z-index: 0;
-}
-
-/* ツリーの最初と最後の要素で不要な線を非表示にするためのクラス */
-.post.is-reply-thread.is-tree-start::before { display: none; }
-.post.is-reply-thread.is-tree-end::after { display: none; }
-
-
-/* アイコンが線の上に表示されるように調整 */
+/* アイコンが縦に伸びるのを防ぎ、クリック範囲をアイコンの高さに限定する */
 .post .user-icon-link {
-    position: relative;
-    z-index: 1;
-}
-.post .user-icon {
-    background-color: white; /* 線の透過を防ぐ */
+    align-self: flex-start;
 }
 
 .replying-to a {
