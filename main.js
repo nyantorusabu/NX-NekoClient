@@ -510,7 +510,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn);
+            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
@@ -764,7 +764,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const replyEl = await renderPost(reply, reply.user, { isReplyThread: true });
                 if (replyEl) container.appendChild(replyEl);
 
-                // メイン投稿者か、この返信の投稿者による更なる返信があれば再帰的に取得
+                // メイン投稿者か、この返信の投稿者自身による更なる返信があれば再帰的に取得
                 const isAuthor = (reply.user && reply.userid === reply.user.id);
                 if (reply.userid === mainPostAuthorId || isAuthor) {
                     await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
@@ -1356,7 +1356,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-      // --- 13. 初期化処理 ---
+       // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
         const postElement = target.closest('.post');
