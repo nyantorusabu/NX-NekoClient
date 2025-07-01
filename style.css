@@ -545,11 +545,26 @@ body {
     font-weight: bold;
 }
 
+/* 返信ツリーの垂直線スタイル */
+.post.reply-thread-item {
+    position: relative;
+    padding-top: 0; /* 線が描画されるスペースを確保するため調整 */
+}
+
+.post.reply-thread-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 24px; /* アイコンの水平中心 */
+    width: 2px;
+    height: 1rem; /* 上のポストとの間隔（padding-top）に合わせる */
+    background-color: var(--border-color);
+}
+
 .replying-to a {
     color: var(--primary-color);
     text-decoration: none;
 }
-
 .parent-post-container {
     padding-left: 1rem;
     border-left: 2px solid var(--border-color);
