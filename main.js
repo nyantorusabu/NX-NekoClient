@@ -63,6 +63,8 @@ window.addEventListener('DOMContentLoaded', () => {
         createDmModalContent: document.getElementById('create-dm-modal-content'),
         dmManageModal: document.getElementById('dm-manage-modal'),
         dmManageModalContent: document.getElementById('dm-manage-modal-content'),
+        connectionErrorOverlay: document.getElementById('connection-error-overlay'),
+        retryConnectionBtn: document.getElementById('retry-connection-btn'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
@@ -99,20 +101,28 @@ window.addEventListener('DOMContentLoaded', () => {
         if (msg.type === 'system') {
             return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
         }
-        const user = allUsersCache[msg.userid] || {};
+        
         const sent = msg.userid === currentUser.id;
-        const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-
-        return `
-        <div class="dm-message-container ${sent ? 'sent' : 'received'}">
-            <img src="${getUserIconUrl(user)}" class="dm-message-icon">
-            <div class="dm-message-wrapper">
-                <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
-                <div class="dm-message">
-                    ${escapeHTML(msg.content)}
+        
+        if (sent) {
+            // 自分のメッセージ
+            return `<div class="dm-message-container sent">
+                <div class="dm-message-wrapper">
+                    <div class="dm-message">${escapeHTML(msg.content)}</div>
                 </div>
-            </div>
-        </div>`;
+            </div>`;
+        } else {
+            // 他の人のメッセージ
+            const user = allUsersCache[msg.userid] || {};
+            const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            return `<div class="dm-message-container received">
+                <img src="${getUserIconUrl(user)}" class="dm-message-icon">
+                <div class="dm-message-wrapper">
+                    <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
+                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                </div>
+            </div>`;
+        }
     }
 
     function updateFollowButtonState(buttonElement, isFollowing) {
@@ -304,21 +314,24 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
+                DOM.connectionErrorOverlay.classList.add('hidden');
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
                 subscribeToChanges();
+                router();
             } catch (error) {
                 console.error(error);
                 currentUser = null;
-                localStorage.removeItem('nyaxUserId');
+                // localStorageは削除せず、エラー画面を表示
+                DOM.connectionErrorOverlay.classList.remove('hidden');
             }
         } else {
             currentUser = null;
+            router();
         }
-        router();
     }
-    
+
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
@@ -1921,6 +1934,8 @@ async function openEditPostModal(postId) {
         }
     });
     
+    DOM.retryConnectionBtn.addEventListener('click', checkSession);
+
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
