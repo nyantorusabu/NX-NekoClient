@@ -154,28 +154,23 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error('通知送信中にエラー発生:', e); }
     }
     
-    async function formatPostContent(text) {
+    function formatPostContent(text, userCache) {
         let formattedText = escapeHTML(text);
         const urlRegex = /(https?:\/\/[^\s<>"'’]+)/g;
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
         const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
         formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
+        
         const mentionRegex = /@(\d+)/g;
-        const userIds = [...formattedText.matchAll(mentionRegex)].map(match => parseInt(match[1]));
-        if (userIds.length > 0) {
-            const { data: users, error } = await supabase.from('user').select('id, name').in('id', userIds);
-            if (!error && users) {
-                const userMap = new Map(users.map(user => [user.id, user.name]));
-                formattedText = formattedText.replace(mentionRegex, (match, userId) => {
-                    const numericId = parseInt(userId);
-                    if (userMap.has(numericId)) {
-                        const userName = userMap.get(numericId);
-                        return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
-                    }
-                    return match;
-                });
+        formattedText = formattedText.replace(mentionRegex, (match, userId) => {
+            const numericId = parseInt(userId);
+            if (userCache.has(numericId)) {
+                const userName = userCache.get(numericId).name;
+                return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
             }
-        }
+            return match; // キャッシュにない場合はそのまま表示
+        });
+
         return formattedText;
     }
 
@@ -516,7 +511,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false } = options; // isReplyThread オプションを削除
+        const { prepend = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
@@ -640,12 +635,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
 
-            const { count: replyCountData } = await supabase.from('post').select('id', {count: 'exact', head: true}).eq('reply_id', post.id);
+            const replyCount = replyCountsMap.get(post.id) || 0;
 
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
             replyBtn.title = '返信';
-            replyBtn.innerHTML = `🗨 <span>${replyCountData || 0}</span>`;
+            replyBtn.innerHTML = `🗨 <span>${replyCount}</span>`;
             replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
 
@@ -809,17 +804,17 @@ window.addEventListener('DOMContentLoaded', () => {
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
-        // 返信を再帰的に取得・描画する内部関数
+         // 返信を再帰的に取得・描画する内部関数
         const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
-            // if (depth > 5) return; // 階層の上限を撤廃
+            // 階層の上限を撤廃
 
             const { data: replies, error } = await supabase.from('post')
-                .select('*, user(*), reply_to:reply_id(*, user(*))')
+                .select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))')
                 .eq('reply_id', parentId)
                 .order('time', { ascending: true });
 
             if (error || !replies || replies.length === 0) return;
-
+            
             // ツリー分岐の対象となる返信のみをフィルタリング
             const relevantReplies = replies.filter(reply => {
                 const isAuthor = (reply.user && reply.userid === reply.user.id);
@@ -840,7 +835,7 @@ window.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            const { data: post, error } = await supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))').eq('id', postId).single();
+            const { data: post, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
             if (error || !post) throw new Error('ポストが見つかりません。');
             
             contentDiv.innerHTML = '';
@@ -1163,8 +1158,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
-
-            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
+            
+            // 1. データ取得クエリの準備 (user情報を限定)
+            let query = supabase.from('post').select('*, user(id, name, scid, icon_data)');
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null); // 返信ではないトップレベルのポストのみを取得
@@ -1174,7 +1170,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-             } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
             }
@@ -1189,7 +1185,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(postLoadObserver) postLoadObserver.unobserve(trigger);
                 return;
             }
-
+            
+            // 2. ポストデータを取得
             const { data: posts, error } = await query.range(from, to);
 
             if (error) {
@@ -1197,9 +1194,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (posts.length > 0) {
-                    // 通常のポスト描画処理
+                    const postIds = posts.map(p => p.id);
+
+                    // 3. RPCで返信数を一括取得
+                    const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: postIds });
+                    const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
+
+                    // 4. メンションユーザーを一括取得 & キャッシュ
+                    const mentionRegex = /@(\d+)/g;
+                    const allMentionedIds = new Set();
+                    posts.forEach(p => {
+                        const matches = p.content.matchAll(mentionRegex);
+                        for (const match of matches) {
+                            allMentionedIds.add(parseInt(match[1]));
+                        }
+                    });
+                    
+                    const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache[id]);
+                    if (newIdsToFetch.length > 0) {
+                        const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                        if(newUsers) newUsers.forEach(u => allUsersCache[u.id] = u);
+                    }
+                    // allUsersCacheをMapに変換してformatPostContentに渡す
+                    const userCacheForRender = new Map(Object.entries(allUsersCache).map(([id, user]) => [parseInt(id), user]));
+
+                    // 5. ポストを描画
                     for (const post of posts) {
-                        const postEl = await renderPost(post, post.user || {});
+                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender });
                         if (postEl) trigger.before(postEl);
                     }
     
