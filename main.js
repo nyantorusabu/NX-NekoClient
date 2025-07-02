@@ -12,6 +12,9 @@ window.addEventListener('DOMContentLoaded', () => {
     let newIconDataUrl = null;
     let resetIconToDefault = false;
     let openedMenuPostId = null;
+    let currentDmChannel = null;
+    let lastRenderedMessageId = null;
+    let allUsersCache = {};
     
     let isLoadingMore = false;
     let postLoadObserver;
@@ -21,6 +24,8 @@ window.addEventListener('DOMContentLoaded', () => {
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><rect x="9" y="12" width="6" height="10"></rect></svg>`,
+        dm: `<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
+        send: `<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`,
         explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
         notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
         likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
@@ -52,6 +57,14 @@ window.addEventListener('DOMContentLoaded', () => {
         postDetailContent: document.getElementById('post-detail-content'),
         searchResultsScreen: document.getElementById('search-results-screen'),
         searchResultsContent: document.getElementById('search-results-content'),
+        dmScreen: document.getElementById('dm-screen'),
+        dmContent: document.getElementById('dm-content'),
+        createDmModal: document.getElementById('create-dm-modal'),
+        createDmModalContent: document.getElementById('create-dm-modal-content'),
+        dmManageModal: document.getElementById('dm-manage-modal'),
+        dmManageModalContent: document.getElementById('dm-manage-modal-content'),
+        connectionErrorOverlay: document.getElementById('connection-error-overlay'),
+        retryConnectionBtn: document.getElementById('retry-connection-btn'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
@@ -82,6 +95,34 @@ window.addEventListener('DOMContentLoaded', () => {
     function getUserIconUrl(user) {
         if (!user) return 'favicon.png';
         return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+    }
+
+    function renderDmMessage(msg) {
+        if (msg.type === 'system') {
+            return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
+        }
+        
+        const sent = msg.userid === currentUser.id;
+        
+        if (sent) {
+            // 自分のメッセージ
+            return `<div class="dm-message-container sent">
+                <div class="dm-message-wrapper">
+                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                </div>
+            </div>`;
+        } else {
+            // 他の人のメッセージ
+            const user = allUsersCache[msg.userid] || {};
+            const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            return `<div class="dm-message-container received">
+                <img src="${getUserIconUrl(user)}" class="dm-message-icon">
+                <div class="dm-message-wrapper">
+                    <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
+                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                </div>
+            </div>`;
+        }
     }
 
     function updateFollowButtonState(buttonElement, isFollowing) {
@@ -154,6 +195,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
             else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
+            else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
+            else if (hash === '#dm') await showDmScreen();
             else if (hash === '#settings' && currentUser) await showSettingsScreen();
             else if (hash === '#explore') await showExploreScreen();
             else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
@@ -225,9 +268,24 @@ window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
          if (currentUser) {
-            menuItems.push( { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, { name: 'いいね', hash: '#likes', icon: ICONS.likes }, { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, { name: '設定', hash: '#settings', icon: ICONS.settings } );
+            menuItems.push(
+                { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, 
+                { name: 'いいね', hash: '#likes', icon: ICONS.likes }, 
+                { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, 
+                { name: 'メッセージ', hash: '#dm', icon: ICONS.dm },
+                { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, 
+                { name: '設定', hash: '#settings', icon: ICONS.settings }
+            );
         }
-        DOM.navMenuTop.innerHTML = menuItems.map(item => ` <a href="${item.hash}" class="nav-item ${hash === item.hash ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`).join('');
+        DOM.navMenuTop.innerHTML = menuItems.map(item => {
+            let isActive = false;
+            if (item.hash === '#') {
+                isActive = (hash === '#' || hash === '');
+            } else {
+                isActive = hash.startsWith(item.hash);
+            }
+            return ` <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`
+        }).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
@@ -256,21 +314,24 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
+                DOM.connectionErrorOverlay.classList.add('hidden');
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
                 subscribeToChanges();
+                router();
             } catch (error) {
                 console.error(error);
                 currentUser = null;
-                localStorage.removeItem('nyaxUserId');
+                // localStorageは削除せず、エラー画面を表示
+                DOM.connectionErrorOverlay.classList.remove('hidden');
             }
         } else {
             currentUser = null;
+            router();
         }
-        router();
     }
-    
+
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
         if (!currentUser) return goToLoginPage();
@@ -814,6 +875,95 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+     // --- [新規追加] DM画面関連 ---
+    async function showDmScreen(dmId = null) {
+        if (!currentUser) return router();
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">ダイレクトメッセージ</h2>`;
+        showScreen('dm-screen');
+        DOM.dmContent.innerHTML = '<div class="spinner"></div>';
+
+        const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
+        if (error) { DOM.dmContent.innerHTML = 'DMの読み込みに失敗しました。'; console.error(error); return; }
+
+        let dmListHTML = dms.map(dm => `
+            <div class="dm-list-item ${dm.id === dmId ? 'active' : ''}" onclick="window.location.hash='#dm/${dm.id}'">
+                <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
+                <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
+            </div>
+        `).join('');
+
+        DOM.dmContent.innerHTML = `
+            <div id="dm-list-container">
+                <button class="dm-new-message-btn" onclick="openCreateDmModal()">新しいメッセージ</button>
+                ${dmListHTML}
+            </div>
+            <div id="dm-conversation-container"></div>
+        `;
+
+        if (dmId) {
+            await showDmConversation(dmId);
+        } else {
+            document.getElementById('dm-conversation-container').innerHTML = `<div class="dm-welcome-message"><h3>DMを選択するか、新しいDMを作成してください。</h3></div>`;
+        }
+        showLoading(false);
+    }
+
+    async function showDmConversation(dmId) {
+        const container = document.getElementById('dm-conversation-container');
+        container.innerHTML = '<div class="spinner"></div>';
+        
+        const { data: dm, error } = await supabase.from('dm').select('*').eq('id', dmId).single();
+        if (error || !dm || !dm.member.includes(currentUser.id)) {
+            container.innerHTML = 'DMが見つからないか、アクセス権がありません。';
+            return;
+        }
+
+        // メンバーのユーザー情報を取得・キャッシュ
+        const memberIds = dm.member.filter(id => !allUsersCache[id]);
+        if(memberIds.length > 0) {
+            const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
+            if(users) users.forEach(u => allUsersCache[u.id] = u);
+        }
+        
+        const posts = dm.post || [];
+        const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
+        
+        container.innerHTML = `
+            <div class="dm-conversation-view">${messagesHTML}</div>
+            <div class="dm-message-form">
+                <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
+                <button id="send-dm-btn">${ICONS.send}</button>
+            </div>
+        `;
+        const messageInput = document.getElementById('dm-message-input');
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                sendDmMessage(dmId);
+            }
+        });
+        document.getElementById('send-dm-btn').onclick = () => sendDmMessage(dmId);
+
+        lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
+
+        if (currentDmChannel) supabase.removeChannel(currentDmChannel);
+        currentDmChannel = supabase.channel(`dm-${dmId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, payload => {
+                const newPost = payload.new.post;
+                if(newPost && newPost.length > 0) {
+                    const latestMessage = newPost[newPost.length - 1];
+                    if(latestMessage.id === lastRenderedMessageId) return;
+
+                    const view = document.querySelector('.dm-conversation-view');
+                    if(view) {
+                        const msgHTML = renderDmMessage(latestMessage);
+                        view.insertAdjacentHTML('afterbegin', msgHTML);
+                        lastRenderedMessageId = latestMessage.id;
+                    }
+                }
+            }).subscribe();
+    }
+    
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `
@@ -841,7 +991,7 @@ window.addEventListener('DOMContentLoaded', () => {
             profileHeader.innerHTML = `
                 <div class="header-top">
                     <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
-                    <div id="follow-button-container" class="follow-button"></div>
+                    <div id="profile-actions" class="profile-actions"></div>
                 </div>
                 <div class="profile-info">
                     <h2>${escapeHTML(user.name)}</h2>
@@ -854,12 +1004,24 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>`;
 
             if (currentUser && userId !== currentUser.id) {
-                const followButton = document.createElement('button');
-                followButton.id = `profile-follow-button-${userId}`;
-                const isFollowing = currentUser.follow?.includes(userId);
-                updateFollowButtonState(followButton, isFollowing);
-                followButton.onclick = () => window.handleFollowToggle(userId, followButton);
-                profileHeader.querySelector('#follow-button-container').appendChild(followButton);
+                const actionsContainer = profileHeader.querySelector('#profile-actions');
+                if (actionsContainer) { // ★★★ nullチェックを追加 ★★★
+                    // DMボタン
+                    const dmButton = document.createElement('button');
+                    dmButton.className = 'dm-button';
+                    dmButton.title = 'メッセージを送信';
+                    dmButton.innerHTML = ICONS.dm;
+                    dmButton.onclick = () => handleDmButtonClick(userId);
+                    actionsContainer.appendChild(dmButton);
+
+                    // フォローボタン
+                    const followButton = document.createElement('button');
+                    const isFollowing = currentUser.follow?.includes(userId);
+                    updateFollowButtonState(followButton, isFollowing);
+                    followButton.classList.add('profile-follow-button');
+                    followButton.onclick = () => window.handleFollowToggle(userId, followButton);
+                    actionsContainer.appendChild(followButton);
+                }
             }
 
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
@@ -1113,7 +1275,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 11. ユーザーアクション (変更なし) ---
+     // --- 11. ユーザーアクション ---
     window.togglePostMenu = (postId) => {
         // 既に他のメニューが開いていたら、それを閉じる
         if (openedMenuPostId && openedMenuPostId !== postId) {
@@ -1198,16 +1360,17 @@ window.addEventListener('DOMContentLoaded', () => {
     const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
     if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
     const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
-    if (postError) {
-        await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
-        alert('お気に入り数の更新に失敗しました。');
-    } else {
-        currentUser.star = updatedStars; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-        button.classList.toggle('starred', !isStarred);
-        iconSpan.textContent = isStarred ? '★' : '☆';
-        if (!isStarred) {
-            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+        if (postError) {
+            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
+            alert('お気に入り数の更新に失敗しました。');
+        } else {
+            currentUser.star = updatedStars;
+            // localStorageはIDしか保持しないので更新不要
+            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+            button.classList.toggle('starred', !isStarred);
+            iconSpan.textContent = isStarred ? '☆' : '★'; // アイコンのトグルを修正
+            if (!isStarred) {
+                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
             if (postData?.userid && postData.userid !== currentUser.id) {
                 sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
             }
@@ -1322,9 +1485,202 @@ async function openEditPostModal(postId) {
         } catch(e) { console.error(e); alert(e.message); } 
         finally { showLoading(false); }
     }
+    
+    window.openDmManageModal = async function(dmId) {
+        DOM.dmManageModalContent.innerHTML = '<div class="spinner"></div>';
+        DOM.dmManageModal.classList.remove('hidden');
+        DOM.dmManageModal.querySelector('.modal-close-btn').onclick = () => DOM.dmManageModal.classList.add('hidden');
+
+        try {
+            const { data: dm, error } = await supabase.from('dm').select('*').eq('id', dmId).single();
+            if (error || !dm) throw new Error('DM情報の取得に失敗しました。');
+
+            const isHost = dm.host_id === currentUser.id;
+            const memberDetails = await Promise.all(
+                dm.member.map(async (id) => allUsersCache[id] || (await supabase.from('user').select('id, name').eq('id', id).single()).data)
+            );
+            
+            let html = `<div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;"><h3>DM管理</h3>`;
+
+            if (isHost) {
+                html += `
+                    <div>
+                        <label for="dm-title-input" style="font-weight: bold; display: block; margin-bottom: 0.5rem;">タイトル</label>
+                        <input type="text" id="dm-title-input" value="${escapeHTML(dm.title || '')}" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <button id="save-dm-title-btn" style="margin-top: 0.5rem;">タイトルを保存</button>
+                    </div>
+                    <div>
+                        <h4 style="margin: 0 0 0.5rem 0;">メンバー (${dm.member.length})</h4>
+                        <div id="dm-member-list">
+                            ${memberDetails.map(m => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+                                    <span>${escapeHTML(m.name)} (#${m.id}) ${m.id === dm.host_id ? '(ホスト)' : ''}</span>
+                                    ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">削除</button>` : ''}
+                                </div>`).join('')}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="dm-add-member-search" style="font-weight: bold; display: block; margin-bottom: 0.5rem;">メンバーを追加</label>
+                        <input type="text" id="dm-add-member-search" placeholder="ユーザー名またはIDで検索" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div id="dm-add-member-results" style="margin-top: 0.5rem; max-height: 150px; overflow-y: auto;"></div>
+                    </div>
+                    <hr>
+                    <button id="disband-dm-btn" style="align-self: flex-end;">DMを解散</button>
+                `;
+            } else {
+                html += `
+                    <p>このDMから退出しますか？<br>一度退出すると、再度招待されない限り参加できません。</p>
+                    <button id="leave-dm-btn" style="align-self: flex-end;">DMから退出</button>
+                `;
+            }
+            html += `</div>`;
+            DOM.dmManageModalContent.innerHTML = html;
+
+            // Event Listeners
+            if (isHost) {
+                document.getElementById('save-dm-title-btn').onclick = () => handleUpdateDmTitle(dmId, document.getElementById('dm-title-input').value);
+                document.getElementById('disband-dm-btn').onclick = () => handleDisbandDm(dmId);
+                
+                document.querySelectorAll('.remove-member-btn').forEach(btn => {
+                    const userId = parseInt(btn.dataset.userId);
+                    const userName = btn.dataset.userName;
+                    btn.onclick = () => handleRemoveDmMember(dmId, userId, userName);
+                });
+                
+                const searchInput = document.getElementById('dm-add-member-search');
+                const resultsContainer = document.getElementById('dm-add-member-results');
+                let searchTimeout;
+                searchInput.addEventListener('input', () => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(async () => {
+                        const query = searchInput.value.trim();
+                        if (query.length < 2) { resultsContainer.innerHTML = ''; return; }
+                        
+                        const { data: users } = await supabase.from('user').select('id, name').or(`name.ilike.%${query}%,id.eq.${parseInt(query) || 0}`).limit(5);
+                        const nonMembers = users.filter(u => !dm.member.includes(u.id));
+
+                        resultsContainer.innerHTML = nonMembers.length > 0
+                            ? nonMembers.map(u => `<div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}"><strong>${escapeHTML(u.name)}</strong> (#${u.id})</div>`).join('')
+                            : `<div class="widget-item">ユーザーが見つかりません。</div>`;
+                    }, 300);
+                });
+                resultsContainer.addEventListener('click', (e) => {
+                    const userDiv = e.target.closest('[data-user-id]');
+                    if (userDiv) {
+                        const userId = parseInt(userDiv.dataset.userId);
+                        const userName = userDiv.querySelector('strong').textContent;
+                        handleAddDmMember(dmId, userId, userName);
+                    }
+                });
+
+            } else {
+                document.getElementById('leave-dm-btn').onclick = () => handleLeaveDm(dmId);
+            }
+
+        } catch (e) {
+            DOM.dmManageModalContent.innerHTML = `<p style="padding: 1.5rem;">${e.message}</p>`;
+            console.error(e);
+        }
+    };
+
+    async function handleUpdateDmTitle(dmId, newTitle) {
+        const { error } = await supabase.from('dm').update({ title: newTitle.trim() }).eq('id', dmId);
+        if (error) {
+            alert('タイトルの更新に失敗しました。');
+        } else {
+            alert('タイトルを更新しました。');
+            DOM.dmManageModal.classList.add('hidden');
+            showDmScreen(dmId);
+        }
+    }
+
+    async function handleRemoveDmMember(dmId, userIdToRemove, userNameToRemove) {
+        if (!confirm(`${userNameToRemove}さんをDMから削除しますか？`)) return;
+
+        const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
+        const updatedMembers = dm.member.filter(id => id !== userIdToRemove);
+
+        const { error } = await supabase.from('dm').update({ member: updatedMembers }).eq('id', dmId);
+        if (error) {
+            alert('メンバーの削除に失敗しました。');
+        } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToRemove}さんを強制退出させました`);
+            await sendNotification(userIdToRemove, `${currentUser.name}さんによってDMから削除されました。`);
+            alert('メンバーを削除しました。');
+            openDmManageModal(dmId); // モーダルを再描画
+        }
+    }
+
+    async function handleAddDmMember(dmId, userIdToAdd, userNameToAdd) {
+        if (!confirm(`${userNameToAdd}さんをDMに追加しますか？`)) return;
+
+        const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
+        if (dm.member.includes(userIdToAdd)) {
+            alert('このユーザーは既にメンバーです。');
+            return;
+        }
+        const updatedMembers = [...dm.member, userIdToAdd];
+
+        const { error } = await supabase.from('dm').update({ member: updatedMembers }).eq('id', dmId);
+        if (error) {
+            alert('メンバーの追加に失敗しました。');
+        } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToAdd}さんを招待しました`);
+            await sendNotification(userIdToAdd, `${currentUser.name}さんがあなたをDMに招待しました。`);
+            alert('メンバーを追加しました。');
+            openDmManageModal(dmId); // モーダルを再描画
+        }
+    }
+    
+    async function handleLeaveDm(dmId) {
+        if (!confirm('本当にこのDMから退出しますか？')) return;
+
+        const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
+        const updatedMembers = dm.member.filter(id => id !== currentUser.id);
+
+        const { error } = await supabase.from('dm').update({ member: updatedMembers }).eq('id', dmId);
+        if (error) {
+            alert('DMからの退出に失敗しました。');
+        } else {
+            await sendSystemDmMessage(dmId, `${currentUser.name}さんが退出しました`);
+            alert('DMから退出しました。');
+            DOM.dmManageModal.classList.add('hidden');
+            window.location.hash = '#dm';
+        }
+    }
+
+    async function handleDisbandDm(dmId) {
+        if (!confirm('本当にこのDMを解散しますか？この操作は取り消せません。')) return;
+        
+        const { error } = await supabase.from('dm').delete().eq('id', dmId);
+        if (error) {
+            alert('DMの解散に失敗しました。');
+        } else {
+            alert('DMを解散しました。');
+            DOM.dmManageModal.classList.add('hidden');
+            window.location.hash = '#dm';
+        }
+    }
+
+    async function sendSystemDmMessage(dmId, content) {
+        const message = {
+            id: crypto.randomUUID(),
+            time: new Date().toISOString(),
+            type: 'system',
+            content: content,
+        };
+        await supabase.rpc('append_to_dm_post', { dm_id_in: dmId, new_message_in: message });
+    }
 
     async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
         const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
+        const editPostTextarea = DOM.editPostModal.querySelector('#edit-post-textarea');
+        editPostTextarea.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds);
+            }
+        });
         const button = DOM.editPostModal.querySelector('#update-post-button');
         button.disabled = true; button.textContent = '保存中...';
         showLoading(true);
@@ -1363,7 +1719,125 @@ async function openEditPostModal(postId) {
         } catch(e) { console.error(e); alert('ポストの更新に失敗しました。'); } 
         finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
     }
+    
+    // --- [新規追加] DM操作関数 ---
+    async function handleDmButtonClick(targetUserId) {
+        if (!currentUser) return;
+        const members = [currentUser.id, targetUserId].sort();
 
+        // 1対1のDMが既に存在するかチェック
+        const { data: existingDm, error } = await supabase.from('dm')
+            .select('id')
+            .contains('member', members)
+            .eq('member', `{${members.join(',')}}`) // ★★★ integer[]型に合わせた形式に変更 ★★★
+            .single();
+
+        if (existingDm) {
+            window.location.hash = `#dm/${existingDm.id}`;
+        } else {
+            const {data: targetUser} = await supabase.from('user').select('name').eq('id', targetUserId).single();
+            if (confirm(`${targetUser.name}さんとの新しいDMを作成しますか？`)) {
+                const { data: newDm, error: createError } = await supabase.from('dm').insert({
+                    host_id: currentUser.id,
+                    member: members,
+                    title: `${currentUser.name}, ${targetUser.name}`
+                }).select('id').single();
+
+                if (createError) {
+                    alert('DMの作成に失敗しました。');
+                } else {
+                    window.location.hash = `#dm/${newDm.id}`;
+                }
+            }
+        }
+    }
+    
+    window.openCreateDmModal = function() {
+        DOM.createDmModalContent.innerHTML = `
+            <div style="padding: 1.5rem;">
+                <h3>新しいメッセージ</h3>
+                <p>ユーザーを検索してDMを開始します。</p>
+                <input type="text" id="dm-user-search" placeholder="ユーザー名またはIDで検索" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div id="dm-user-search-results" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        `;
+
+        const searchInput = DOM.createDmModalContent.querySelector('#dm-user-search');
+        const resultsContainer = DOM.createDmModalContent.querySelector('#dm-user-search-results');
+        
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                if (query.length < 2) {
+                    resultsContainer.innerHTML = '';
+                    return;
+                }
+                const { data: users, error } = await supabase.from('user')
+                    .select('id, name, scid')
+                    .or(`name.ilike.%${query}%,id.eq.${parseInt(query) || 0}`)
+                    .neq('id', currentUser.id)
+                    .limit(5);
+
+                if (users && users.length > 0) {
+                    resultsContainer.innerHTML = users.map(u => `
+                        <div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}" data-user-name="${escapeHTML(u.name)}">
+                            <strong>${escapeHTML(u.name)}</strong> (#${u.id})
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = `<div class="widget-item">ユーザーが見つかりません。</div>`;
+                }
+            }, 300);
+        });
+
+        resultsContainer.addEventListener('click', (e) => {
+            const userDiv = e.target.closest('[data-user-id]');
+            if (userDiv) {
+                const targetUserId = parseInt(userDiv.dataset.userId);
+                const targetUserName = userDiv.dataset.userName;
+                DOM.createDmModal.classList.add('hidden');
+                handleDmButtonClick(targetUserId);
+            }
+        });
+        
+        DOM.createDmModal.classList.remove('hidden');
+        DOM.createDmModal.querySelector('.modal-close-btn').onclick = () => {
+            DOM.createDmModal.classList.add('hidden');
+        };
+    }
+    
+    async function sendDmMessage(dmId) {
+        const input = document.getElementById('dm-message-input');
+        const content = input.value.trim();
+        if (!content) return;
+        input.disabled = true;
+
+        const message = {
+            id: crypto.randomUUID(),
+            time: new Date().toISOString(),
+            userid: currentUser.id,
+            reply_id: null,
+            content: content,
+            attachments: []
+        };
+
+        const { error } = await supabase.rpc('append_to_dm_post', {
+            dm_id_in: dmId,
+            new_message_in: message
+        });
+
+        if (error) {
+            alert('メッセージの送信に失敗しました。');
+            console.error(error);
+        } else {
+            input.value = '';
+        }
+        input.disabled = false;
+        input.focus();
+    }
+    
     // --- 12. リアルタイム更新 ---
     function subscribeToChanges() {
         if (realtimeChannel) return;
@@ -1460,6 +1934,8 @@ async function openEditPostModal(postId) {
         }
     });
     
+    DOM.retryConnectionBtn.addEventListener('click', checkSession);
+
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
     document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
