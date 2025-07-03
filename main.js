@@ -312,8 +312,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
-                DOM.connectionErrorOverlay.classList.add('hidden');
-                DOM.friezeOverlay.classList.add('hidden');
+                // DOM.connectionErrorOverlay.classList.add('hidden'); // DOM操作を削除
+                // DOM.friezeOverlay.classList.add('hidden'); // DOM操作を削除
                 
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
@@ -2024,7 +2024,14 @@ async function openEditPostModal(postId) {
         }
     });
 
-    DOM.retryConnectionBtn.addEventListener('click', checkSession);
+    // 「再試行」ボタンのイベントリスナー
+    DOM.retryConnectionBtn.addEventListener('click', () => {
+        DOM.connectionErrorOverlay.classList.add('hidden'); // エラー表示を隠す
+        checkSession(); // 再度セッションチェックを実行
+    });
+
     window.addEventListener('hashchange', router);
+    
+    // 全ての準備が整った後、最後にセッションチェックを開始
     checkSession();
 });
