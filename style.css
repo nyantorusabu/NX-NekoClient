@@ -529,6 +529,7 @@ input, textarea {
     z-index: 5;       /* 他の要素との重なり順を明確化 */
 }
 
+/* ★★★ メニューの表示方法を根本から変更 ★★★ */
 .post-menu {
     position: absolute;
     right: 0;
@@ -537,10 +538,23 @@ input, textarea {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 20; /* z-indexを高く設定 */
+    z-index: 20;
     min-width: 150px;
     overflow: hidden;
+    /* デフォルトで非表示にする */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.1s ease-out, visibility 0.1s;
+    pointer-events: none;
 }
+
+/* このクラスが付くと表示される */
+.post-menu.is-visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+}
+
 
 .post-menu button {
     width: 100%;
