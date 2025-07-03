@@ -165,10 +165,13 @@ window.addEventListener('DOMContentLoaded', () => {
         formattedText = formattedText.replace(mentionRegex, (match, userId) => {
             const numericId = parseInt(userId);
             if (userCache.has(numericId)) {
-                const userName = userCache.get(numericId).name;
-                return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
+                const user = userCache.get(numericId); // ユーザーオブジェクトを取得
+                const userName = user ? user.name : null; // nameプロパティを取得
+                if (userName) {
+                    return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
+                }
             }
-            return match; // キャッシュにない場合はそのまま表示
+            return match;
         });
 
         return formattedText;
@@ -310,11 +313,23 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userId) {
             try {
                 DOM.connectionErrorOverlay.classList.add('hidden');
+                DOM.friezeOverlay.classList.add('hidden');
+                
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
+
+                // 凍結チェックを先に行う
+                if (currentUser.frieze) {
+                    DOM.friezeReason.textContent = currentUser.frieze;
+                    DOM.friezeOverlay.classList.remove('hidden');
+                    return; // 凍結されている場合はここで処理を中断
+                }
+
+                // 凍結されていなければ、通常の起動処理を続行
                 subscribeToChanges();
                 router();
+
             } catch (error) {
                 console.error(error);
                 currentUser = null;
@@ -969,8 +984,10 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
+        const profileContent = document.getElementById('profile-content');
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
+        profileContent.innerHTML = '';
 
         try {
             const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
@@ -979,7 +996,26 @@ window.addEventListener('DOMContentLoaded', () => {
                 showLoading(false);
                 return;
             }
-            
+
+            // ★★★ 最初に凍結状態をチェック ★★★
+            if (user.frieze) {
+                profileHeader.innerHTML = `
+                    <div class="header-top">
+                        <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
+                    </div>
+                    <div class="profile-info">
+                        <h2>${escapeHTML(user.name)}</h2>
+                        <div class="user-id">#${user.id}</div>
+                    </div>`;
+                const friezeNotice = document.createElement('div');
+                friezeNotice.className = 'frieze-notice';
+                friezeNotice.innerHTML = `このユーザーは<a href="rule.md" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                profileHeader.insertAdjacentElement('afterend', friezeNotice);
+                showLoading(false);
+                return; // 凍結されている場合はここで描画を終了
+            }
+
+            // --- 凍結されていない場合の通常の描画処理 ---
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
 
@@ -997,10 +1033,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
                     </div>
                 </div>`;
-
+            
             if (currentUser && userId !== currentUser.id) {
                 const actionsContainer = profileHeader.querySelector('#profile-actions');
-                if (actionsContainer) { // ★★★ nullチェックを追加 ★★★
+                if (actionsContainer) {
                     // DMボタン
                     const dmButton = document.createElement('button');
                     dmButton.className = 'dm-button';
@@ -1018,7 +1054,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     actionsContainer.appendChild(followButton);
                 }
             }
-
+            
             profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
             profileTabs.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -1028,6 +1064,7 @@ window.addEventListener('DOMContentLoaded', () => {
             });
 
             await loadProfileTabContent(user, 'posts');
+
         } catch(err) {
             profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
             console.error(err);
