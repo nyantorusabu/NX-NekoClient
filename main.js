@@ -561,12 +561,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
+            postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
-            menu.className = 'post-menu hidden';
-            
+            menu.className = 'post-menu'; // .hiddenクラスを削除
+
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
             editBtn.textContent = '編集';
@@ -1296,28 +1296,24 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 11. ユーザーアクション (変更なし) ---
+    // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
-        // ★デバッグ用ログ4: togglePostMenuが実行されたか確認
-        console.log(`[DEBUG 4/5] togglePostMenu() started for post: ${postId}`);
         const targetMenu = document.getElementById(`menu-${postId}`);
         if (!targetMenu) {
-            console.error(`[DEBUG ERROR] Menu element "menu-${postId}" not found!`);
             return;
         }
 
-        const isCurrentlyHidden = targetMenu.classList.contains('hidden');
+        const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
 
         // まず、現在開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu').forEach(menu => {
-            if (menu.id !== `menu-${postId}`) {
-                menu.classList.add('hidden');
-            }
+        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+            menu.classList.remove('is-visible');
         });
 
-        // ターゲットメニューの表示状態を切り替える
-        targetMenu.classList.toggle('hidden');
-        console.log(`[DEBUG 5/5] Menu for post ${postId} is now ${isCurrentlyHidden ? 'VISIBLE' : 'HIDDEN'}`);
+        // ターゲットメニューが今閉じたものでなければ、開く
+        if (!isCurrentlyVisible) {
+            targetMenu.classList.add('is-visible');
+        }
     };
 
     window.deletePost = async (postId) => {
@@ -1927,15 +1923,13 @@ async function openEditPostModal(postId) {
             return; // メニューボタンの処理はここで完結
         }
 
-        // メニュー本体の内側がクリックされた場合は、何もしない
-        if (target.closest('.post-menu')) {
+        // メニューボタンやメニュー自体がクリックされた場合は何もしない
+        if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
             return;
         }
-
-        // メニューの外側がクリックされた場合、開いているメニューを閉じる
-        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
-            menu.classList.add('hidden');
-        });
+        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
+        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+            menu.classList.remove('is-visible');
 
         // --- 2. ポスト関連の他のクリックイベント処理 (main-content内でのみ) ---
         if (target.closest('#main-content')) {
