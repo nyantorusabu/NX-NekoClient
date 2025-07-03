@@ -561,11 +561,11 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
+            postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
-            menu.className = 'post-menu hidden';
+            menu.className = 'post-menu'; // .hiddenクラスを削除
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
@@ -1296,31 +1296,28 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 11. ユーザーアクション ---
+    // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
-        // 既に他のメニューが開いていたら、それを閉じる
-        if (openedMenuPostId && openedMenuPostId !== postId) {
-            const oldMenu = document.getElementById(`menu-${openedMenuPostId}`);
-            if (oldMenu) oldMenu.classList.add('hidden');
-        }
-    
-        // ターゲットのメニューを取得して表示/非表示を切り替える
         const targetMenu = document.getElementById(`menu-${postId}`);
-        if (!targetMenu) return;
-    
-        const isHidden = targetMenu.classList.contains('hidden');
-        
-        if (isHidden) {
-            targetMenu.classList.remove('hidden');
-            openedMenuPostId = postId; // 開いたメニューのIDを記録
-        } else {
-            targetMenu.classList.add('hidden');
-            openedMenuPostId = null; // 閉じたので記録をクリア
+        if (!targetMenu) {
+            return;
+        }
+
+        const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
+
+        // まず、現在開いている他のメニューをすべて閉じる
+        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+            menu.classList.remove('is-visible');
+        });
+
+        // ターゲットメニューが今閉じたものでなければ、開く
+        if (!isCurrentlyVisible) {
+            targetMenu.classList.add('is-visible');
         }
     };
 
     window.deletePost = async (postId) => {
-    if (!confirm('このポストを削除しますか？')) return;
+        if (!confirm('このポストを削除しますか？')) return;
     showLoading(true);
     try {
         const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
@@ -1899,66 +1896,92 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-    // --- 13. 初期化処理 ---
-    DOM.mainContent.addEventListener('click', (e) => {
-        const target = e.target;
-        const postElement = target.closest('.post');
-        if (!postElement) return;
+         // --- 13. 初期化処理 ---
 
-        const postId = postElement.dataset.postId;
-        
-        const menuButton = target.closest('.post-menu-btn');
-        const editButton = target.closest('.edit-btn');
-        const deleteButton = target.closest('.delete-btn');
-        const replyButton = target.closest('.reply-button');
-        const likeButton = target.closest('.like-button');
-        const starButton = target.closest('.star-button');
-        const imageAttachment = target.closest('.attachment-item img');
-        const downloadLink = target.closest('.attachment-download-link');
-        
-        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
-        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
-        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
-        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
-        if (replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
-        if (likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
-        if (starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
-        if (imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
-        if (downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if (target.closest('a')) { return; } // aタグのクリックはブラウザのデフォルト挙動に任せる
-        
-        // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
-        window.location.hash = `#post/${postElement.dataset.postId}`;
-    });
-
-    const tabsContainer = document.querySelector('.timeline-tabs');
-    if(tabsContainer) {
-        tabsContainer.addEventListener('click', (e) => {
-            if (e.target.matches('.timeline-tab-button')) {
-                switchTimelineTab(e.target.dataset.tab);
-            }
-        });
-    }
-
-    // メニューの外側をクリックしたときにメニューを閉じるグローバルリスナー
+    // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
-        // メニューボタン自身、またはメニューの内側がクリックされた場合は何もしない
-        if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
+        const target = e.target;
+
+        // --- 1. メニューの外側がクリックされたか判定 ---
+        // メニューを開くボタンでも、メニュー本体でもない場所がクリックされた場合、全てのメニューを閉じる
+        if (!target.closest('.post-menu-btn') && !target.closest('.post-menu')) {
+            document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+                menu.classList.remove('is-visible');
+            });
+        }
+
+        // --- 2. 各種インタラクティブ要素の役割を判定して処理 ---
+
+        // メニューを開く/閉じるボタン
+        const menuButton = target.closest('.post-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
+            const postElement = menuButton.closest('.post');
+            if (postElement) window.togglePostMenu(postElement.dataset.postId);
             return;
         }
 
-        // 開いているメニューがあれば閉じる
-        if (openedMenuPostId) {
-            const openedMenu = document.getElementById(`menu-${openedMenuPostId}`);
-            if (openedMenu) openedMenu.classList.add('hidden');
-            openedMenuPostId = null; // 記録をクリア
+        // 編集ボタン
+        const editButton = target.closest('.edit-btn');
+        if (editButton) {
+            const postElement = editButton.closest('.post');
+            if (postElement) openEditPostModal(postElement.dataset.postId);
+            return;
+        }
+
+        // 削除ボタン
+        const deleteButton = target.closest('.delete-btn');
+        if (deleteButton) {
+            const postElement = deleteButton.closest('.post');
+            if (postElement) window.deletePost(postElement.dataset.postId);
+            return;
+        }
+        
+        // --- ポスト関連の他の要素 ---
+        const postElement = target.closest('.post');
+        if (postElement) {
+            const postId = postElement.dataset.postId;
+            const replyButton = target.closest('.reply-button');
+            const likeButton = target.closest('.like-button');
+            const starButton = target.closest('.star-button');
+            const imageAttachment = target.closest('.attachment-item img');
+            const downloadLink = target.closest('.attachment-download-link');
+
+            if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
+            if (likeButton) { window.handleLike(likeButton, postId); return; }
+            if (starButton) { window.handleStar(starButton, postId); return; }
+            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+            
+            // aタグやメニュー本体のクリックはここで無視
+            if (target.closest('a') || target.closest('.post-menu')) { return; }
+            
+            // 上記のいずれでもない、ポストの空白部分がクリックされた場合
+            window.location.hash = `#post/${postId}`;
+            return;
+        }
+        
+        // --- その他のグローバルなクリック処理 ---
+        const timelineTab = target.closest('.timeline-tab-button');
+        if(timelineTab) {
+            switchTimelineTab(timelineTab.dataset.tab);
+            return;
+        }
+        
+        const bannerSignup = target.closest('#banner-signup-button');
+        if(bannerSignup) {
+            goToLoginPage();
+            return;
+        }
+
+        const bannerLogin = target.closest('#banner-login-button');
+        if(bannerLogin) {
+            goToLoginPage();
+            return;
         }
     });
-    
-    DOM.retryConnectionBtn.addEventListener('click', checkSession);
 
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
+    DOM.retryConnectionBtn.addEventListener('click', checkSession);
     window.addEventListener('hashchange', router);
     checkSession();
 });
