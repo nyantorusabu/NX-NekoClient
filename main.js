@@ -1896,13 +1896,13 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
- // --- 13. 初期化処理 ---
+     // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- 1. メニュー関連の処理 (最優先) ---
+        // --- 1. メニューを開く/閉じるボタンの処理 ---
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
             e.stopPropagation();
@@ -1910,34 +1910,48 @@ async function openEditPostModal(postId) {
             if (postElement) {
                 window.togglePostMenu(postElement.dataset.postId);
             }
-            return; // メニューボタンの処理はここで完結
-        }
-
-        // メニュー本体の内側がクリックされた場合は、何もしない
-        if (target.closest('.post-menu')) {
             return;
         }
 
-        // メニューの外側がクリックされた場合、開いているメニューを閉じる
-        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-            menu.classList.remove('is-visible');
-        });
+        // --- 2. メニュー内のボタンの処理 ---
+        const editButton = target.closest('.edit-btn');
+        if (editButton) {
+            const postElement = editButton.closest('.post');
+            if (postElement) {
+                // 編集モーダルを開き、メニューを閉じる
+                openEditPostModal(postElement.dataset.postId);
+                document.getElementById(`menu-${postElement.dataset.postId}`)?.classList.remove('is-visible');
+            }
+            return;
+        }
+        const deleteButton = target.closest('.delete-btn');
+        if (deleteButton) {
+            const postElement = deleteButton.closest('.post');
+            if (postElement) {
+                // 削除処理を実行（メニューは画面遷移で消えるのでそのままでOK）
+                window.deletePost(postElement.dataset.postId);
+            }
+            return;
+        }
 
-        // --- 2. ポスト関連の他のクリックイベント処理 (main-content内でのみ) ---
+        // --- 3. メニューの外側がクリックされたら、開いているメニューを閉じる ---
+        if (!target.closest('.post-menu')) {
+            document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+                menu.classList.remove('is-visible');
+            });
+        }
+
+        // --- 4. ポスト関連の他のインタラクティブな要素の処理 ---
         if (target.closest('#main-content')) {
             const postElement = target.closest('.post');
             if (postElement) {
                 const postId = postElement.dataset.postId;
-                const editButton = target.closest('.edit-btn');
-                const deleteButton = target.closest('.delete-btn');
                 const replyButton = target.closest('.reply-button');
                 const likeButton = target.closest('.like-button');
                 const starButton = target.closest('.star-button');
                 const imageAttachment = target.closest('.attachment-item img');
                 const downloadLink = target.closest('.attachment-download-link');
 
-                if (editButton) { openEditPostModal(postId); return; }
-                if (deleteButton) { window.deletePost(postId); return; }
                 if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
                 if (likeButton) { window.handleLike(likeButton, postId); return; }
                 if (starButton) { window.handleStar(starButton, postId); return; }
@@ -1945,12 +1959,15 @@ async function openEditPostModal(postId) {
                 if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
                 if (target.closest('a')) { return; }
                 
-                window.location.hash = `#post/${postElement.dataset.postId}`;
-                return;
+                // メニューやボタン、リンク以外の部分がクリックされた場合
+                if (!target.closest('.post-menu')) {
+                    window.location.hash = `#post/${postId}`;
+                    return;
+                }
             }
         }
         
-        // --- 3. その他のグローバルなクリック処理 ---
+        // --- 5. その他のグローバルなクリック処理 ---
         const timelineTab = target.closest('.timeline-tab-button');
         if(timelineTab) {
             switchTimelineTab(timelineTab.dataset.tab);
