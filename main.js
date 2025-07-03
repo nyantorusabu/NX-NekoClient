@@ -1298,9 +1298,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
      // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
+        // ★デバッグ用ログ4: togglePostMenuが実行されたか確認
+        console.log(`[DEBUG 4/5] togglePostMenu() started for post: ${postId}`);
         const targetMenu = document.getElementById(`menu-${postId}`);
         if (!targetMenu) {
-            console.error(`Menu for post ${postId} not found!`);
+            console.error(`[DEBUG ERROR] Menu element "menu-${postId}" not found!`);
             return;
         }
 
@@ -1315,6 +1317,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // ターゲットメニューの表示状態を切り替える
         targetMenu.classList.toggle('hidden');
+        console.log(`[DEBUG 5/5] Menu for post ${postId} is now ${isCurrentlyHidden ? 'VISIBLE' : 'HIDDEN'}`);
     };
 
     window.deletePost = async (postId) => {
@@ -1898,78 +1901,90 @@ async function openEditPostModal(postId) {
     }
     
     // --- 13. 初期化処理 ---
-    DOM.mainContent.addEventListener('click', (e) => {
+
+    // アプリケーション全体のクリックイベントを処理する単一のハンドラ
+    document.addEventListener('click', (e) => {
+        // ★デバッグ用ログ1: クリックされた要素を特定
+        console.log('[DEBUG 1/5] Clicked element:', e.target);
+
         const target = e.target;
 
-        // ★★★ 最優先でメニューボタンのクリックを処理 ★★★
+        // --- 1. メニュー関連の処理 (最優先) ---
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
+            // ★デバッグ用ログ2: メニューボタンが認識されたか確認
+            console.log('[DEBUG 2/5] Menu button recognized!', menuButton);
             e.stopPropagation(); // 他のクリックイベントを絶対に発動させない
             const postElement = menuButton.closest('.post');
             if (postElement) {
                 const postId = postElement.dataset.postId;
+                // ★デバッグ用ログ3: togglePostMenuを呼び出す直前
+                console.log(`[DEBUG 3/5] Calling togglePostMenu for post ID: ${postId}`);
                 window.togglePostMenu(postId);
+            } else {
+                console.error('[DEBUG ERROR] Could not find parent .post element for menu button.');
             }
             return; // メニューボタンの処理はここで完結
         }
 
-        // メニュー本体の内側がクリックされた場合は、何もしない（メニューを閉じない）
+        // メニュー本体の内側がクリックされた場合は、何もしない
         if (target.closest('.post-menu')) {
             return;
         }
 
-        const postElement = target.closest('.post');
-        if (!postElement) return;
-
-        const postId = postElement.dataset.postId;
-        
-        const editButton = target.closest('.edit-btn');
-        const deleteButton = target.closest('.delete-btn');
-        const replyButton = target.closest('.reply-button');
-        const likeButton = target.closest('.like-button');
-        const starButton = target.closest('.star-button');
-        const imageAttachment = target.closest('.attachment-item img');
-        const downloadLink = target.closest('.attachment-download-link');
-        
-        // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
-        if (editButton) { openEditPostModal(postId); return; }
-        if (deleteButton) { window.deletePost(postId); return; }
-        if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
-        if (likeButton) { window.handleLike(likeButton, postId); return; }
-        if (starButton) { window.handleStar(starButton, postId); return; }
-        if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
-        if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if (target.closest('a')) { return; }
-        
-        // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
-        window.location.hash = `#post/${postElement.dataset.postId}`;
-    });
-
-    const tabsContainer = document.querySelector('.timeline-tabs');
-    if(tabsContainer) {
-        tabsContainer.addEventListener('click', (e) => {
-            if (e.target.matches('.timeline-tab-button')) {
-                switchTimelineTab(e.target.dataset.tab);
-            }
-        });
-    }
-
-    // メニューの外側をクリックしたときにメニューを閉じるグローバルリスナー
-    document.addEventListener('click', (e) => {
-        // メニューボタンやメニュー自体がクリックされた場合は何もしない
-        if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
-            return;
-        }
-        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
+        // メニューの外側がクリックされた場合、開いているメニューを閉じる
         document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
             menu.classList.add('hidden');
         });
+
+        // --- 2. ポスト関連の他のクリックイベント処理 (main-content内でのみ) ---
+        if (target.closest('#main-content')) {
+            const postElement = target.closest('.post');
+            if (postElement) {
+                const postId = postElement.dataset.postId;
+                const editButton = target.closest('.edit-btn');
+                const deleteButton = target.closest('.delete-btn');
+                const replyButton = target.closest('.reply-button');
+                const likeButton = target.closest('.like-button');
+                const starButton = target.closest('.star-button');
+                const imageAttachment = target.closest('.attachment-item img');
+                const downloadLink = target.closest('.attachment-download-link');
+
+                if (editButton) { openEditPostModal(postId); return; }
+                if (deleteButton) { window.deletePost(postId); return; }
+                if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
+                if (likeButton) { window.handleLike(likeButton, postId); return; }
+                if (starButton) { window.handleStar(starButton, postId); return; }
+                if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+                if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+                if (target.closest('a')) { return; }
+                
+                window.location.hash = `#post/${postElement.dataset.postId}`;
+                return;
+            }
+        }
+        
+        // --- 3. その他のグローバルなクリック処理 ---
+        const timelineTab = target.closest('.timeline-tab-button');
+        if(timelineTab) {
+            switchTimelineTab(timelineTab.dataset.tab);
+            return;
+        }
+        
+        const bannerSignup = target.closest('#banner-signup-button');
+        if(bannerSignup) {
+            goToLoginPage();
+            return;
+        }
+
+        const bannerLogin = target.closest('#banner-login-button');
+        if(bannerLogin) {
+            goToLoginPage();
+            return;
+        }
     });
 
     DOM.retryConnectionBtn.addEventListener('click', checkSession);
-
-    document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
-    document.getElementById('banner-login-button').addEventListener('click', goToLoginPage);
     window.addEventListener('hashchange', router);
     checkSession();
 });
