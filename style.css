@@ -72,6 +72,7 @@ input, textarea {
     border: none;
     text-align: left;
     transition: background-color 0.2s;
+    position: relative; /* バッジの位置基準のために追加 */
 }
 
 .nav-item svg {
@@ -1313,6 +1314,12 @@ input, textarea {
         display: none;
     }
 
+    /* 省略表示時でもバッジが正しい位置に表示されるように調整 */
+    .notification-badge {
+        top: 0.8rem;
+        left: 2.2rem;
+    }
+
     .nav-item-post span {
         display: block !important;
     }
@@ -1344,6 +1351,11 @@ input, textarea {
         flex-direction: row;
         justify-content: space-around;
         width: 100%;
+    }
+
+    /* モバイルビューで「いいね」タブを非表示にする */
+    .nav-item[href="#likes"] {
+        display: none;
     }
 
     .nav-item-post, #nav-menu-bottom {
