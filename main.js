@@ -1896,40 +1896,32 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-    // --- 13. 初期化処理 ---
+ // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
-        // ★デバッグ用ログ1: クリックされた要素を特定
-        console.log('[DEBUG 1/5] Clicked element:', e.target);
-
         const target = e.target;
 
         // --- 1. メニュー関連の処理 (最優先) ---
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
-            // ★デバッグ用ログ2: メニューボタンが認識されたか確認
-            console.log('[DEBUG 2/5] Menu button recognized!', menuButton);
-            e.stopPropagation(); // 他のクリックイベントを絶対に発動させない
+            e.stopPropagation();
             const postElement = menuButton.closest('.post');
             if (postElement) {
-                const postId = postElement.dataset.postId;
-                // ★デバッグ用ログ3: togglePostMenuを呼び出す直前
-                console.log(`[DEBUG 3/5] Calling togglePostMenu for post ID: ${postId}`);
-                window.togglePostMenu(postId);
-            } else {
-                console.error('[DEBUG ERROR] Could not find parent .post element for menu button.');
+                window.togglePostMenu(postElement.dataset.postId);
             }
             return; // メニューボタンの処理はここで完結
         }
 
-        // メニューボタンやメニュー自体がクリックされた場合は何もしない
-        if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
+        // メニュー本体の内側がクリックされた場合は、何もしない
+        if (target.closest('.post-menu')) {
             return;
         }
-        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
+
+        // メニューの外側がクリックされた場合、開いているメニューを閉じる
         document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
             menu.classList.remove('is-visible');
+        });
 
         // --- 2. ポスト関連の他のクリックイベント処理 (main-content内でのみ) ---
         if (target.closest('#main-content')) {
