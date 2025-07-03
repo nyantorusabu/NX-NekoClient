@@ -561,7 +561,13 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
+            
+            // ★★★ メニューボタンに直接イベントリスナーを設定 ★★★
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // 他のクリックイベントへの伝播を停止
+                window.togglePostMenu(post.id);
+            });
+            postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
@@ -1907,7 +1913,7 @@ async function openEditPostModal(postId) {
 
         const postId = postElement.dataset.postId;
         
-        const menuButton = target.closest('.post-menu-btn');
+        // ★★★ menuButtonの分岐を削除 ★★★
         const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
@@ -1917,7 +1923,6 @@ async function openEditPostModal(postId) {
         const downloadLink = target.closest('.attachment-download-link');
         
         // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
-        if (menuButton) { e.stopPropagation(); window.togglePostMenu(postId); return; }
         if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
         if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
         if (replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
