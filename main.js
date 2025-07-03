@@ -65,6 +65,8 @@ window.addEventListener('DOMContentLoaded', () => {
         dmManageModalContent: document.getElementById('dm-manage-modal-content'),
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
+        friezeOverlay: document.getElementById('frieze-overlay'),
+        friezeReason: document.getElementById('frieze-reason'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
@@ -310,9 +312,19 @@ window.addEventListener('DOMContentLoaded', () => {
         if (userId) {
             try {
                 DOM.connectionErrorOverlay.classList.add('hidden');
+                DOM.friezeOverlay.classList.add('hidden');
+                
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
+
+                // 凍結チェック
+                if (currentUser.frieze) {
+                    DOM.friezeReason.textContent = currentUser.frieze;
+                    DOM.friezeOverlay.classList.remove('hidden');
+                    return; // 凍結されている場合はここで処理を中断
+                }
+
                 subscribeToChanges();
                 router();
             } catch (error) {
@@ -804,64 +816,81 @@ window.addEventListener('DOMContentLoaded', () => {
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
-         // 返信を再帰的に取得・描画する内部関数
-        const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
-            // 階層の上限を撤廃
-
-            const { data: replies, error } = await supabase.from('post')
-                .select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))')
-                .eq('reply_id', parentId)
-                .order('time', { ascending: true });
-
-            if (error || !replies || replies.length === 0) return;
-            
-            // ツリー分岐の対象となる返信のみをフィルタリング
-            const relevantReplies = replies.filter(reply => {
-                const isAuthor = (reply.user && reply.userid === reply.user.id);
-                return reply.userid === mainPostAuthorId || isAuthor;
-            });
-
-            if (relevantReplies.length === 0) return;
-
-            relevantReplies.forEach(async (reply, index) => {
-                const replyEl = await renderPost(reply, reply.user); // isReplyThreadオプションを削除
-                if (replyEl) {
-                    container.appendChild(replyEl);
-                }
-                
-                // 再帰呼び出し (depthはスタックオーバーフロー防止のため一応渡しておく)
-                await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
-            });
-        };
-
         try {
-            const { data: post, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
-            if (error || !post) throw new Error('ポストが見つかりません。');
+            // 1. メインポストを取得
+            const { data: post, error: postError } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
+            if (postError || !post) throw new Error('ポストが見つかりません。');
             
+            // 2. 全ての返信を再帰的に取得
+            let allReplies = [];
+            const fetchAllReplies = async (parentId) => {
+                const { data: replies, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data)').eq('reply_id', parentId);
+                if (replies && replies.length > 0) {
+                    allReplies = allReplies.concat(replies);
+                    await Promise.all(replies.map(r => fetchAllReplies(r.id)));
+                }
+            };
+            await fetchAllReplies(postId);
+            
+            // 3. 必要なユーザー情報を一括で取得 & キャッシュ
+            const mentionRegex = /@(\d+)/g;
+            const allMentionedIds = new Set();
+            const collectMentions = (text) => {
+                if(!text) return;
+                const matches = text.matchAll(mentionRegex);
+                for (const match of matches) allMentionedIds.add(parseInt(match[1]));
+            };
+            
+            collectMentions(post.content);
+            allReplies.forEach(r => collectMentions(r.content));
+            
+            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache[id]);
+            if (newIdsToFetch.length > 0) {
+                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                if (newUsers) newUsers.forEach(u => allUsersCache[u.id] = u);
+            }
+            const userCacheForRender = new Map(Object.entries(allUsersCache).map(([id, user]) => [parseInt(id), user]));
+            
+            // 4. 描画処理
             contentDiv.innerHTML = '';
-
-            // 親ポストがあれば表示
+            
+            // 親ポスト
             if (post.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
-                const parentPostEl = await renderPost(post.reply_to, post.reply_to.user);
+                const parentPostEl = await renderPost(post.reply_to, post.reply_to.user, { userCache: userCacheForRender });
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
 
-            // メインポストを表示
-            const mainPostEl = await renderPost(post, post.user);
+            // メインポスト
+            const mainPostEl = await renderPost(post, post.user, { userCache: userCacheForRender });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
-            
-            const repliesHeader = document.createElement('h3');
-            repliesHeader.textContent = '返信';
-            repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
-            contentDiv.appendChild(repliesHeader);
 
-            // 返信の再帰的取得を開始
-            const repliesContainer = document.createElement('div');
-            contentDiv.appendChild(repliesContainer);
-            await fetchAndRenderRepliesRecursive(postId, repliesContainer, post.user.id, 1);
+            // 返信
+            const repliesByParentId = allReplies.reduce((acc, reply) => {
+                if (!acc[reply.reply_id]) acc[reply.reply_id] = [];
+                acc[reply.reply_id].push(reply);
+                return acc;
+            }, {});
+
+            const renderReplyTree = async (parentId, container) => {
+                const replies = (repliesByParentId[parentId] || []).sort((a,b) => new Date(a.time) - new Date(b.time));
+                for (const reply of replies) {
+                    const replyEl = await renderPost(reply, reply.user, { userCache: userCacheForRender });
+                    if(replyEl) container.appendChild(replyEl);
+                    await renderReplyTree(reply.id, container);
+                }
+            };
+            
+            if(allReplies.length > 0) {
+                const repliesHeader = document.createElement('h3');
+                repliesHeader.textContent = '返信';
+                repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
+                contentDiv.appendChild(repliesHeader);
+            }
+
+            await renderReplyTree(postId, contentDiv);
 
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
@@ -997,9 +1026,18 @@ window.addEventListener('DOMContentLoaded', () => {
                         <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
                     </div>
                 </div>`;
-
-            if (currentUser && userId !== currentUser.id) {
-                const actionsContainer = profileHeader.querySelector('#profile-actions');
+            
+            // 凍結チェック
+            if (user.frieze) {
+                const friezeNotice = document.createElement('div');
+                friezeNotice.className = 'frieze-notice';
+                friezeNotice.innerHTML = `このユーザーは<a href="rule.md" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                profileHeader.insertAdjacentElement('afterend', friezeNotice);
+                profileTabs.remove();
+                document.getElementById('profile-content').innerHTML = ''; // コンテンツエリアを空にする
+            } else {
+                 if (currentUser && userId !== currentUser.id) {
+                    const actionsContainer = profileHeader.querySelector('#profile-actions');
                 if (actionsContainer) { // ★★★ nullチェックを追加 ★★★
                     // DMボタン
                     const dmButton = document.createElement('button');
@@ -1024,10 +1062,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 button.addEventListener('click', (e) => {
                     e.stopPropagation();
                     loadProfileTabContent(user, button.dataset.tab);
+                    });
                 });
-            });
 
-            await loadProfileTabContent(user, 'posts');
+                await loadProfileTabContent(user, 'posts');
+            }
         } catch(err) {
             profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
             console.error(err);
