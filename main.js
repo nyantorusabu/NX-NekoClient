@@ -561,18 +561,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            
-            // ★★★ メニューボタンに直接イベントリスナーを設定 ★★★
-            menuBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // 他のクリックイベントへの伝播を停止
-                window.togglePostMenu(post.id);
-            });
-            postHeader.appendChild(menuBtn);
+            postHeader.appendChild(menuBtn); // ボタンを描画するだけ
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
             menu.className = 'post-menu hidden';
-
+            
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
             editBtn.textContent = '編集';
@@ -1302,31 +1296,29 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     // --- 11. ユーザーアクション ---
+     // --- 11. ユーザーアクション (変更なし) ---
     window.togglePostMenu = (postId) => {
-        // 既に他のメニューが開いていたら、それを閉じる
-        if (openedMenuPostId && openedMenuPostId !== postId) {
-            const oldMenu = document.getElementById(`menu-${openedMenuPostId}`);
-            if (oldMenu) oldMenu.classList.add('hidden');
-        }
-    
-        // ターゲットのメニューを取得して表示/非表示を切り替える
         const targetMenu = document.getElementById(`menu-${postId}`);
-        if (!targetMenu) return;
-    
-        const isHidden = targetMenu.classList.contains('hidden');
-        
-        if (isHidden) {
-            targetMenu.classList.remove('hidden');
-            openedMenuPostId = postId; // 開いたメニューのIDを記録
-        } else {
-            targetMenu.classList.add('hidden');
-            openedMenuPostId = null; // 閉じたので記録をクリア
+        if (!targetMenu) {
+            console.error(`Menu for post ${postId} not found!`);
+            return;
         }
+
+        const isCurrentlyHidden = targetMenu.classList.contains('hidden');
+
+        // まず、現在開いている他のメニューをすべて閉じる
+        document.querySelectorAll('.post-menu').forEach(menu => {
+            if (menu.id !== `menu-${postId}`) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        // ターゲットメニューの表示状態を切り替える
+        targetMenu.classList.toggle('hidden');
     };
 
     window.deletePost = async (postId) => {
-    if (!confirm('このポストを削除しますか？')) return;
+        if (!confirm('このポストを削除しますか？')) return;
     showLoading(true);
     try {
         const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
@@ -1908,12 +1900,29 @@ async function openEditPostModal(postId) {
     // --- 13. 初期化処理 ---
     DOM.mainContent.addEventListener('click', (e) => {
         const target = e.target;
+
+        // ★★★ 最優先でメニューボタンのクリックを処理 ★★★
+        const menuButton = target.closest('.post-menu-btn');
+        if (menuButton) {
+            e.stopPropagation(); // 他のクリックイベントを絶対に発動させない
+            const postElement = menuButton.closest('.post');
+            if (postElement) {
+                const postId = postElement.dataset.postId;
+                window.togglePostMenu(postId);
+            }
+            return; // メニューボタンの処理はここで完結
+        }
+
+        // メニュー本体の内側がクリックされた場合は、何もしない（メニューを閉じない）
+        if (target.closest('.post-menu')) {
+            return;
+        }
+
         const postElement = target.closest('.post');
         if (!postElement) return;
 
         const postId = postElement.dataset.postId;
         
-        // ★★★ menuButtonの分岐を削除 ★★★
         const editButton = target.closest('.edit-btn');
         const deleteButton = target.closest('.delete-btn');
         const replyButton = target.closest('.reply-button');
@@ -1923,14 +1932,14 @@ async function openEditPostModal(postId) {
         const downloadLink = target.closest('.attachment-download-link');
         
         // メニューやボタン、リンクなど、インタラクティブな要素がクリックされた場合はそれぞれの処理を実行
-        if (editButton) { e.stopPropagation(); openEditPostModal(postId); return; }
-        if (deleteButton) { e.stopPropagation(); window.deletePost(postId); return; }
-        if (replyButton) { e.stopPropagation(); window.handleReplyClick(postId, replyButton.dataset.username); return; }
-        if (likeButton) { e.stopPropagation(); window.handleLike(likeButton, postId); return; }
-        if (starButton) { e.stopPropagation(); window.handleStar(starButton, postId); return; }
-        if (imageAttachment) { e.stopPropagation(); window.openImageModal(imageAttachment.src); return; }
-        if (downloadLink) { e.preventDefault(); e.stopPropagation(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-        if (target.closest('a')) { return; } // aタグのクリックはブラウザのデフォルト挙動に任せる
+        if (editButton) { openEditPostModal(postId); return; }
+        if (deleteButton) { window.deletePost(postId); return; }
+        if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
+        if (likeButton) { window.handleLike(likeButton, postId); return; }
+        if (starButton) { window.handleStar(starButton, postId); return; }
+        if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+        if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+        if (target.closest('a')) { return; }
         
         // 上記以外の、ポストの空白部分がクリックされた場合にのみ詳細ページへ遷移
         window.location.hash = `#post/${postElement.dataset.postId}`;
@@ -1947,19 +1956,16 @@ async function openEditPostModal(postId) {
 
     // メニューの外側をクリックしたときにメニューを閉じるグローバルリスナー
     document.addEventListener('click', (e) => {
-        // メニューボタン自身、またはメニューの内側がクリックされた場合は何もしない
+        // メニューボタンやメニュー自体がクリックされた場合は何もしない
         if (e.target.closest('.post-menu-btn') || e.target.closest('.post-menu')) {
             return;
         }
-
-        // 開いているメニューがあれば閉じる
-        if (openedMenuPostId) {
-            const openedMenu = document.getElementById(`menu-${openedMenuPostId}`);
-            if (openedMenu) openedMenu.classList.add('hidden');
-            openedMenuPostId = null; // 記録をクリア
-        }
+        // それ以外の場所がクリックされたら、開いているすべてのメニューを閉じる
+        document.querySelectorAll('.post-menu:not(.hidden)').forEach(menu => {
+            menu.classList.add('hidden');
+        });
     });
-    
+
     DOM.retryConnectionBtn.addEventListener('click', checkSession);
 
     document.getElementById('banner-signup-button').addEventListener('click', goToLoginPage);
