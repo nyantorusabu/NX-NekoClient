@@ -1896,72 +1896,78 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-         // --- 13. 初期化処理 ---
+        // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- 1. メニューの外側がクリックされたか判定 ---
-        // メニューを開くボタンでも、メニュー本体でもない場所がクリックされた場合、全てのメニューを閉じる
-        if (!target.closest('.post-menu-btn') && !target.closest('.post-menu')) {
+        // --- 1. メニューを開く/閉じるボタンの処理 ---
+        const menuButton = target.closest('.post-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
+            const postElement = menuButton.closest('.post');
+            if (postElement) {
+                window.togglePostMenu(postElement.dataset.postId);
+            }
+            return;
+        }
+
+        // --- 2. メニュー内のボタンの処理 ---
+        const editButton = target.closest('.edit-btn');
+        if (editButton) {
+            const postElement = editButton.closest('.post');
+            if (postElement) {
+                // 編集モーダルを開き、メニューを閉じる
+                openEditPostModal(postElement.dataset.postId);
+                document.getElementById(`menu-${postElement.dataset.postId}`)?.classList.remove('is-visible');
+            }
+            return;
+        }
+        const deleteButton = target.closest('.delete-btn');
+        if (deleteButton) {
+            const postElement = deleteButton.closest('.post');
+            if (postElement) {
+                // 削除処理を実行（メニューは画面遷移で消えるのでそのままでOK）
+                window.deletePost(postElement.dataset.postId);
+            }
+            return;
+        }
+
+        // --- 3. メニューの外側がクリックされたら、開いているメニューを閉じる ---
+        if (!target.closest('.post-menu')) {
             document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
                 menu.classList.remove('is-visible');
             });
         }
 
-        // --- 2. 各種インタラクティブ要素の役割を判定して処理 ---
+        // --- 4. ポスト関連の他のインタラクティブな要素の処理 ---
+        if (target.closest('#main-content')) {
+            const postElement = target.closest('.post');
+            if (postElement) {
+                const postId = postElement.dataset.postId;
+                const replyButton = target.closest('.reply-button');
+                const likeButton = target.closest('.like-button');
+                const starButton = target.closest('.star-button');
+                const imageAttachment = target.closest('.attachment-item img');
+                const downloadLink = target.closest('.attachment-download-link');
 
-        // メニューを開く/閉じるボタン
-        const menuButton = target.closest('.post-menu-btn');
-        if (menuButton) {
-            e.stopPropagation();
-            const postElement = menuButton.closest('.post');
-            if (postElement) window.togglePostMenu(postElement.dataset.postId);
-            return;
-        }
-
-        // 編集ボタン
-        const editButton = target.closest('.edit-btn');
-        if (editButton) {
-            const postElement = editButton.closest('.post');
-            if (postElement) openEditPostModal(postElement.dataset.postId);
-            return;
-        }
-
-        // 削除ボタン
-        const deleteButton = target.closest('.delete-btn');
-        if (deleteButton) {
-            const postElement = deleteButton.closest('.post');
-            if (postElement) window.deletePost(postElement.dataset.postId);
-            return;
-        }
-        
-        // --- ポスト関連の他の要素 ---
-        const postElement = target.closest('.post');
-        if (postElement) {
-            const postId = postElement.dataset.postId;
-            const replyButton = target.closest('.reply-button');
-            const likeButton = target.closest('.like-button');
-            const starButton = target.closest('.star-button');
-            const imageAttachment = target.closest('.attachment-item img');
-            const downloadLink = target.closest('.attachment-download-link');
-
-            if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
-            if (likeButton) { window.handleLike(likeButton, postId); return; }
-            if (starButton) { window.handleStar(starButton, postId); return; }
-            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
-            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-            
-            // aタグやメニュー本体のクリックはここで無視
-            if (target.closest('a') || target.closest('.post-menu')) { return; }
-            
-            // 上記のいずれでもない、ポストの空白部分がクリックされた場合
-            window.location.hash = `#post/${postId}`;
-            return;
+                if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
+                if (likeButton) { window.handleLike(likeButton, postId); return; }
+                if (starButton) { window.handleStar(starButton, postId); return; }
+                if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+                if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+                if (target.closest('a')) { return; }
+                
+                // メニューやボタン、リンク以外の部分がクリックされた場合
+                if (!target.closest('.post-menu')) {
+                    window.location.hash = `#post/${postId}`;
+                    return;
+                }
+            }
         }
         
-        // --- その他のグローバルなクリック処理 ---
+        // --- 5. その他のグローバルなクリック処理 ---
         const timelineTab = target.closest('.timeline-tab-button');
         if(timelineTab) {
             switchTimelineTab(timelineTab.dataset.tab);
