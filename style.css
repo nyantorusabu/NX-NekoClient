@@ -1367,11 +1367,11 @@ input, textarea {
         width: 100%;
     }
 
-    /* モバイルビューで「いいね」タブを非表示にする */
-    .nav-item[href="#likes"] {
+    .nav-item[href="#likes"],
+    .nav-item[href="#stars"] {
         display: none;
     }
-
+    
     .nav-item-post, #nav-menu-bottom {
         display: none;
     }
