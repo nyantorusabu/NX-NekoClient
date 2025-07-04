@@ -659,7 +659,8 @@ window.addEventListener('DOMContentLoaded', () => {
             replyBtn.className = 'reply-button';
             replyBtn.title = '返信';
             // ▼▼▼ この行を修正 ▼▼▼
-            replyBtn.innerHTML = `<span class="icon">${ICONS.reply}</span> <span>${replyCount}</span>`;
+            // SVGをラップしていた <span class="icon"> を削除
+            replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
             // ▲▲▲ 修正ここまで ▲▲▲
             replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
