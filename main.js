@@ -814,6 +814,9 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="windoasync function showPostDetail(postId) {
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
                 <h2 id="page-title">ポスト</h2>
             </div>`;
@@ -834,7 +837,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
             if (repliesError) throw repliesError;
 
-            // 2. 表示に必要な全メンションユーザー情報を収集・キャッシュ
+            // 2. 表示に必要な全ポストのIDを収集し、メンションと返信数を一括取得
+            const allPostIdsOnPage = new Set();
+            allPostIdsOnPage.add(mainPost.id);
+            if (mainPost.reply_to) {
+                allPostIdsOnPage.add(mainPost.reply_to.id);
+            }
+            allRepliesRaw.forEach(reply => allPostIdsOnPage.add(reply.id));
+
+            // メンションユーザーを取得
             const mentionRegex = /@(\d+)/g;
             const allMentionedIds = new Set();
             const collectMentions = (text) => {
@@ -842,7 +853,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 const matches = text.matchAll(mentionRegex);
                 for (const match of matches) allMentionedIds.add(parseInt(match[1]));
             };
-
             collectMentions(mainPost.content);
             if (mainPost.reply_to) {
                 collectMentions(mainPost.reply_to.content);
@@ -855,30 +865,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
             
-            // ▼▼▼ このブロックを追加 ▼▼▼
-            let replyCountsMapForDetail = new Map();
-            if (mainPost.reply_to) {
-                const { data: parentReplyCount, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: [mainPost.reply_to.id] });
-                if (!countError && parentReplyCount) {
-                    replyCountsMapForDetail.set(mainPost.reply_to.id, parentReplyCount[0].reply_count);
-                }
-            }
-            // ▲▲▲ 追加ここまで ▲▲▲
-            
+            // 返信数を一括取得
+            const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: Array.from(allPostIdsOnPage) });
+            const replyCountsMapForDetail = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
+
             // 3. DOMの初期化とメインポストの描画
             contentDiv.innerHTML = '';
     
             if (mainPost.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
-                // userCache を渡す
-                const parentPostEl = await renderPost(mainPost.reply_to, mainPost.reply_to.user, { userCache: allUsersCache });
+                const parentPostEl = await renderPost(mainPost.reply_to, mainPost.reply_to.user, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
     
-            // userCache を渡す
-            const mainPostEl = await renderPost(mainPost, mainPost.user, { userCache: allUsersCache });
+            const mainPostEl = await renderPost(mainPost, mainPost.user, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
     
             const repliesHeader = document.createElement('h3');
@@ -948,8 +950,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 for (const reply of repliesToRender) {
                     const postForRender = { ...reply, like: reply.like, star: reply.star };
                     const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
-                    // userCache を渡す
-                    const postEl = await renderPost(postForRender, authorForRender, { userCache: allUsersCache });
+                    const postEl = await renderPost(postForRender, authorForRender, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
                     if (postEl) repliesContainer.appendChild(postEl);
                 }
 
