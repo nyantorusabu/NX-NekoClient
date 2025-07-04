@@ -315,7 +315,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
-                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
+                const { data, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
 
@@ -822,7 +822,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. メインポスト、親ポスト、全返信ツリーを一括で取得
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
-                .select('*, user(*), reply_to:reply_id(*, user(*))')
+                .select('id, content, attachments, "like", star, time, userid, reply_id, user(id, name, scid, icon_data), reply_to:reply_id(id, content, time, user(id, name, scid, icon_data))')
                 .eq('id', postId)
                 .single();
     
@@ -1006,7 +1006,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
         
-        const { data: dm, error } = await supabase.from('dm').select('*').eq('id', dmId).single();
+        const { data: dm, error } = await supabase.from('dm').select('id, post, member, host_id').eq('id', dmId).single();
         if (error || !dm || !dm.member.includes(currentUser.id)) {
             container.innerHTML = 'DMが見つからないか、アクセス権がありません。';
             return;
@@ -1078,7 +1078,7 @@ window.addEventListener('DOMContentLoaded', () => {
         profileContent.innerHTML = '';
 
         try {
-            const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
+            const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star').eq('id', userId).single();
             if (error || !user) {
                 profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
                 showLoading(false);
@@ -1284,7 +1284,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
+            let query = supabase.from('post').select('id, userid, content, attachments, "like", star, reply_id, time, user(id, name, scid, icon_data), reply_to:reply_id(id, user(id, name))');
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
@@ -1629,7 +1629,7 @@ async function openEditPostModal(postId) {
         DOM.dmManageModal.querySelector('.modal-close-btn').onclick = () => DOM.dmManageModal.classList.add('hidden');
 
         try {
-            const { data: dm, error } = await supabase.from('dm').select('*').eq('id', dmId).single();
+            const { data: dm, error } = await supabase.from('dm').select('id, title, member, host_id').eq('id', dmId).single();
             if (error || !dm) throw new Error('DM情報の取得に失敗しました。');
 
             const isHost = dm.host_id === currentUser.id;
