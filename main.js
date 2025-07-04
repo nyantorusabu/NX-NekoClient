@@ -1346,19 +1346,20 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (postId) => {
-        const targetMenu = document.getElementById(`menu-${postId}`);
-        if (!targetMenu) {
-            return;
-        }
-
+    window.togglePostMenu = (buttonElement) => {
+        const header = buttonElement.closest('.post-header');
+        if (!header) return;
+    
+        const targetMenu = header.querySelector('.post-menu');
+        if (!targetMenu) return;
+    
         const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
-
+    
         // まず、現在開いている他のメニューをすべて閉じる
         document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
             menu.classList.remove('is-visible');
         });
-
+    
         // ターゲットメニューが今閉じたものでなければ、開く
         if (!isCurrentlyVisible) {
             targetMenu.classList.add('is-visible');
@@ -1945,7 +1946,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-        // --- 13. 初期化処理 ---
+    // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
@@ -1955,10 +1956,8 @@ async function openEditPostModal(postId) {
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
             e.stopPropagation();
-            const postElement = menuButton.closest('.post');
-            if (postElement) {
-                window.togglePostMenu(postElement.dataset.postId);
-            }
+            // postIdではなく、button要素自体を渡す
+            window.togglePostMenu(menuButton);
             return;
         }
 
@@ -1969,7 +1968,10 @@ async function openEditPostModal(postId) {
             if (postElement) {
                 // 編集モーダルを開き、メニューを閉じる
                 openEditPostModal(postElement.dataset.postId);
-                document.getElementById(`menu-${postElement.dataset.postId}`)?.classList.remove('is-visible');
+                const menu = editButton.closest('.post-menu');
+                if (menu) {
+                    menu.classList.remove('is-visible');
+                }
             }
             return;
         }
