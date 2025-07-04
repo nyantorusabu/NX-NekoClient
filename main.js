@@ -14,8 +14,8 @@ window.addEventListener('DOMContentLoaded', () => {
     let openedMenuPostId = null;
     let currentDmChannel = null;
     let lastRenderedMessageId = null;
-    let allUsersCache = {};
-    
+    let allUsersCache = new Map(); // オブジェクトからMapに変更
+
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
@@ -47,6 +47,14 @@ window.addEventListener('DOMContentLoaded', () => {
         postModal: document.getElementById('post-modal'),
         editPostModal: document.getElementById('edit-post-modal'),
         editPostModalContent: document.getElementById('edit-post-modal-content'),
+        createDmModal: document.getElementById('create-dm-modal'),
+        createDmModalContent: document.getElementById('create-dm-modal-content'),
+        dmManageModal: document.getElementById('dm-manage-modal'),
+        dmManageModalContent: document.getElementById('dm-manage-modal-content'),
+        connectionErrorOverlay: document.getElementById('connection-error-overlay'),
+        retryConnectionBtn: document.getElementById('retry-connection-btn'),
+        friezeOverlay: document.getElementById('frieze-overlay'), // ★★★ この行を追加
+        friezeReason: document.getElementById('frieze-reason'), // ★★★ この行を追加
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -59,12 +67,6 @@ window.addEventListener('DOMContentLoaded', () => {
         searchResultsContent: document.getElementById('search-results-content'),
         dmScreen: document.getElementById('dm-screen'),
         dmContent: document.getElementById('dm-content'),
-        createDmModal: document.getElementById('create-dm-modal'),
-        createDmModalContent: document.getElementById('create-dm-modal-content'),
-        dmManageModal: document.getElementById('dm-manage-modal'),
-        dmManageModalContent: document.getElementById('dm-manage-modal-content'),
-        connectionErrorOverlay: document.getElementById('connection-error-overlay'),
-        retryConnectionBtn: document.getElementById('retry-connection-btn'),
         loadingOverlay: document.getElementById('loading-overlay'),
         loginBanner: document.getElementById('login-banner'),
         rightSidebar: {
@@ -113,7 +115,8 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
         } else {
             // 他の人のメッセージ
-            const user = allUsersCache[msg.userid] || {};
+            // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
+            const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             return `<div class="dm-message-container received">
                 <img src="${getUserIconUrl(user)}" class="dm-message-icon">
@@ -308,18 +311,15 @@ window.addEventListener('DOMContentLoaded', () => {
         window.location.hash = '#';
         router();
     }
-    async function checkSession() {
+     async function checkSession() {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
-                // DOM.connectionErrorOverlay.classList.add('hidden'); // DOM操作を削除
-                // DOM.friezeOverlay.classList.add('hidden'); // DOM操作を削除
-                
                 const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
 
-                // 凍結チェックを先に行う
+                // 凍結チェック
                 if (currentUser.frieze) {
                     DOM.friezeReason.textContent = currentUser.frieze;
                     DOM.friezeOverlay.classList.remove('hidden');
@@ -600,7 +600,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const postContent = document.createElement('div');
         postContent.className = 'post-content';
         const contentP = document.createElement('p');
-        contentP.innerHTML = await formatPostContent(post.content);
+        // ★★★ 不要な await を削除 ★★★
+        contentP.innerHTML = formatPostContent(post.content, userCache);
         postContent.appendChild(contentP);
         postMain.appendChild(postContent);
 
@@ -683,7 +684,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return postEl;
     }
 
-    // --- 9. ページごとの表示ロジック ---
+        // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
@@ -693,9 +694,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } else { DOM.postFormContainer.innerHTML = ''; }
         document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
         await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
-        // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
         showLoading(false);
-        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
 
     async function showExploreScreen() {
@@ -715,9 +714,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         showScreen('explore-screen');
         DOM.exploreContent.innerHTML = `<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>`;
-        // ▼▼▼ [修正点1] 読み込み完了後にローディングを非表示 ▼▼▼
         showLoading(false);
-        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
 
     async function showSearchResults(query) {
@@ -819,64 +816,82 @@ window.addEventListener('DOMContentLoaded', () => {
         const contentDiv = DOM.postDetailContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
-         // 返信を再帰的に取得・描画する内部関数
-        const fetchAndRenderRepliesRecursive = async (parentId, container, mainPostAuthorId, depth) => {
-            // 階層の上限を撤廃
-
-            const { data: replies, error } = await supabase.from('post')
-                .select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))')
-                .eq('reply_id', parentId)
-                .order('time', { ascending: true });
-
-            if (error || !replies || replies.length === 0) return;
-            
-            // ツリー分岐の対象となる返信のみをフィルタリング
-            const relevantReplies = replies.filter(reply => {
-                const isAuthor = (reply.user && reply.userid === reply.user.id);
-                return reply.userid === mainPostAuthorId || isAuthor;
-            });
-
-            if (relevantReplies.length === 0) return;
-
-            relevantReplies.forEach(async (reply, index) => {
-                const replyEl = await renderPost(reply, reply.user, { userCache: userCacheForRender }); // ★★★ userCacheを渡す
-                if (replyEl) {
-                    container.appendChild(replyEl);
-                }
-                
-                // 再帰呼び出し (depthはスタックオーバーフロー防止のため一応渡しておく)
-                await fetchAndRenderRepliesRecursive(reply.id, container, mainPostAuthorId, depth + 1);
-            });
-        };
-
         try {
-            const { data: post, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
-            if (error || !post) throw new Error('ポストが見つかりません。');
+            // 1. メインポストを取得
+            const { data: post, error: postError } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
+            if (postError || !post) throw new Error('ポストが見つかりません。');
             
+            // 2. 全ての返信を再帰的に取得
+            let allReplies = [];
+            const fetchAllReplies = async (parentId) => {
+                const { data: replies, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data)').eq('reply_id', parentId);
+                if (replies && replies.length > 0) {
+                    allReplies = allReplies.concat(replies);
+                    await Promise.all(replies.map(r => fetchAllReplies(r.id)));
+                }
+            };
+            await fetchAllReplies(postId);
+            
+            // 3. 必要なユーザー情報を一括で取得 & キャッシュ
+            const mentionRegex = /@(\d+)/g;
+            const allMentionedIds = new Set();
+            const collectMentions = (text) => {
+                if(!text) return;
+                const matches = text.matchAll(mentionRegex);
+                for (const match of matches) allMentionedIds.add(parseInt(match[1]));
+            };
+            
+            collectMentions(post.content);
+            allReplies.forEach(r => collectMentions(r.content));
+            
+            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
+            if (newIdsToFetch.length > 0) {
+                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+            }
+            // ★★★ 古い変換コードを削除し、キャッシュを直接使用 ★★★
+            const userCacheForRender = allUsersCache;
+            
+            // 4. 描画処理
             contentDiv.innerHTML = '';
-
-            // 親ポストがあれば表示
+            
+            // 親ポスト
             if (post.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
-                const parentPostEl = await renderPost(post.reply_to, post.reply_to.user);
+                const parentPostEl = await renderPost(post.reply_to, post.reply_to.user, { userCache: userCacheForRender });
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
 
-            // メインポストを表示
-            const mainPostEl = await renderPost(post, post.user);
+            // メインポスト
+            const mainPostEl = await renderPost(post, post.user, { userCache: userCacheForRender });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
-            
-            const repliesHeader = document.createElement('h3');
-            repliesHeader.textContent = '返信';
-            repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
-            contentDiv.appendChild(repliesHeader);
 
-            // 返信の再帰的取得を開始
-            const repliesContainer = document.createElement('div');
-            contentDiv.appendChild(repliesContainer);
-            await fetchAndRenderRepliesRecursive(postId, repliesContainer, post.user.id, 1);
+            // 返信
+            const repliesByParentId = allReplies.reduce((acc, reply) => {
+                if (!acc[reply.reply_id]) acc[reply.reply_id] = [];
+                acc[reply.reply_id].push(reply);
+                return acc;
+            }, {});
+
+            const renderReplyTree = async (parentId, container, userCache) => {
+                const replies = (repliesByParentId[parentId] || []).sort((a,b) => new Date(a.time) - new Date(b.time));
+                for (const reply of replies) {
+                    const replyEl = await renderPost(reply, reply.user, { userCache });
+                    if(replyEl) container.appendChild(replyEl);
+                    await renderReplyTree(reply.id, container, userCache);
+                }
+            };
+            
+            if(allReplies.length > 0) {
+                const repliesHeader = document.createElement('h3');
+                repliesHeader.textContent = '返信';
+                repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
+                contentDiv.appendChild(repliesHeader);
+            }
+
+            await renderReplyTree(postId, contentDiv, userCacheForRender);
 
         } catch (err) {
             contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
@@ -884,11 +899,10 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     }
-    
-     // --- [新規追加] DM画面関連 ---
+
     async function showDmScreen(dmId = null) {
         if (!currentUser) return router();
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">ダイレクトメッセージ</h2>`;
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">メッセージ</h2>`;
         showScreen('dm-screen');
         DOM.dmContent.innerHTML = '<div class="spinner"></div>';
 
@@ -904,7 +918,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         DOM.dmContent.innerHTML = `
             <div id="dm-list-container">
-                <button class="dm-new-message-btn" onclick="openCreateDmModal()">新しいメッセージ</button>
+                <button class="dm-new-message-btn" onclick="window.openCreateDmModal()">新しいメッセージ</button>
                 ${dmListHTML}
             </div>
             <div id="dm-conversation-container"></div>
@@ -928,11 +942,11 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // メンバーのユーザー情報を取得・キャッシュ
-        const memberIds = dm.member.filter(id => !allUsersCache[id]);
+        // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
+        const memberIds = dm.member.filter(id => !allUsersCache.has(id));
         if(memberIds.length > 0) {
             const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
-            if(users) users.forEach(u => allUsersCache[u.id] = u);
+            if(users) users.forEach(u => allUsersCache.set(u.id, u));
         }
         
         const posts = dm.post || [];
@@ -973,8 +987,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }).subscribe();
     }
-    
-    // --- 10. プロフィールと設定 ---
+    // // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
@@ -985,6 +998,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         const profileContent = document.getElementById('profile-content');
+        
+        // ★★★ 以前の凍結通知が残っていれば削除 ★★★
+        const existingFriezeNotice = DOM.mainContent.querySelector('.frieze-notice');
+        if (existingFriezeNotice) existingFriezeNotice.remove();
+
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
         profileContent.innerHTML = '';
@@ -1009,7 +1027,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>`;
                 const friezeNotice = document.createElement('div');
                 friezeNotice.className = 'frieze-notice';
-                friezeNotice.innerHTML = `このユーザーは<a href="rule.md" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
                 profileHeader.insertAdjacentElement('afterend', friezeNotice);
                 showLoading(false);
                 return; // 凍結されている場合はここで描画を終了
@@ -1076,7 +1094,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function loadProfileTabContent(user, tab) {
         document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
         const contentDiv = document.getElementById('profile-content');
-
+        
         isLoadingMore = false; // 読み込み状態をリセット
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
@@ -1102,7 +1120,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
-                    fUsers?.forEach(u => {
+                    fUsers?.forEach(u => { // ★★★ ループ変数を 'f' から 'u' に修正
                         const userCard = document.createElement('div');
                         userCard.className = 'profile-card';
                         const userLink = document.createElement('a');
@@ -1196,7 +1214,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            // 1. データ取得クエリの準備 (user情報を限定)
             let query = supabase.from('post').select('*, user(id, name, scid, icon_data)');
 
             if (type === 'timeline') {
@@ -1223,7 +1240,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // 2. ポストデータを取得
             const { data: posts, error } = await query.range(from, to);
 
             if (error) {
@@ -1233,11 +1249,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (posts.length > 0) {
                     const postIds = posts.map(p => p.id);
 
-                    // 3. RPCで返信数を一括取得
                     const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: postIds });
                     const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
 
-                    // 4. メンションユーザーを一括取得 & キャッシュ
                     const mentionRegex = /@(\d+)/g;
                     const allMentionedIds = new Set();
                     posts.forEach(p => {
@@ -1248,14 +1262,13 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                     
-                    const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache[id]);
+                    const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
                     if (newIdsToFetch.length > 0) {
                         const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
-                        if(newUsers) newUsers.forEach(u => allUsersCache[u.id] = u);
+                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
                     }
-                    const userCacheForRender = new Map(Object.entries(allUsersCache).map(([id, user]) => [parseInt(id), user]));
+                    const userCacheForRender = allUsersCache;
 
-                    // 5. ポストを描画
                     for (const post of posts) {
                         const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender });
                         if (postEl) trigger.before(postEl);
@@ -1297,7 +1310,6 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.timeline.innerHTML = '';
         await loadPostsWithPagination(DOM.timeline, 'timeline', { tab });
     }
-    
     
     async function handleUpdateSettings(event) {
         event.preventDefault();
@@ -2033,5 +2045,7 @@ async function openEditPostModal(postId) {
     window.addEventListener('hashchange', router);
     
     // 全ての準備が整った後、最後にセッションチェックを開始
+    DOM.friezeOverlay.classList.add('hidden');
+    DOM.connectionErrorOverlay.classList.add('hidden');
     checkSession();
 });
