@@ -504,6 +504,20 @@ input, textarea {
     cursor: pointer;
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.post-actions button svg {
+    width: 1.2em; /* 親のfont-sizeに連動させる */
+    height: 1.2em;
+    vertical-align: middle; /* テキストとの位置を微調整 */
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.reply-button:hover {
+    color: var(--primary-color);
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 .like-button:hover, .like-button.liked {
     color: var(--like-color);
 }
