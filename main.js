@@ -817,84 +817,119 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
         try {
-            // 1. メインポストを取得
-            const { data: post, error: postError } = await supabase.from('post').select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))').eq('id', postId).single();
-            if (postError || !post) throw new Error('ポストが見つかりません。');
+            // 1. メインポストと、その返信先（親）ポストを取得
+            const { data: mainPost, error: postError } = await supabase
+                .from('post')
+                .select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data))')
+                .eq('id', postId)
+                .single();
+    
+            if (postError || !mainPost) throw new Error('ポストが見つかりません。');
             
-            // 2. 全ての返信を再帰的に取得
-            let allReplies = [];
-            const fetchAllReplies = async (parentId) => {
-                const { data: replies, error } = await supabase.from('post').select('*, user(id, name, scid, icon_data)').eq('reply_id', parentId);
-                if (replies && replies.length > 0) {
-                    allReplies = allReplies.concat(replies);
-                    await Promise.all(replies.map(r => fetchAllReplies(r.id)));
-                }
-            };
-            await fetchAllReplies(postId);
-            
-            // 3. 必要なユーザー情報を一括で取得 & キャッシュ
-            const mentionRegex = /@(\d+)/g;
-            const allMentionedIds = new Set();
-            const collectMentions = (text) => {
-                if(!text) return;
-                const matches = text.matchAll(mentionRegex);
-                for (const match of matches) allMentionedIds.add(parseInt(match[1]));
-            };
-            
-            collectMentions(post.content);
-            allReplies.forEach(r => collectMentions(r.content));
-            
-            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
-            if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
-                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
-            }
-            // ★★★ 古い変換コードを削除し、キャッシュを直接使用 ★★★
-            const userCacheForRender = allUsersCache;
-            
-            // 4. 描画処理
+            // 2. DOMの初期化とメインポストの描画
             contentDiv.innerHTML = '';
-            
-            // 親ポスト
-            if (post.reply_to) {
+    
+            if (mainPost.reply_to) {
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
-                const parentPostEl = await renderPost(post.reply_to, post.reply_to.user, { userCache: userCacheForRender });
+                const parentPostEl = await renderPost(mainPost.reply_to, mainPost.reply_to.user);
                 if (parentPostEl) parentPostContainer.appendChild(parentPostEl);
                 contentDiv.appendChild(parentPostContainer);
             }
-
-            // メインポスト
-            const mainPostEl = await renderPost(post, post.user, { userCache: userCacheForRender });
+    
+            const mainPostEl = await renderPost(mainPost, mainPost.user);
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
+    
+            const repliesHeader = document.createElement('h3');
+            repliesHeader.textContent = '返信';
+            repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
+            contentDiv.appendChild(repliesHeader);
 
-            // 返信
-            const repliesByParentId = allReplies.reduce((acc, reply) => {
-                if (!acc[reply.reply_id]) acc[reply.reply_id] = [];
-                acc[reply.reply_id].push(reply);
-                return acc;
-            }, {});
-
-            const renderReplyTree = async (parentId, container, userCache) => {
-                const replies = (repliesByParentId[parentId] || []).sort((a,b) => new Date(a.time) - new Date(b.time));
-                for (const reply of replies) {
-                    const replyEl = await renderPost(reply, reply.user, { userCache });
-                    if(replyEl) container.appendChild(replyEl);
-                    await renderReplyTree(reply.id, container, userCache);
-                }
-            };
+            // 3. 全ての返信ツリーを一括で取得
+            const { data: allReplies, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
+            if (repliesError) throw repliesError;
             
-            if(allReplies.length > 0) {
-                const repliesHeader = document.createElement('h3');
-                repliesHeader.textContent = '返信';
-                repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
-                contentDiv.appendChild(repliesHeader);
+            // 4. 返信を親子関係がわかるようにMapに整理
+            const repliesByParentId = new Map();
+            for (const reply of allReplies) {
+                if (!repliesByParentId.has(reply.reply_id)) {
+                    repliesByParentId.set(reply.reply_id, []);
+                }
+                repliesByParentId.get(reply.reply_id).push(reply);
+            }
+            // 各階層を時系列でソート
+            for (const replies of repliesByParentId.values()) {
+                replies.sort((a, b) => new Date(a.time) - new Date(b.time));
             }
 
-            await renderReplyTree(postId, contentDiv, userCacheForRender);
+            // 5. 無限スクロールのセットアップ
+            const repliesContainer = document.createElement('div');
+            contentDiv.appendChild(repliesContainer);
+            const trigger = document.createElement('div');
+            trigger.className = 'load-more-trigger';
+            contentDiv.appendChild(trigger);
+            
+            const topLevelReplies = repliesByParentId.get(postId) || [];
+            let pagination = { page: 0, hasMore: topLevelReplies.length > 0 };
+            const REPLIES_PER_PAGE = 10;
+            let isLoadingReplies = false;
+
+            const loadMoreReplies = async () => {
+                if (isLoadingReplies || !pagination.hasMore) return;
+                isLoadingReplies = true;
+                trigger.innerHTML = '<div class="spinner"></div>';
+                
+                // 表示するトップレベルの返信を決定
+                const from = pagination.page * REPLIES_PER_PAGE;
+                const to = from + REPLIES_PER_PAGE;
+                const repliesToRender = topLevelReplies.slice(from, to);
+
+                // 再帰的にツリーを描画する関数
+                const renderTreeRecursively = async (reply, container) => {
+                    const postForRender = { ...reply, like: reply.like, star: reply.star }; // rpcからの戻り値の調整
+                    const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
+                    const postEl = await renderPost(postForRender, authorForRender);
+                    if (!postEl) return;
+                    container.appendChild(postEl);
+                    
+                    const children = repliesByParentId.get(reply.id) || [];
+                    if (children.length > 0) {
+                        const childrenContainer = postEl.querySelector('.sub-replies-container');
+                        for (const child of children) {
+                            await renderTreeRecursively(child, childrenContainer);
+                        }
+                    }
+                };
+                
+                for (const reply of repliesToRender) {
+                    await renderTreeRecursively(reply, repliesContainer);
+                }
+
+                pagination.page++;
+                if (pagination.page * REPLIES_PER_PAGE >= topLevelReplies.length) {
+                    pagination.hasMore = false;
+                }
+                
+                if (!pagination.hasMore) {
+                    trigger.textContent = repliesContainer.hasChildNodes() ? 'すべての返信を読み込みました' : 'まだ返信はありません。';
+                    if (postLoadObserver) postLoadObserver.disconnect();
+                } else {
+                    trigger.innerHTML = '';
+                }
+                isLoadingReplies = false;
+            };
+            
+            const postLoadObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting) {
+                    loadMoreReplies();
+                }
+            }, { rootMargin: '200px' });
+            
+            postLoadObserver.observe(trigger);
 
         } catch (err) {
-            contentDiv.innerHTML = `<p class="error-message">${err.message}</p>`;
+            console.error("Post detail error:", err);
+            contentDiv.innerHTML = `<p class="error-message">${err.message || 'ページの読み込みに失敗しました。'}</p>`;
         } finally {
             showLoading(false);
         }
@@ -1346,20 +1381,19 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (buttonElement) => {
-        const header = buttonElement.closest('.post-header');
-        if (!header) return;
-    
-        const targetMenu = header.querySelector('.post-menu');
-        if (!targetMenu) return;
-    
+    window.togglePostMenu = (postId) => {
+        const targetMenu = document.getElementById(`menu-${postId}`);
+        if (!targetMenu) {
+            return;
+        }
+
         const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
-    
+
         // まず、現在開いている他のメニューをすべて閉じる
         document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
             menu.classList.remove('is-visible');
         });
-    
+
         // ターゲットメニューが今閉じたものでなければ、開く
         if (!isCurrentlyVisible) {
             targetMenu.classList.add('is-visible');
@@ -1946,7 +1980,7 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-    // --- 13. 初期化処理 ---
+        // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
@@ -1956,8 +1990,10 @@ async function openEditPostModal(postId) {
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
             e.stopPropagation();
-            // postIdではなく、button要素自体を渡す
-            window.togglePostMenu(menuButton);
+            const postElement = menuButton.closest('.post');
+            if (postElement) {
+                window.togglePostMenu(postElement.dataset.postId);
+            }
             return;
         }
 
@@ -1968,10 +2004,7 @@ async function openEditPostModal(postId) {
             if (postElement) {
                 // 編集モーダルを開き、メニューを閉じる
                 openEditPostModal(postElement.dataset.postId);
-                const menu = editButton.closest('.post-menu');
-                if (menu) {
-                    menu.classList.remove('is-visible');
-                }
+                document.getElementById(`menu-${postElement.dataset.postId}`)?.classList.remove('is-visible');
             }
             return;
         }
