@@ -822,7 +822,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. メインポスト、親ポスト、全返信ツリーを一括で取得
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
-                .select('*, user(id, name, scid, icon_data), reply_to:reply_id(*, user(id, name, scid, icon_data, content))')
+                .select('*, user(*), reply_to:reply_id(*, user(*))')
                 .eq('id', postId)
                 .single();
     
