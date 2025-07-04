@@ -611,17 +611,6 @@ input, textarea {
     margin-bottom: 1rem;
 }
 
-.sub-replies-container {
-    margin-top: 0.5rem;
-    padding-left: 1rem;
-    border-left: 2px solid var(--border-color);
-    margin-left: 24px;
-}
-
-.sub-replies-container {
-    margin-top: 0.5rem;
-}
-
 /* 添付ファイル表示のスタイル */
 .attachments-container {
     display: flex;
