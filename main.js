@@ -34,6 +34,7 @@ window.addEventListener('DOMContentLoaded', () => {
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
+        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`
     };
 
     // --- 3. DOM要素の取得 ---
@@ -560,7 +561,6 @@ window.addEventListener('DOMContentLoaded', () => {
         // ▲▲▲ 差し替えここまで ▲▲▲
 
         const postHeader = document.createElement('div');
-        // ... (以降の postHeader の中身は変更なし) ...
         postHeader.className = 'post-header';
         
         const authorLink = document.createElement('a');
@@ -658,7 +658,9 @@ window.addEventListener('DOMContentLoaded', () => {
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
             replyBtn.title = '返信';
-            replyBtn.innerHTML = `🗨 <span>${replyCount}</span>`;
+            // ▼▼▼ この行を修正 ▼▼▼
+            replyBtn.innerHTML = `<span class="icon">${ICONS.reply}</span> <span>${replyCount}</span>`;
+            // ▲▲▲ 修正ここまで ▲▲▲
             replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
 
@@ -851,7 +853,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
-
+            
+            // ▼▼▼ このブロックを追加 ▼▼▼
+            let replyCountsMapForDetail = new Map();
+            if (mainPost.reply_to) {
+                const { data: parentReplyCount, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: [mainPost.reply_to.id] });
+                if (!countError && parentReplyCount) {
+                    replyCountsMapForDetail.set(mainPost.reply_to.id, parentReplyCount[0].reply_count);
+                }
+            }
+            // ▲▲▲ 追加ここまで ▲▲▲
+            
             // 3. DOMの初期化とメインポストの描画
             contentDiv.innerHTML = '';
     
