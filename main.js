@@ -526,7 +526,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), mainPostId = null } = options; // mainPostId を追加
+        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), } = options; // mainPostId を追加
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
@@ -546,9 +546,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
         
-        // ▼▼▼ 返信先表示のロジックを修正 ▼▼▼
-        // 「孫」以降のポスト（＝返信先がメインポストではないポスト）の場合にのみ表示する
-        if (post.reply_to && mainPostId && post.reply_id !== mainPostId) {
+        // ▼▼▼ 返信先表示のロジックをこのブロックに差し替え ▼▼▼
+        if (post.reply_to && post.reply_to.user) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
             const replyLink = document.createElement('a');
@@ -557,17 +556,8 @@ window.addEventListener('DOMContentLoaded', () => {
             replyDiv.appendChild(replyLink);
             replyDiv.append(' さんに返信');
             postMain.appendChild(replyDiv);
-        } else if (post.reply_to && !mainPostId) { // 詳細ページ以外での通常表示
-             const replyDiv = document.createElement('div');
-            replyDiv.className = 'replying-to';
-            const replyLink = document.createElement('a');
-            replyLink.href = `#profile/${post.reply_to.user.id}`;
-            replyLink.textContent = `@${escapeHTML(post.reply_to.user.name)}`;
-            replyDiv.appendChild(replyLink);
-            replyDiv.append(' さんに返信');
-            postMain.appendChild(replyDiv);
         }
-        // ▲▲▲ 修正ここまで ▲▲▲
+        // ▲▲▲ 差し替えここまで ▲▲▲
 
         const postHeader = document.createElement('div');
         // ... (以降の postHeader の中身は変更なし) ...
@@ -895,6 +885,12 @@ window.addEventListener('DOMContentLoaded', () => {
             const buildFlatList = (parentId) => {
                 const children = repliesByParentId.get(parentId) || [];
                 for (const child of children) {
+                    // ▼▼▼ このif文を追加 ▼▼▼
+                    // メインポストへの直接の返信（子ポスト）からは、返信先情報を削除する
+                    if (child.reply_id === postId) {
+                        delete child.reply_to; 
+                    }
+                    // ▲▲▲ 追加ここまで ▲▲▲
                     flatReplyList.push(child);
                     buildFlatList(child.id);
                 }
@@ -924,8 +920,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 for (const reply of repliesToRender) {
                     const postForRender = { ...reply, like: reply.like, star: reply.star };
                     const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
-                    // mainPostIdを渡して、孫以降の返信にのみ返信先が表示されるようにする
-                    const postEl = await renderPost(postForRender, authorForRender, { mainPostId: postId });
+                    // ▼▼▼ renderPostの呼び出しから最後の引数を削除 ▼▼▼
+                    const postEl = await renderPost(postForRender, authorForRender);
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     if (postEl) repliesContainer.appendChild(postEl);
                 }
 
@@ -1273,7 +1270,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('*, user(id, name, scid, icon_data)');
+            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(*, user(*))');
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
