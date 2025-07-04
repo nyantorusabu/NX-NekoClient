@@ -526,7 +526,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, replyCountsMap = new Map(), userCache = new Map() } = options;
+        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), mainPostId = null } = options; // mainPostId を追加
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
@@ -535,7 +535,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
-        // 個別のイベントリスナーは削除
 
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
@@ -546,8 +545,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
-
-        if (post.reply_to?.user) {
+        
+        // ▼▼▼ 返信先表示のロジックを修正 ▼▼▼
+        // 「孫」以降のポスト（＝返信先がメインポストではないポスト）の場合にのみ表示する
+        if (post.reply_to && mainPostId && post.reply_id !== mainPostId) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
             const replyLink = document.createElement('a');
@@ -556,9 +557,20 @@ window.addEventListener('DOMContentLoaded', () => {
             replyDiv.appendChild(replyLink);
             replyDiv.append(' さんに返信');
             postMain.appendChild(replyDiv);
+        } else if (post.reply_to && !mainPostId) { // 詳細ページ以外での通常表示
+             const replyDiv = document.createElement('div');
+            replyDiv.className = 'replying-to';
+            const replyLink = document.createElement('a');
+            replyLink.href = `#profile/${post.reply_to.user.id}`;
+            replyLink.textContent = `@${escapeHTML(post.reply_to.user.name)}`;
+            replyDiv.appendChild(replyLink);
+            replyDiv.append(' さんに返信');
+            postMain.appendChild(replyDiv);
         }
+        // ▲▲▲ 修正ここまで ▲▲▲
 
         const postHeader = document.createElement('div');
+        // ... (以降の postHeader の中身は変更なし) ...
         postHeader.className = 'post-header';
         
         const authorLink = document.createElement('a');
@@ -580,7 +592,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const menu = document.createElement('div');
             menu.id = `menu-${post.id}`;
-            menu.className = 'post-menu'; // .hiddenクラスを削除
+            menu.className = 'post-menu';
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
@@ -596,7 +608,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         
         postMain.appendChild(postHeader);
-
+        
         const postContent = document.createElement('div');
         postContent.className = 'post-content';
         const contentP = document.createElement('p');
@@ -676,9 +688,9 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         
         // ツリー表示用のコンテナを追加
-        const subRepliesContainer = document.createElement('div');
-        subRepliesContainer.className = 'sub-replies-container';
-        postMain.appendChild(subRepliesContainer);
+        // const subRepliesContainer = document.createElement('div');
+        // subRepliesContainer.className = 'sub-replies-container';
+        // postMain.appendChild(subRepliesContainer);
 
         postEl.appendChild(postMain);
         return postEl;
