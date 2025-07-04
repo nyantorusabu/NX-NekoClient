@@ -858,21 +858,48 @@ window.addEventListener('DOMContentLoaded', () => {
             contentDiv.appendChild(repliesHeader);
 
             // 3. 全ての返信ツリーを一括で取得
-            const { data: allReplies, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
+            const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
             if (repliesError) throw repliesError;
-            
-            // 4. 返信を親子関係がわかるようにMapに整理
+
+            // 4. データを整形し、深さ優先でフラットなリストを構築
+            const repliesMap = new Map(allRepliesRaw.map(r => [r.id, r]));
             const repliesByParentId = new Map();
-            for (const reply of allReplies) {
-                if (!repliesByParentId.has(reply.reply_id)) {
-                    repliesByParentId.set(reply.reply_id, []);
+
+            for (const reply of allRepliesRaw) {
+                // 返信先情報をオブジェクトに付加する
+                const parentId = reply.reply_id;
+                if (parentId === postId) {
+                    reply.reply_to = mainPost; // メインポストへの返信
+                } else if (repliesMap.has(parentId)) {
+                    const parentPostData = repliesMap.get(parentId);
+                    reply.reply_to = { // renderPostが期待する形式に整形
+                        ...parentPostData,
+                        user: {
+                            id: parentPostData.author_id,
+                            name: parentPostData.author_name,
+                        }
+                    };
                 }
-                repliesByParentId.get(reply.reply_id).push(reply);
+                // 親IDでグループ化
+                if (!repliesByParentId.has(parentId)) repliesByParentId.set(parentId, []);
+                repliesByParentId.get(parentId).push(reply);
             }
+
             // 各階層を時系列でソート
             for (const replies of repliesByParentId.values()) {
                 replies.sort((a, b) => new Date(a.time) - new Date(b.time));
             }
+
+            // 深さ優先でフラットなリストを構築
+            const flatReplyList = [];
+            const buildFlatList = (parentId) => {
+                const children = repliesByParentId.get(parentId) || [];
+                for (const child of children) {
+                    flatReplyList.push(child);
+                    buildFlatList(child.id);
+                }
+            };
+            buildFlatList(postId); // メインポストIDから開始
 
             // 5. 無限スクロールのセットアップ
             const repliesContainer = document.createElement('div');
@@ -881,8 +908,7 @@ window.addEventListener('DOMContentLoaded', () => {
             trigger.className = 'load-more-trigger';
             contentDiv.appendChild(trigger);
             
-            const topLevelReplies = repliesByParentId.get(postId) || [];
-            let pagination = { page: 0, hasMore: topLevelReplies.length > 0 };
+            let pagination = { page: 0, hasMore: flatReplyList.length > 0 };
             const REPLIES_PER_PAGE = 10;
             let isLoadingReplies = false;
 
@@ -891,34 +917,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 isLoadingReplies = true;
                 trigger.innerHTML = '<div class="spinner"></div>';
                 
-                // 表示するトップレベルの返信を決定
                 const from = pagination.page * REPLIES_PER_PAGE;
                 const to = from + REPLIES_PER_PAGE;
-                const repliesToRender = topLevelReplies.slice(from, to);
+                const repliesToRender = flatReplyList.slice(from, to);
 
-                // 再帰的にツリーを描画する関数
-                const renderTreeRecursively = async (reply, container) => {
-                    const postForRender = { ...reply, like: reply.like, star: reply.star }; // rpcからの戻り値の調整
-                    const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
-                    const postEl = await renderPost(postForRender, authorForRender);
-                    if (!postEl) return;
-                    container.appendChild(postEl);
-                    
-                    const children = repliesByParentId.get(reply.id) || [];
-                    if (children.length > 0) {
-                        const childrenContainer = postEl.querySelector('.sub-replies-container');
-                        for (const child of children) {
-                            await renderTreeRecursively(child, childrenContainer);
-                        }
-                    }
-                };
-                
                 for (const reply of repliesToRender) {
-                    await renderTreeRecursively(reply, repliesContainer);
+                    const postForRender = { ...reply, like: reply.like, star: reply.star };
+                    const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
+                    // mainPostIdを渡して、孫以降の返信にのみ返信先が表示されるようにする
+                    const postEl = await renderPost(postForRender, authorForRender, { mainPostId: postId });
+                    if (postEl) repliesContainer.appendChild(postEl);
                 }
 
                 pagination.page++;
-                if (pagination.page * REPLIES_PER_PAGE >= topLevelReplies.length) {
+                if (pagination.page * REPLIES_PER_PAGE >= flatReplyList.length) {
                     pagination.hasMore = false;
                 }
                 
@@ -946,7 +958,7 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     }
-
+    
     async function showDmScreen(dmId = null) {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">メッセージ</h2>`;
