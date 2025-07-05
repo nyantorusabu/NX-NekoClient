@@ -725,6 +725,40 @@ input, textarea {
     background-color: #e7e7e8;
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.notification-new {
+    position: relative; /* 疑似要素の位置基準 */
+    /* 背景色をフェードアウトさせるアニメーション */
+    animation: highlight-bg-fade 3s ease-out forwards;
+}
+
+/* ハイライト用の左側の縦線 */
+.notification-new::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background-color: var(--primary-color);
+    /* 縦線をフェードアウトさせるアニメーション */
+    animation: highlight-border-fade 3s ease-out forwards;
+}
+
+/* 背景色のアニメーション定義 */
+@keyframes highlight-bg-fade {
+    0%, 50% { background-color: #e8f5fd; } /* 1.5秒間ハイライトを維持 */
+    100% { background-color: transparent; }
+}
+
+/* 縦線のアニメーション定義 */
+@keyframes highlight-border-fade {
+    0%, 50% { opacity: 1; } /* 1.5秒間ハイライトを維持 */
+    100% { opacity: 0; }
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
+
 .sidebar-search-widget {
     background-color: var(--bg-color);
     border-radius: 9999px;
