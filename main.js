@@ -1332,8 +1332,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     // ▼▼▼ このブロックを修正 ▼▼▼
                     // 新しいDB関数を呼び出す
-                    const { data: followersData, error: followersError } = await supabase.rpc('get_followers', { target_user_id: user.id });
-                    if(followersError) throw followersError;
+                    const { data: followersData, error: followersRpcError } = await supabase.rpc('get_followers', { target_user_id: user.id });
+                    if(followersRpcError) throw followersRpcError;
 
                     if (!followersData || followersData.length === 0) {
                         contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>';
