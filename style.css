@@ -1254,18 +1254,26 @@ input, textarea {
 /* ▼▼▼ この2つのブロックを、以下の新しい定義に完全に置き換え ▼▼▼ */
 .dm-message-menu-btn {
     position: absolute;
-    top: 0.2rem;
-    right: 0.2rem;
-    z-index: 1; /* メッセージ内容より手前に表示 */
-    background: none;
-    border: none;
+    /* バブルの上辺からさらに上に配置 */
+    top: -12px;
+    right: 8px;
+    z-index: 1; 
+    /* 背景色を付けて、下の要素と重なっても見えるようにする */
+    background: white; 
+    border: 1px solid var(--border-color);
     font-size: 1.2rem;
     color: var(--secondary-text-color);
-    padding: 0.25rem;
+    padding: 0.1rem;
+    width: 28px; /* 幅と高さを指定して円にする */
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
     cursor: pointer;
     opacity: 1;
     transition: background-color 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .dm-message-menu-btn:hover {
@@ -1274,15 +1282,13 @@ input, textarea {
 
 .dm-message-container .post-menu {
     /* ボタンの右下あたりに表示 */
-    top: 1.8rem;
-    right: 0.5rem;
+    top: 24px;
+    right: 0;
     /* 古い位置指定をリセット */
     left: auto;
     bottom: auto;
     transform: none;
-    /* 他のプロパティは共通の.post-menuから継承 */
 }
-/* ▲▲▲ 置き換えここまで ▲▲▲ */
 
 .dm-message-container.received {
     align-self: flex-start; /* 左寄せ */
@@ -1295,8 +1301,8 @@ input, textarea {
     align-self: flex-end; /* アイコンは常に下端に配置 */
 }
 .dm-message-wrapper {
-    display: flex;
-    flex-direction: column;
+    position: relative; /* メニューボタンとメニューの位置基準 */
+    min-width: 0;
 }
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end; /* 右寄せ */
