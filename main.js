@@ -52,6 +52,10 @@ window.addEventListener('DOMContentLoaded', () => {
         createDmModalContent: document.getElementById('create-dm-modal-content'),
         dmManageModal: document.getElementById('dm-manage-modal'),
         dmManageModalContent: document.getElementById('dm-manage-modal-content'),
+        // ▼▼▼ この2行を追加 ▼▼▼
+        editDmMessageModal: document.getElementById('edit-dm-message-modal'),
+        editDmMessageModalContent: document.getElementById('edit-dm-message-modal-content'),
+        // ▲▲▲ 追加ここまで ▲▲▲
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
         friezeOverlay: document.getElementById('frieze-overlay'), // ★★★ この行を追加
@@ -104,26 +108,56 @@ window.addEventListener('DOMContentLoaded', () => {
         if (msg.type === 'system') {
             return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
         }
+
+        let attachmentsHTML = '';
+        if (msg.attachments && msg.attachments.length > 0) {
+            attachmentsHTML += '<div class="attachments-container">';
+            for (const attachment of msg.attachments) {
+                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                const publicURL = publicUrlData.publicUrl;
+                
+                let itemHTML = '<div class="attachment-item">';
+                if (attachment.type === 'image') {
+                    itemHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" class="attachment-image" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                } else if (attachment.type === 'video') {
+                    itemHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation();"></video>`;
+                } else if (attachment.type === 'audio') {
+                    itemHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation();"></audio>`;
+                }
+                
+                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
+                itemHTML += '</div>';
+                attachmentsHTML += itemHTML;
+            }
+            attachmentsHTML += '</div>';
+        }
         
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
-            // 自分のメッセージ
-            return `<div class="dm-message-container sent">
+            // ▼▼▼ このブロックを修正 ▼▼▼
+            const menuHTML = `
+                <button class="dm-message-menu-btn">…</button>
+                <div class="post-menu">
+                    <button class="edit-dm-msg-btn">編集</button>
+                    <button class="delete-dm-msg-btn delete-btn">削除</button>
+                </div>
+            `;
+            return `<div class="dm-message-container sent" data-message-id="${msg.id}">
                 <div class="dm-message-wrapper">
-                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                    ${menuHTML}
+                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
                 </div>
             </div>`;
+            // ▲▲▲ 修正ここまで ▲▲▲
         } else {
-            // 他の人のメッセージ
-            // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             return `<div class="dm-message-container received">
                 <img src="${getUserIconUrl(user)}" class="dm-message-icon">
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
-                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
                 </div>
             </div>`;
         }
@@ -286,7 +320,16 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 isActive = hash.startsWith(item.hash);
             }
-            return ` <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`
+            // ▼▼▼ このreturn文を、新しいHTML構造に差し替え ▼▼▼
+            return `
+                <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}">
+                    <div class="nav-item-icon-container">
+                        ${item.icon}
+                        ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
+                    </div>
+                    <span class="nav-item-text">${item.name}</span>
+                </a>`;
+            // ▲▲▲ HTML構造は前回と同じですが、CSSとの連携で重要なので再確認 ▲▲▲
         }).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
@@ -771,21 +814,37 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('notifications-screen');
         const contentDiv = DOM.notificationsContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
+        
         try {
-            await updateNavAndSidebars();
-            if (currentUser.notice_count > 0) {
-                const { error: resetError } = await supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id);
-                if (resetError) { console.error('通知数のリセットに失敗:', resetError); } 
-                else {
-                    currentUser.notice_count = 0;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    await updateNavAndSidebars();
-                }
+            // 画面を開いた時点での未読通知数を記録
+            const unreadCount = currentUser.notice_count || 0;
+
+            // バックグラウンドでDBの未読数を0に更新し、成功したらUI（バッジ）も更新
+            if (unreadCount > 0) {
+                supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id)
+                    .then(({ error: resetError }) => {
+                        if (!resetError) {
+                            currentUser.notice_count = 0;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            updateNavAndSidebars(); // バッジ表示を更新
+                        } else {
+                            console.error('通知数のリセットに失敗:', resetError);
+                        }
+                    });
             }
+            
+            // DB更新を待たずに通知リストを描画
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
-                currentUser.notice.forEach(n => {
-                    const noticeEl = document.createElement('div'); noticeEl.className = 'widget-item';
+                currentUser.notice.forEach((n, index) => {
+                    const noticeEl = document.createElement('div');
+                    noticeEl.className = 'widget-item';
+                    
+                    // 記録しておいた未読数に基づいてハイライトクラスを付与
+                    if (index < unreadCount) {
+                        noticeEl.classList.add('notification-new');
+                    }
+                    
                     noticeEl.textContent = n;
                     contentDiv.appendChild(noticeEl);
                 });
@@ -1019,13 +1078,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
         
+        let dmSelectedFiles = []; // この会話画面専用のファイル管理変数
+
         const { data: dm, error } = await supabase.from('dm').select('id, post, member, host_id').eq('id', dmId).single();
         if (error || !dm || !dm.member.includes(currentUser.id)) {
             container.innerHTML = 'DMが見つからないか、アクセス権がありません。';
             return;
         }
 
-        // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
         const memberIds = dm.member.filter(id => !allUsersCache.has(id));
         if(memberIds.length > 0) {
             const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
@@ -1038,18 +1098,84 @@ window.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = `
             <div class="dm-conversation-view">${messagesHTML}</div>
             <div class="dm-message-form">
-                <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
-                <button id="send-dm-btn">${ICONS.send}</button>
+                <div class="dm-form-content">
+                    <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
+                    <div class="file-preview-container dm-file-preview"></div>
+                </div>
+                <div class="dm-form-actions">
+                    <button id="dm-attachment-btn" class="attachment-button" title="ファイルを添付">${ICONS.attachment}</button>
+                    <input type="file" id="dm-file-input" class="hidden" multiple>
+                    <button id="send-dm-btn" title="送信 (Ctrl+Enter)">${ICONS.send}</button>
+                </div>
             </div>
         `;
+        
         const messageInput = document.getElementById('dm-message-input');
+        const fileInput = document.getElementById('dm-file-input');
+        const previewContainer = container.querySelector('.file-preview-container');
+
+        document.getElementById('dm-attachment-btn').onclick = () => fileInput.click();
+
+        fileInput.onchange = (event) => {
+            dmSelectedFiles = Array.from(event.target.files);
+            previewContainer.innerHTML = '';
+            dmSelectedFiles.forEach((file, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'file-preview-item';
+                
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewItem.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type.startsWith('video/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewItem.innerHTML = `<video src="${e.target.result}" style="width:100px; height:100px; object-fit:cover;" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type.startsWith('audio/')) {
+                    // ▼▼▼ このブロックを修正 ▼▼▼
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewItem.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem;"><audio src="${e.target.result}" controls style="height: 30px; width: 200px;"></audio><button class="file-preview-remove" data-index="${index}" style="position:relative; top:0; right:0;">×</button></div>`;
+                    };
+                    reader.readAsDataURL(file);
+                    // ▲▲▲ 修正ここまで ▲▲▲
+                } else {
+                    previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                }
+                previewContainer.appendChild(previewItem);
+            });
+        };
+
+        previewContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('file-preview-remove')) {
+                const indexToRemove = parseInt(e.target.dataset.index);
+                dmSelectedFiles.splice(indexToRemove, 1);
+                const newFiles = new DataTransfer();
+                dmSelectedFiles.forEach(file => newFiles.items.add(file));
+                fileInput.files = newFiles.files;
+                fileInput.dispatchEvent(new Event('change')); // プレビューを再描画
+            }
+        });
+
+        const sendMessageAction = () => {
+            sendDmMessage(dmId, dmSelectedFiles).then(() => {
+                dmSelectedFiles = [];
+                fileInput.value = '';
+                previewContainer.innerHTML = '';
+            });
+        };
+
         messageInput.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
-                sendDmMessage(dmId);
+                sendMessageAction();
             }
         });
-        document.getElementById('send-dm-btn').onclick = () => sendDmMessage(dmId);
+        document.getElementById('send-dm-btn').onclick = sendMessageAction;
 
         lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
 
@@ -1059,7 +1185,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const newPost = payload.new.post;
                 if(newPost && newPost.length > 0) {
                     const latestMessage = newPost[newPost.length - 1];
-                    if(latestMessage.id === lastRenderedMessageId) return;
+                    if(latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
 
                     const view = document.querySelector('.dm-conversation-view');
                     if(view) {
@@ -1070,7 +1196,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }).subscribe();
     }
-    // // --- 10. プロフィールと設定 ---
+    
+    // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
@@ -1429,25 +1556,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (postId) => {
-        const targetMenu = document.getElementById(`menu-${postId}`);
-        if (!targetMenu) {
-            return;
-        }
-
-        const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
-
-        // まず、現在開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-            menu.classList.remove('is-visible');
-        });
-
-        // ターゲットメニューが今閉じたものでなければ、開く
-        if (!isCurrentlyVisible) {
-            targetMenu.classList.add('is-visible');
-        }
-    };
-
     window.deletePost = async (postId) => {
         if (!confirm('このポストを削除しますか？')) return;
     showLoading(true);
@@ -1801,14 +1909,32 @@ async function openEditPostModal(postId) {
 
     async function handleDisbandDm(dmId) {
         if (!confirm('本当にこのDMを解散しますか？この操作は取り消せません。')) return;
-        
-        const { error } = await supabase.from('dm').delete().eq('id', dmId);
-        if (error) {
-            alert('DMの解散に失敗しました。');
-        } else {
+        showLoading(true);
+        try {
+            // 添付ファイルを全て削除
+            const { data: dm, error: fetchError } = await supabase.from('dm').select('post').eq('id', dmId).single();
+            if (fetchError) throw fetchError;
+            
+            const fileIdsToDelete = (dm.post || [])
+                .flatMap(msg => msg.attachments || [])
+                .map(att => att.id);
+
+            if (fileIdsToDelete.length > 0) {
+                await supabaseAdmin.storage.from('nyax').remove(fileIdsToDelete);
+            }
+
+            // DMを削除
+            const { error } = await supabase.from('dm').delete().eq('id', dmId);
+            if (error) throw error;
+
             alert('DMを解散しました。');
             DOM.dmManageModal.classList.add('hidden');
             window.location.hash = '#dm';
+        } catch (e) {
+            console.error(e);
+            alert('DMの解散に失敗しました。');
+        } finally {
+            showLoading(false);
         }
     }
 
@@ -1871,15 +1997,14 @@ async function openEditPostModal(postId) {
     }
     
     // --- [新規追加] DM操作関数 ---
-    async function handleDmButtonClick(targetUserId) {
+        async function handleDmButtonClick(targetUserId) {
         if (!currentUser) return;
-        const members = [currentUser.id, targetUserId].sort();
+        const members = [currentUser.id, targetUserId].sort((a,b) => a-b);
 
-        // 1対1のDMが既に存在するかチェック
-        const { data: existingDm, error } = await supabase.from('dm')
+        const { data: existingDm } = await supabase.from('dm')
             .select('id')
             .contains('member', members)
-            .eq('member', `{${members.join(',')}}`) // ★★★ integer[]型に合わせた形式に変更 ★★★
+            .eq('member', `{${members.join(',')}}`)
             .single();
 
         if (existingDm) {
@@ -1887,21 +2012,200 @@ async function openEditPostModal(postId) {
         } else {
             const {data: targetUser} = await supabase.from('user').select('name').eq('id', targetUserId).single();
             if (confirm(`${targetUser.name}さんとの新しいDMを作成しますか？`)) {
-                const { data: newDm, error: createError } = await supabase.from('dm').insert({
-                    host_id: currentUser.id,
-                    member: members,
-                    title: `${currentUser.name}, ${targetUser.name}`
-                }).select('id').single();
+                showLoading(true);
+                try {
+                    const { data: newDm, error: createError } = await supabase.from('dm').insert({
+                        host_id: currentUser.id,
+                        member: members,
+                        title: `${currentUser.name}, ${targetUser.name}`
+                    }).select('id').single();
 
-                if (createError) {
-                    alert('DMの作成に失敗しました。');
-                } else {
+                    if (createError) throw createError;
+
+                    // 招待通知を送信
+                    await sendNotification(targetUserId, `${currentUser.name}さんがあなたをDMに招待しました。`);
                     window.location.hash = `#dm/${newDm.id}`;
+                } catch(e) {
+                    alert('DMの作成に失敗しました。');
+                    console.error(e);
+                } finally {
+                    showLoading(false);
                 }
             }
         }
     }
+
+    async function openDmEditModal(dmId, messageId) {
+        showLoading(true);
+        try {
+            const { data: dm, error: fetchError } = await supabase.from('dm').select('post').eq('id', dmId).single();
+            if (fetchError || !dm) throw new Error('DM情報が取得できませんでした。');
+
+            const message = (dm.post || []).find(m => m.id === messageId);
+            if (!message) throw new Error('メッセージが見つかりませんでした。');
+
+            let currentAttachments = message.attachments || [];
+            let filesToDelete = new Set();
+            let filesToAdd = [];
+
+            const renderAttachments = () => {
+                let existingHTML = currentAttachments
+                    .filter(att => !filesToDelete.has(att.id))
+                    .map((att, index) => `
+                        <div class="file-preview-item">
+                            <span>${att.type.startsWith('image') ? '🖼️' : '📎'} ${escapeHTML(att.name)}</span>
+                            <button class="file-preview-remove" data-id="${att.id}" data-type="existing">×</button>
+                        </div>`
+                    ).join('');
+                
+                let newHTML = filesToAdd.map((file, index) => `
+                        <div class="file-preview-item">
+                            <span>${file.type.startsWith('image') ? '🖼️' : '📎'} ${escapeHTML(file.name)}</span>
+                            <button class="file-preview-remove" data-index="${index}" data-type="new">×</button>
+                        </div>`
+                    ).join('');
+                return existingHTML + newHTML;
+            };
+
+            const updatePreview = () => {
+                const container = DOM.editDmMessageModalContent.querySelector('.file-preview-container');
+                if (container) container.innerHTML = renderAttachments();
+            };
+
+            DOM.editDmMessageModalContent.innerHTML = `
+                <div class="post-form" style="padding: 1rem;">
+                    <div class="form-content">
+                        <textarea id="edit-dm-textarea" style="min-height: 100px; font-size: 1rem;">${message.content || ''}</textarea>
+                        <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;"></div>
+                        <div class="post-form-actions" style="padding-top: 1rem;">
+                            <button type="button" class="attachment-button" title="ファイルを追加">${ICONS.attachment}</button>
+                            <input type="file" id="edit-dm-file-input" class="hidden" multiple>
+                            <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
+                        </div>
+                    </div>
+                </div>`;
+            
+            updatePreview();
+
+            DOM.editDmMessageModal.querySelector('#update-dm-message-button').onclick = () => handleUpdateDmMessage(dmId, messageId, currentAttachments, filesToAdd, Array.from(filesToDelete));
+            DOM.editDmMessageModal.querySelector('.attachment-button').onclick = () => DOM.editDmMessageModal.querySelector('#edit-dm-file-input').click();
+            
+            DOM.editDmMessageModal.querySelector('#edit-dm-file-input').onchange = (e) => {
+                filesToAdd.push(...Array.from(e.target.files));
+                updatePreview();
+            };
+
+            DOM.editDmMessageModal.querySelector('.file-preview-container').onclick = (e) => {
+                if (e.target.classList.contains('file-preview-remove')) {
+                    const type = e.target.dataset.type;
+                    if (type === 'existing') {
+                        filesToDelete.add(e.target.dataset.id);
+                    } else if (type === 'new') {
+                        const index = parseInt(e.target.dataset.index);
+                        filesToAdd.splice(index, 1);
+                    }
+                    updatePreview();
+                }
+            };
+            
+            DOM.editDmMessageModal.classList.remove('hidden');
+            DOM.editDmMessageModal.querySelector('.modal-close-btn').onclick = () => DOM.editDmMessageModal.classList.add('hidden');
+        } catch (e) {
+            alert(e.message);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function handleUpdateDmMessage(dmId, messageId, originalAttachments, filesToAdd, filesToDeleteIds) {
+        const newContent = DOM.editDmMessageModal.querySelector('#edit-dm-textarea').value.trim();
+        const button = DOM.editDmMessageModal.querySelector('#update-dm-message-button');
+        button.disabled = true; button.textContent = '保存中...';
+        showLoading(true);
+
+        try {
+            // ファイルの削除
+            if (filesToDeleteIds.length > 0) {
+                await supabaseAdmin.storage.from('nyax').remove(filesToDeleteIds);
+            }
+
+            // ファイルのアップロード
+            let newUploadedAttachments = [];
+            if (filesToAdd.length > 0) {
+                for (const file of filesToAdd) {
+                    const fileId = crypto.randomUUID();
+                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    newUploadedAttachments.push({ type: fileType, id: fileId, name: file.name });
+                }
+            }
+
+            const finalAttachments = originalAttachments.filter(att => !filesToDeleteIds.includes(att.id));
+            finalAttachments.push(...newUploadedAttachments);
+
+            // DMのpost配列を更新
+            const { data: dm, error: fetchError } = await supabase.from('dm').select('post').eq('id', dmId).single();
+            if (fetchError) throw fetchError;
+
+            const postArray = dm.post || [];
+            const messageIndex = postArray.findIndex(m => m.id === messageId);
+            if (messageIndex === -1) throw new Error('更新対象のメッセージが見つかりません。');
+
+            postArray[messageIndex].content = newContent;
+            postArray[messageIndex].attachments = finalAttachments;
+            
+            const { error: updateError } = await supabase.from('dm').update({ post: postArray }).eq('id', dmId);
+            if (updateError) throw updateError;
+            
+            DOM.editDmMessageModal.classList.add('hidden');
+            // 画面を再描画して変更を反映
+            const messageContainer = document.querySelector(`.dm-message-container[data-message-id="${messageId}"]`);
+            if (messageContainer) {
+                messageContainer.outerHTML = renderDmMessage(postArray[messageIndex]);
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert('メッセージの更新に失敗しました。');
+        } finally {
+            button.disabled = false; button.textContent = '保存';
+            showLoading(false);
+        }
+    }
     
+    async function handleDeleteDmMessage(dmId, messageId) {
+        if (!confirm('このメッセージを削除しますか?')) return;
+        showLoading(true);
+        try {
+            const { data: dm, error: fetchError } = await supabase.from('dm').select('post').eq('id', dmId).single();
+            if (fetchError) throw fetchError;
+
+            const postArray = dm.post || [];
+            const messageToDelete = postArray.find(m => m.id === messageId);
+            const updatedPostArray = postArray.filter(m => m.id !== messageId);
+            
+            // 添付ファイルをストレージから削除
+            if (messageToDelete && messageToDelete.attachments?.length > 0) {
+                const fileIds = messageToDelete.attachments.map(att => att.id);
+                await supabaseAdmin.storage.from('nyax').remove(fileIds);
+            }
+            
+            // DMのpost配列を更新
+            const { error: updateError } = await supabase.from('dm').update({ post: updatedPostArray }).eq('id', dmId);
+            if (updateError) throw updateError;
+            
+            // DOMからメッセージを削除
+            document.querySelector(`.dm-message-container[data-message-id="${messageId}"]`)?.remove();
+        } catch (e) {
+            console.error(e);
+            alert('メッセージの削除に失敗しました。');
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    // ▼▼▼ この関数をまるごと追加 ▼▼▼
     window.openCreateDmModal = function() {
         DOM.createDmModalContent.innerHTML = `
             <div style="padding: 1.5rem;">
@@ -1946,7 +2250,6 @@ async function openEditPostModal(postId) {
             const userDiv = e.target.closest('[data-user-id]');
             if (userDiv) {
                 const targetUserId = parseInt(userDiv.dataset.userId);
-                const targetUserName = userDiv.dataset.userName;
                 DOM.createDmModal.classList.add('hidden');
                 handleDmButtonClick(targetUserId);
             }
@@ -1957,35 +2260,66 @@ async function openEditPostModal(postId) {
             DOM.createDmModal.classList.add('hidden');
         };
     }
+    // ▲▲▲ 追加ここまで ▲▲▲
     
-    async function sendDmMessage(dmId) {
+    async function sendDmMessage(dmId, files = []) {
         const input = document.getElementById('dm-message-input');
         const content = input.value.trim();
-        if (!content) return;
+        if (!content && files.length === 0) return;
+        
+        const sendButton = document.getElementById('send-dm-btn');
         input.disabled = true;
+        sendButton.disabled = true;
 
-        const message = {
-            id: crypto.randomUUID(),
-            time: new Date().toISOString(),
-            userid: currentUser.id,
-            reply_id: null,
-            content: content,
-            attachments: []
-        };
+        try {
+            let attachmentsData = [];
+            if (files.length > 0) {
+                showLoading(true);
+                for (const file of files) {
+                    const fileId = crypto.randomUUID();
+                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
+                }
+                showLoading(false);
+            }
 
-        const { error } = await supabase.rpc('append_to_dm_post', {
-            dm_id_in: dmId,
-            new_message_in: message
-        });
+            const message = {
+                id: crypto.randomUUID(),
+                time: new Date().toISOString(),
+                userid: currentUser.id,
+                content: content,
+                attachments: attachmentsData
+            };
 
-        if (error) {
+            const { error } = await supabase.rpc('append_to_dm_post', {
+                dm_id_in: dmId,
+                new_message_in: message
+            });
+
+            if (error) {
+                throw error;
+            } else {
+                input.value = '';
+                // リアルタイム更新で自分のメッセージも描画する
+                const view = document.querySelector('.dm-conversation-view');
+                if (view) {
+                    const msgHTML = renderDmMessage(message);
+                    view.insertAdjacentHTML('afterbegin', msgHTML);
+                    lastRenderedMessageId = message.id;
+                    view.scrollTop = view.scrollHeight;
+                }
+            }
+        } catch (error) {
             alert('メッセージの送信に失敗しました。');
             console.error(error);
-        } else {
-            input.value = '';
+        } finally {
+            input.disabled = false;
+            sendButton.disabled = false;
+            input.focus();
         }
-        input.disabled = false;
-        input.focus();
     }
     
     // --- 12. リアルタイム更新 ---
@@ -2028,99 +2362,106 @@ async function openEditPostModal(postId) {
             .subscribe();
     }
     
-        // --- 13. 初期化処理 ---
+    // --- 13. 初期化処理 ---
 
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- 1. メニューを開く/閉じるボタンの処理 ---
-        const menuButton = target.closest('.post-menu-btn');
-        if (menuButton) {
-            e.stopPropagation();
-            window.togglePostMenu(menuButton);
-            return;
-        }
+        // --- 1. メニューの開閉トリガー処理 ---
+const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
+if (menuButton) {
+    e.stopPropagation();
+    
+    let menuToToggle;
+    // ▼▼▼ この if-else ブロックを修正 ▼▼▼
+    if (menuButton.classList.contains('dm-message-menu-btn')) {
+        menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+    } else {
+        menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
+    }
 
-        // --- 2. メニュー内のボタンの処理 ---
-        const editButton = target.closest('.edit-btn');
-        if (editButton) {
-            const postElement = editButton.closest('.post');
-            if (postElement) {
-                // 編集モーダルを開き、メニューを閉じる
-                openEditPostModal(postElement.dataset.postId);
-                // ▼▼▼ このブロックを修正 ▼▼▼
-                const menu = editButton.closest('.post-menu');
-                if (menu) {
-                    menu.classList.remove('is-visible');
-                }
-                // ▲▲▲ 修正ここまで ▲▲▲
-            }
-            return;
-        }
-        const deleteButton = target.closest('.delete-btn');
-        if (deleteButton) {
-            const postElement = deleteButton.closest('.post');
-            if (postElement) {
-                // 削除処理を実行（メニューは画面遷移で消えるのでそのままでOK）
-                window.deletePost(postElement.dataset.postId);
-            }
-            return;
-        }
+    if (menuToToggle) {
+        const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
+        
+        // 開いている他のメニューをすべて閉じる
+        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+            menu.classList.remove('is-visible');
+        });
 
-        // --- 3. メニューの外側がクリックされたら、開いているメニューを閉じる ---
+        // ターゲットが閉じていた場合のみ開く
+        if (!isCurrentlyVisible) {
+            menuToToggle.classList.add('is-visible');
+        }
+        // ▲▲▲ isDmMenuや位置調整のロジックをすべて削除 ▲▲▲
+    }
+    return; // メニュー開閉処理はここで終了
+}
+        // --- 2. メニューの外側がクリックされた場合の処理 ---
         if (!target.closest('.post-menu')) {
             document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
                 menu.classList.remove('is-visible');
             });
         }
 
-        // --- 4. ポスト関連の他のインタラクティブな要素の処理 ---
-        if (target.closest('#main-content')) {
-            const postElement = target.closest('.post');
-            if (postElement) {
-                const postId = postElement.dataset.postId;
-                const replyButton = target.closest('.reply-button');
-                const likeButton = target.closest('.like-button');
-                const starButton = target.closest('.star-button');
-                const imageAttachment = target.closest('.attachment-item img');
-                const downloadLink = target.closest('.attachment-download-link');
+        // --- 3. メニュー内のアクションボタン処理 ---
+        const dmEditBtn = target.closest('.edit-dm-msg-btn');
+        if (dmEditBtn) {
+            const container = dmEditBtn.closest('.dm-message-container');
+            openDmEditModal(window.location.hash.substring(4), container.dataset.messageId);
+            return;
+        }
+        const dmDeleteBtn = target.closest('.delete-dm-msg-btn');
+        if (dmDeleteBtn) {
+            const container = dmDeleteBtn.closest('.dm-message-container');
+            handleDeleteDmMessage(window.location.hash.substring(4), container.dataset.messageId);
+            return;
+        }
+        const editButton = target.closest('.edit-btn');
+        if (editButton) {
+            const postElement = editButton.closest('.post');
+            if(postElement) openEditPostModal(postElement.dataset.postId);
+            return;
+        }
+        const deleteButton = target.closest('.delete-btn:not(.delete-dm-msg-btn)');
+        if (deleteButton) {
+            const postElement = deleteButton.closest('.post');
+            if (postElement) window.deletePost(postElement.dataset.postId);
+            return;
+        }
 
-                if (replyButton) { window.handleReplyClick(postId, replyButton.dataset.username); return; }
-                if (likeButton) { window.handleLike(likeButton, postId); return; }
-                if (starButton) { window.handleStar(starButton, postId); return; }
-                if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
-                if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-                if (target.closest('a')) { return; }
-                
-                // メニューやボタン、リンク以外の部分がクリックされた場合
-                if (!target.closest('.post-menu')) {
-                    window.location.hash = `#post/${postId}`;
-                    return;
-                }
+        // --- 4. ポストのアクションや本体のクリック処理 ---
+        const postElement = target.closest('.post');
+        if (postElement) {
+            const replyButton = target.closest('.reply-button');
+            const likeButton = target.closest('.like-button');
+            const starButton = target.closest('.star-button');
+            const imageAttachment = target.closest('.attachment-item img');
+            const downloadLink = target.closest('.attachment-download-link');
+
+            if (replyButton) { window.handleReplyClick(postElement.dataset.postId, replyButton.dataset.username); return; }
+            if (likeButton) { window.handleLike(likeButton, postElement.dataset.postId); return; }
+            if (starButton) { window.handleStar(starButton, postElement.dataset.postId); return; }
+            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+            
+            if (!target.closest('a')) {
+                window.location.hash = `#post/${postElement.dataset.postId}`;
+                return;
             }
         }
         
         // --- 5. その他のグローバルなクリック処理 ---
         const timelineTab = target.closest('.timeline-tab-button');
-        if(timelineTab) {
-            switchTimelineTab(timelineTab.dataset.tab);
-            return;
-        }
+        if (timelineTab) { switchTimelineTab(timelineTab.dataset.tab); return; }
         
         const bannerSignup = target.closest('#banner-signup-button');
-        if(bannerSignup) {
-            goToLoginPage();
-            return;
-        }
+        if (bannerSignup) { goToLoginPage(); return; }
 
         const bannerLogin = target.closest('#banner-login-button');
-        if(bannerLogin) {
-            goToLoginPage();
-            return;
-        }
+        if (bannerLogin) { goToLoginPage(); return; }
     });
-
+    
     // 「再試行」ボタンのイベントリスナー
     DOM.retryConnectionBtn.addEventListener('click', () => {
         DOM.connectionErrorOverlay.classList.add('hidden'); // エラー表示を隠す
