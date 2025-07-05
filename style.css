@@ -24,12 +24,10 @@ input, textarea {
 }
 
 .app-container {
-    display: grid;
-    /* [左余白] [左ナビ] [メイン] [右サイドバー] [右余白] の5カラム構成 */
-    /* ▼▼▼ この行を修正 ▼▼▼ */
-    grid-template-columns: minmax(10px, 1fr) minmax(auto, 275px) minmax(0, 600px) minmax(auto, 350px) minmax(10px, 1fr);
-    /* ▲▲▲ 修正ここまで ▲▲▲ */
+    display: flex;
     justify-content: center;
+    max-width: 1400px; /* 修正 */
+    margin: 0 auto;
     min-height: 100vh;
 }
 
@@ -39,15 +37,16 @@ input, textarea {
 
 /* 左側ナビゲーション */
 #left-nav {
-    grid-column: 2 / 3; /* 2番目のカラムに配置 */
     position: sticky;
     top: 0;
     height: 100vh;
+    width: 275px;
     padding: 0 1rem;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 #nav-menu-top {
@@ -204,10 +203,12 @@ input, textarea {
 
 /* 中央メインコンテンツ */
 #main-content {
-    grid-column: 3 / 4; /* 3番目のカラムに配置 */
+    flex-shrink: 0;
+    flex-grow: 1; /* 追加 */
+    max-width: 860px; /* 追加 */
+    min-width: 600px; /* 追加 */
     border-left: 1px solid var(--border-color);
     border-right: 1px solid var(--border-color);
-    min-width: 0; /* flex/gridアイテムの縮小問題を解決 */
 }
 
 #page-header {
@@ -427,6 +428,7 @@ input, textarea {
     text-align: center;
 }
 
+/* ▼▼▼ DMプレビューのボタンサイズを上書き ▼▼▼ */
 .dm-file-preview .file-preview-remove {
     width: 18px;
     height: 18px;
@@ -675,11 +677,10 @@ input, textarea {
 
 /* 右側サイドバー */
 #right-sidebar {
-    grid-column: 4 / 5; /* 4番目のカラムに配置 */
     position: sticky;
     top: 0;
     height: 100vh;
-    width: 350px; /* widthは維持 */
+    width: 350px;
     padding: 1rem 1.5rem;
     box-sizing: border-box;
     flex-shrink: 0;
@@ -1157,15 +1158,25 @@ input, textarea {
     /* justify-content と align-items を削除し、デフォルトの挙動に任せる */
 }
 
+.dm-message-container {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    max-width: 80%;
+}
 .dm-message-container.sent {
     flex-direction: row-reverse;
     align-self: flex-end; /* 右寄せ */
     position: relative; /* メニューの位置基準 */
 }
+/* ホバー時ではなく常にメニューボタンを表示 */
+.dm-message-container.sent .dm-message-menu-btn {
+    opacity: 1;
+}
 
 .dm-message-menu-btn {
     position: absolute;
-    left: -2.5rem;
+    left: -2.5rem; /* メッセージの左側に配置 */
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -1175,14 +1186,14 @@ input, textarea {
     padding: 0.25rem;
     border-radius: 50%;
     cursor: pointer;
-    opacity: 1; /* 常に表示 */
-    transition: background-color 0.2s;
+    opacity: 1; /* 修正: :hover依存をやめ、常に表示 */
+    transition: opacity 0.2s, background-color 0.2s;
 }
 .dm-message-menu-btn:hover {
     background-color: var(--bg-color);
 }
 .dm-message-container .post-menu {
-    left: 2rem; /* ボタンの右側に表示 */
+    left: 2.5rem; /* 修正: ボタンの右側に表示し、見切れを防ぐ */
     right: auto;
     top: 50%;
     transform: translateY(-50%);
@@ -1207,6 +1218,7 @@ input, textarea {
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end; /* 右寄せ */
 }
+
 .dm-message-container.received .dm-message-wrapper {
     align-items: flex-start; /* 左寄せ */
 }
@@ -1232,19 +1244,17 @@ input, textarea {
     color: white;
     border-bottom-right-radius: 4px;
 }
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.dm-message-container.sent .attachment-download-link {
+    color: white;
+    font-weight: 500;
+    text-decoration: underline;
+}
 .dm-message-container.received .dm-message {
     background-color: var(--bg-color);
     color: var(--text-color);
     border-bottom-left-radius: 4px;
 }
-.dm-message-container.sent .attachment-download-link {
-    color: white;
-    text-decoration: underline;
-}
-.dm-message-container.sent .attachment-download-link:hover {
-    opacity: 0.8;
-}
-
 .dm-message-form {
     border-top: 1px solid var(--border-color);
     padding: 0.5rem 1rem;
@@ -1264,27 +1274,23 @@ input, textarea {
     resize: none;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 0.8rem;
+    padding: 0.8rem; /* 修正: 上下のpaddingを統一 */
     font-size: 1rem;
+    line-height: 1.4; /* 追加: 行の高さを調整 */
     background-color: var(--bg-color);
-    /* 高さを送信ボタンに合わせるための調整 */
-    height: 40px !important;
-    box-sizing: border-box;
 }
 
 .dm-form-actions {
     display: flex;
     align-items: center;
-    padding-bottom: 0; /* 高さを揃えるため修正 */
+    padding-bottom: 0; /* 修正: 不要なpaddingを削除 */
 }
 
 .dm-file-preview {
     margin-top: 0.5rem;
     max-height: 110px;
     overflow-y: auto;
-    padding: 0.5rem; /* ボタンが見切れないように余白を追加 */
-    background-color: var(--bg-color);
-    border-radius: 8px;
+    padding: 0.5rem; /* 追加: ボタンの見切れ防止 */
 }
 
 .dm-message-form button {
