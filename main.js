@@ -1283,7 +1283,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
+            // ▼▼▼ この行に「フォロワー」タブを追加 ▼▼▼
+            profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button><button class="tab-button" data-tab="followers">フォロワー</button>`;
+            // ▲▲▲ 追加ここまで ▲▲▲
             profileTabs.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -1322,12 +1324,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
                     await loadPostsWithPagination(contentDiv, 'stars', { ids: user.star || [] });
                     break;
-                case 'follows':
+                case 'followers':
                     contentDiv.innerHTML = '<div class="spinner"></div>';
-                    if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
-                    if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
+                    // ▼▼▼ このif文の条件を修正 ▼▼▼
+                    if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { 
+                        contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; 
+                        break; 
+                    }
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     
-                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
+                    // 新しいDB関数を呼び出す
+                    const { data: followers, error: followersError } = await supabase.rpc('get_followers', { target_user_id: user.id });
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
                     fUsers?.forEach(u => { // ★★★ ループ変数を 'f' から 'u' に修正
@@ -1342,12 +1349,42 @@ window.addEventListener('DOMContentLoaded', () => {
                         contentDiv.appendChild(userCard);
                     });
                     break;
+                // ▼▼▼ このブロックを新規追加 ▼▼▼
+                case 'followers':
+                    contentDiv.innerHTML = '<div class="spinner"></div>';
+                    // フォローリストの公開設定を流用
+                    if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; break; }
+                    
+                    // 新しいDB関数を呼び出す
+                    const { data: followers, error: followersError } = await supabase.rpc('get_followers', { target_user_id: user.id });
+                    if(followersError) throw followersError;
+
+                    if (!followers || followers.length === 0) {
+                        contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>';
+                        break;
+                    }
+                    
+                    contentDiv.innerHTML = '';
+                    followers.forEach(u => {
+                        const userCard = document.createElement('div');
+                        userCard.className = 'profile-card'; // 既存のスタイルを再利用
+                        const userLink = document.createElement('a');
+                        userLink.href = `#profile/${u.id}`;
+                        userLink.className = 'profile-link';
+                        userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
+                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                        userCard.appendChild(userLink);
+                        contentDiv.appendChild(userCard);
+                    });
+                    break;
+                // ▲▲▲ 追加ここまで ▲▲▲
             }
         } catch(err) {
             contentDiv.innerHTML = `<p class="error-message">コンテンツの読み込みに失敗しました。</p>`;
             console.error("loadProfileTabContent error:", err);
         }
     }
+
 
     async function showSettingsScreen() {
         if (!currentUser) return router();
@@ -1372,6 +1409,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <fieldset><legend>公開設定</legend>
                     <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
                     <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
@@ -1531,6 +1569,7 @@ window.addEventListener('DOMContentLoaded', () => {
             settings: {
                 show_like: form.querySelector('#setting-show-like').checked,
                 show_follow: form.querySelector('#setting-show-follow').checked,
+                show_follower: form.querySelector('#setting-show-follower').checked, // この行を追加
                 show_star: form.querySelector('#setting-show-star').checked,
                 show_scid: form.querySelector('#setting-show-scid').checked,
             },
