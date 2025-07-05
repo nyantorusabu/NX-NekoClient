@@ -135,6 +135,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
+            // ▼▼▼ このブロックを修正 ▼▼▼
             const menuHTML = `
                 <button class="dm-message-menu-btn">…</button>
                 <div class="post-menu">
@@ -143,11 +144,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             return `<div class="dm-message-container sent" data-message-id="${msg.id}">
-                ${menuHTML}
                 <div class="dm-message-wrapper">
+                    ${menuHTML}
                     <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
                 </div>
             </div>`;
+            // ▲▲▲ 修正ここまで ▲▲▲
         } else {
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
