@@ -2347,8 +2347,10 @@ async function openEditPostModal(postId) {
             e.stopPropagation();
             
             let menuToToggle;
+            let isDmMenu = false; // DMメニューかどうかのフラグ
             if (menuButton.classList.contains('dm-message-menu-btn')) {
                 menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+                isDmMenu = true;
             } else {
                 menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
             }
@@ -2356,14 +2358,31 @@ async function openEditPostModal(postId) {
             if (menuToToggle) {
                 const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
                 
-                // 開いている他のメニューをすべて閉じる
+                // 開いている他のメニューをすべて閉じる（位置調整もリセット）
                 document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
                     menu.classList.remove('is-visible');
+                    menu.style.transform = ''; // JSで設定したtransformをリセット
                 });
 
                 // ターゲットが閉じていた場合のみ開く
                 if (!isCurrentlyVisible) {
                     menuToToggle.classList.add('is-visible');
+
+                    // DMメニューの場合のみ、位置調整を行う
+                    if (isDmMenu) {
+                        // メニューがDOMに描画された後に位置を計算
+                        requestAnimationFrame(() => {
+                            const mainContentRect = DOM.mainContent.getBoundingClientRect();
+                            const menuRect = menuToToggle.getBoundingClientRect();
+
+                            // メニューがメインコンテンツの左端からはみ出しているかチェック
+                            if (menuRect.left < mainContentRect.left) {
+                                const overflowAmount = mainContentRect.left - menuRect.left;
+                                // はみ出した分だけ右にずらす（5pxの余白を追加）
+                                menuToToggle.style.transform = `translateX(${overflowAmount + 5}px) translateY(-50%)`;
+                            }
+                        });
+                    }
                 }
             }
             return; // メニュー開閉処理はここで終了
