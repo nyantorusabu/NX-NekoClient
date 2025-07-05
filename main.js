@@ -34,7 +34,10 @@ window.addEventListener('DOMContentLoaded', () => {
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
-        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`
+        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
+        // ▼▼▼ この行を追加 ▼▼▼
+        pin: `<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`
+        // ▲▲▲ 追加ここまで ▲▲▲
     };
 
     // --- 3. DOM要素の取得 ---
@@ -639,6 +642,15 @@ window.addEventListener('DOMContentLoaded', () => {
             // menu.id = `menu-${post.id}`; 
             // ▲▲▲ 削除ここまで ▲▲▲
             menu.className = 'post-menu';
+
+            // ▼▼▼ このブロックを追加 ▼▼▼
+            const isPinned = currentUser.pin === post.id;
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'pin-btn';
+            pinBtn.textContent = isPinned ? 'ピン留めを外す' : 'ピン留め';
+            pinBtn.dataset.postId = post.id;
+            menu.appendChild(pinBtn);
+            // ▲▲▲ 追加ここまで ▲▲▲
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
@@ -1379,7 +1391,22 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [] });
+                    // ▼▼▼ このブロックを修正 ▼▼▼
+                    // ピン留めポスト表示用のコンテナを追加
+                    const pinnedPostContainer = document.createElement('div');
+                    pinnedPostContainer.id = 'pinned-post-container';
+                    contentDiv.appendChild(pinnedPostContainer);
+
+                    // 通常のポスト一覧表示用のコンテナを追加
+                    const postsContainer = document.createElement('div');
+                    contentDiv.appendChild(postsContainer);
+
+                    // ピン留めポストと通常のポスト一覧を並行して読み込む
+                    await Promise.all([
+                        showPinnedPost(pinnedPostContainer, user),
+                        loadPostsWithPagination(postsContainer, 'profile_posts', { ids: user.post || [] })
+                    ]);
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
                 case 'likes': 
                     if (!user.settings.show_like && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのいいねは非公開です。</p>'; break; }
@@ -2087,6 +2114,63 @@ async function openEditPostModal(postId) {
         } catch(e) { console.error(e); alert('ポストの更新に失敗しました。'); } 
         finally { button.disabled = false; button.textContent = '保存'; showLoading(false); }
     }
+
+    async function handlePinToggle(postId) {
+        if (!currentUser) return;
+        showLoading(true);
+        try {
+            const isCurrentlyPinned = currentUser.pin === postId;
+            const newPinValue = isCurrentlyPinned ? null : postId;
+
+            const { error } = await supabase.from('user').update({ pin: newPinValue }).eq('id', currentUser.id);
+            if (error) throw error;
+            
+            currentUser.pin = newPinValue;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // 現在のページがプロフィールであれば、表示を更新
+            if (window.location.hash.startsWith(`#profile/${currentUser.id}`)) {
+                await loadProfileTabContent(currentUser, 'posts');
+            }
+        } catch(e) {
+            console.error('ピン留め操作に失敗しました:', e);
+            alert('ピン留め操作に失敗しました。');
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    async function showPinnedPost(container, user) {
+        if (!user.pin) {
+            // ピン留めがなければコンテナを空にする
+            container.innerHTML = '';
+            return;
+        }
+        
+        container.innerHTML = '<div class="spinner"></div>';
+        const { data: post, error } = await supabase.from('post')
+            .select('*, user(id, name, scid, icon_data)')
+            .eq('id', user.pin)
+            .single();
+
+        if (error || !post) {
+            console.error('ピン留めポストの取得に失敗:', error);
+            container.innerHTML = '';
+            // 取得に失敗した場合、ユーザーのピン留め情報をリセットすることも検討
+            if (currentUser && currentUser.id === user.id) {
+                supabase.from('user').update({ pin: null }).eq('id', user.id).then();
+            }
+            return;
+        }
+
+        const postEl = await renderPost(post, post.user);
+        container.innerHTML = `
+            <div class="pinned-post-indicator">
+                ${ICONS.pin} ピン留めされたポスト
+            </div>
+        `;
+        container.appendChild(postEl);
+    }
     
     // --- [新規追加] DM操作関数 ---
         async function handleDmButtonClick(targetUserId) {
@@ -2513,6 +2597,12 @@ if (menuButton) {
         }
 
         // --- 3. メニュー内のアクションボタン処理 ---
+        const pinBtn = target.closest('.pin-btn'); // この行を追加
+        if (pinBtn) { // このブロックを追加
+            handlePinToggle(pinBtn.dataset.postId);
+            pinBtn.closest('.post-menu')?.classList.remove('is-visible');
+            return;
+        }
         const dmEditBtn = target.closest('.edit-dm-msg-btn');
         if (dmEditBtn) {
             const container = dmEditBtn.closest('.dm-message-container');
