@@ -1044,6 +1044,20 @@ input, textarea {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+#profile-sub-tabs-container {
+    /* サブメニューがない場合は非表示にする */
+    &:empty {
+        display: none;
+    }
+    /* メインのタブとの区別のための線 */
+    border-bottom: 1px solid var(--border-color);
+}
+.profile-sub-tabs {
+    display: flex;
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 .tab-button {
     flex-grow: 1;
     padding: 1rem;
