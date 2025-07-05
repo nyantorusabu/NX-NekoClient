@@ -104,7 +104,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
     }
 
-    unction renderDmMessage(msg) {
+    function renderDmMessage(msg) {
         if (msg.type === 'system') {
             return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
         }
