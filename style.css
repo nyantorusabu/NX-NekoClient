@@ -190,9 +190,7 @@ input, textarea {
     line-height: 1.5em;
     text-align: center;
     position: absolute;
-    top: 0.6rem;
-    left: 2rem;
-    transform: translate(-50%, -50%);
+    /* top, left, transform の指定はここでは行わず、後で設定する */
     box-shadow: 0 0 0 2px white;
     z-index: 1;
 }
@@ -1481,31 +1479,34 @@ input, textarea {
     }
 }
 
+/* 通常表示のバッジ位置 (1000pxより大きい場合) */
+.nav-item[href="#notifications"] .notification-badge {
+    top: 0.6rem;
+    left: 2rem;
+    transform: translate(-50%, -50%);
+}
+
 @media (max-width: 1000px) {
     #left-nav {
         width: 88px;
-        /* アイコンを中央に寄せるため、paddingを調整 */
-        padding: 0 0.5rem; 
-        box-sizing: border-box;
+        padding: 0;
     }
 
-    /* メニューアイテム自体をコンテナ内で中央揃えにする */
-    #nav-menu-top {
-        align-items: center;
+    /* アイコンをnav-item内で中央揃え */
+    #left-nav .nav-item {
+        justify-content: center;
     }
 
     #left-nav .nav-item span {
         display: none;
     }
 
-    /* 省略表示時でもバッジが正しい位置に表示されるように調整 */
-    .notification-badge {
-        /* アイコンの上端からの距離 */
-        top: 0.7rem;
-        /* アイコンのほぼ中央 */
+    /* 縮小ビューのバッジ位置 */
+    #left-nav .nav-item[href="#notifications"] .notification-badge {
+        top: 0.8rem;
         left: 50%;
-        /* 中央からアイコンの幅の半分強、右に移動させ、自身の半分上に移動 */
-        transform: translate(16px, -50%); 
+        /* 中央から16px右、自身の高さの半分上に移動 */
+        transform: translate(16px, -50%);
     }
 
     .nav-item-post span {
@@ -1536,13 +1537,15 @@ input, textarea {
     }
     
     #left-nav .nav-item {
-        flex: 1; /* 各アイテムが均等にスペースを占める */
-        justify-content: center; /* アイコンをアイテム内で中央揃え */
+        flex: 1;
     }
 
-    #left-nav .notification-badge {
-        /* モバイルビュー用に少し上に調整 */
+    /* モバイルビューのバッジ位置 */
+    #left-nav .nav-item[href="#notifications"] .notification-badge {
         top: 0.5rem;
+        left: 50%;
+        /* 中央から18px右、自身の高さの半分上に移動 */
+        transform: translate(18px, -50%);
     }
 
     #nav-menu-top {
