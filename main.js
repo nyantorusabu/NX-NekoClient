@@ -2403,8 +2403,11 @@ async function openEditPostModal(postId) {
                             // メニューがメインコンテンツの左端からはみ出しているかチェック
                             if (menuRect.left < mainContentRect.left) {
                                 const overflowAmount = mainContentRect.left - menuRect.left;
-                                // はみ出した分だけ右にずらす（5pxの余白を追加）
-                                menuToToggle.style.transform = `translateX(${overflowAmount + 5}px) translateY(-50%)`;
+                                // はみ出した分だけ右にずらす（10pxの余白を追加）
+                                menuToToggle.style.transform = `translateX(${overflowAmount + 10}px) translateY(-50%)`;
+                            } else {
+                                // はみ出していない場合は、デフォルトの垂直位置だけを設定
+                                menuToToggle.style.transform = 'translateY(-50%)';
                             }
                         });
                     }
