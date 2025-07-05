@@ -104,26 +104,46 @@ window.addEventListener('DOMContentLoaded', () => {
         if (msg.type === 'system') {
             return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
         }
+
+        let attachmentsHTML = '';
+        if (msg.attachments && msg.attachments.length > 0) {
+            attachmentsHTML += '<div class="attachments-container">';
+            for (const attachment of msg.attachments) {
+                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                const publicURL = publicUrlData.publicUrl;
+                
+                let itemHTML = '<div class="attachment-item">';
+                if (attachment.type === 'image') {
+                    itemHTML += `<img src="${publicURL}" alt="${escapeHTML(attachment.name)}" class="attachment-image" onclick="event.stopPropagation(); window.openImageModal('${publicURL}')">`;
+                } else if (attachment.type === 'video') {
+                    itemHTML += `<video src="${publicURL}" controls onclick="event.stopPropagation();"></video>`;
+                } else if (attachment.type === 'audio') {
+                    itemHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation();"></audio>`;
+                }
+                
+                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
+                itemHTML += '</div>';
+                attachmentsHTML += itemHTML;
+            }
+            attachmentsHTML += '</div>';
+        }
         
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
-            // 自分のメッセージ
             return `<div class="dm-message-container sent">
                 <div class="dm-message-wrapper">
-                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
                 </div>
             </div>`;
         } else {
-            // 他の人のメッセージ
-            // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             return `<div class="dm-message-container received">
                 <img src="${getUserIconUrl(user)}" class="dm-message-icon">
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
-                    <div class="dm-message">${escapeHTML(msg.content)}</div>
+                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
                 </div>
             </div>`;
         }
@@ -1019,13 +1039,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
         
+        let dmSelectedFiles = []; // この会話画面専用のファイル管理変数
+
         const { data: dm, error } = await supabase.from('dm').select('id, post, member, host_id').eq('id', dmId).single();
         if (error || !dm || !dm.member.includes(currentUser.id)) {
             container.innerHTML = 'DMが見つからないか、アクセス権がありません。';
             return;
         }
 
-        // ★★★ キャッシュへのアクセス方法を Map 形式に修正 ★★★
         const memberIds = dm.member.filter(id => !allUsersCache.has(id));
         if(memberIds.length > 0) {
             const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
@@ -1038,18 +1059,66 @@ window.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = `
             <div class="dm-conversation-view">${messagesHTML}</div>
             <div class="dm-message-form">
-                <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
-                <button id="send-dm-btn">${ICONS.send}</button>
+                <div class="dm-form-content">
+                    <textarea id="dm-message-input" placeholder="メッセージを送信"></textarea>
+                    <div class="file-preview-container dm-file-preview"></div>
+                </div>
+                <div class="dm-form-actions">
+                    <button id="dm-attachment-btn" class="attachment-button" title="ファイルを添付">${ICONS.attachment}</button>
+                    <input type="file" id="dm-file-input" class="hidden" multiple>
+                    <button id="send-dm-btn" title="送信 (Ctrl+Enter)">${ICONS.send}</button>
+                </div>
             </div>
         `;
+        
         const messageInput = document.getElementById('dm-message-input');
+        const fileInput = document.getElementById('dm-file-input');
+        const previewContainer = container.querySelector('.file-preview-container');
+
+        document.getElementById('dm-attachment-btn').onclick = () => fileInput.click();
+
+        fileInput.onchange = (event) => {
+            dmSelectedFiles = Array.from(event.target.files);
+            previewContainer.innerHTML = '';
+            dmSelectedFiles.forEach((file, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'file-preview-item';
+                let content = `<span>📄 ${escapeHTML(file.name)}</span>`;
+                if (file.type.startsWith('image/')) content = `<span>🖼️ ${escapeHTML(file.name)}</span>`;
+                if (file.type.startsWith('video/')) content = `<span>🎬 ${escapeHTML(file.name)}</span>`;
+                if (file.type.startsWith('audio/')) content = `<span>🎵 ${escapeHTML(file.name)}</span>`;
+                
+                previewItem.innerHTML = `${content}<button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewContainer.appendChild(previewItem);
+            });
+        };
+
+        previewContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('file-preview-remove')) {
+                const indexToRemove = parseInt(e.target.dataset.index);
+                dmSelectedFiles.splice(indexToRemove, 1);
+                const newFiles = new DataTransfer();
+                dmSelectedFiles.forEach(file => newFiles.items.add(file));
+                fileInput.files = newFiles.files;
+                fileInput.dispatchEvent(new Event('change')); // プレビューを再描画
+            }
+        });
+
+        const sendMessageAction = () => {
+            sendDmMessage(dmId, dmSelectedFiles).then(() => {
+                dmSelectedFiles = [];
+                fileInput.value = '';
+                previewContainer.innerHTML = '';
+            });
+        };
+
         messageInput.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
-                sendDmMessage(dmId);
+                sendMessageAction();
             }
         });
-        document.getElementById('send-dm-btn').onclick = () => sendDmMessage(dmId);
+        document.getElementById('send-dm-btn').onclick = sendMessageAction;
 
         lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
 
@@ -1059,7 +1128,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const newPost = payload.new.post;
                 if(newPost && newPost.length > 0) {
                     const latestMessage = newPost[newPost.length - 1];
-                    if(latestMessage.id === lastRenderedMessageId) return;
+                    if(latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
 
                     const view = document.querySelector('.dm-conversation-view');
                     if(view) {
@@ -1070,7 +1139,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }).subscribe();
     }
-    // // --- 10. プロフィールと設定 ---
+    
+    // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
@@ -1958,34 +2028,64 @@ async function openEditPostModal(postId) {
         };
     }
     
-    async function sendDmMessage(dmId) {
+    async function sendDmMessage(dmId, files = []) {
         const input = document.getElementById('dm-message-input');
         const content = input.value.trim();
-        if (!content) return;
+        if (!content && files.length === 0) return;
+        
+        const sendButton = document.getElementById('send-dm-btn');
         input.disabled = true;
+        sendButton.disabled = true;
 
-        const message = {
-            id: crypto.randomUUID(),
-            time: new Date().toISOString(),
-            userid: currentUser.id,
-            reply_id: null,
-            content: content,
-            attachments: []
-        };
+        try {
+            let attachmentsData = [];
+            if (files.length > 0) {
+                showLoading(true);
+                for (const file of files) {
+                    const fileId = crypto.randomUUID();
+                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
+                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
+                }
+                showLoading(false);
+            }
 
-        const { error } = await supabase.rpc('append_to_dm_post', {
-            dm_id_in: dmId,
-            new_message_in: message
-        });
+            const message = {
+                id: crypto.randomUUID(),
+                time: new Date().toISOString(),
+                userid: currentUser.id,
+                content: content,
+                attachments: attachmentsData
+            };
 
-        if (error) {
+            const { error } = await supabase.rpc('append_to_dm_post', {
+                dm_id_in: dmId,
+                new_message_in: message
+            });
+
+            if (error) {
+                throw error;
+            } else {
+                input.value = '';
+                // リアルタイム更新で自分のメッセージも描画する
+                const view = document.querySelector('.dm-conversation-view');
+                if (view) {
+                    const msgHTML = renderDmMessage(message);
+                    view.insertAdjacentHTML('afterbegin', msgHTML);
+                    lastRenderedMessageId = message.id;
+                    view.scrollTop = view.scrollHeight;
+                }
+            }
+        } catch (error) {
             alert('メッセージの送信に失敗しました。');
             console.error(error);
-        } else {
-            input.value = '';
+        } finally {
+            input.disabled = false;
+            sendButton.disabled = false;
+            input.focus();
         }
-        input.disabled = false;
-        input.focus();
     }
     
     // --- 12. リアルタイム更新 ---
