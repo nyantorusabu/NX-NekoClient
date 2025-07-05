@@ -2372,8 +2372,10 @@ async function openEditPostModal(postId) {
             e.stopPropagation();
             
             let menuToToggle;
+            let isDmMenu = false; // DMメニューかどうかのフラグ
             if (menuButton.classList.contains('dm-message-menu-btn')) {
                 menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+                isDmMenu = true;
             } else {
                 menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
             }
@@ -2381,27 +2383,34 @@ async function openEditPostModal(postId) {
             if (menuToToggle) {
                 const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
                 
-                // 開いている他のメニューをすべて閉じる
+                // 開いている他のメニューをすべて閉じる（位置調整もリセット）
                 document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
                     menu.classList.remove('is-visible');
-                    menu.classList.remove('is-shifted'); // 位置調整クラスもリセット
+                    menu.style.transform = ''; // JSで設定したtransformをリセット
                 });
 
                 // ターゲットが閉じていた場合のみ開く
                 if (!isCurrentlyVisible) {
                     menuToToggle.classList.add('is-visible');
 
-                    // DMメニューの場合のみ、はみ出しチェックと位置調整を行う
-                    if (menuButton.classList.contains('dm-message-menu-btn')) {
+                    // DMメニューの場合のみ、位置調整を行う
+                    if (isDmMenu) {
+                        // ▼▼▼ このブロックを修正 ▼▼▼
                         requestAnimationFrame(() => {
                             const mainContentRect = DOM.mainContent.getBoundingClientRect();
                             const menuRect = menuToToggle.getBoundingClientRect();
-
+                            const buttonRect = menuButton.getBoundingClientRect();
+                            
                             // メニューがメインコンテンツの左端からはみ出しているかチェック
                             if (menuRect.left < mainContentRect.left) {
-                                menuToToggle.classList.add('is-shifted'); // はみ出す場合はシフト用クラスを追加
+                                // はみ出す場合は、ボタンの右側にメニューを表示する
+                                menuToToggle.style.left = `${buttonRect.right - menuRect.left + 5}px`;
+                            } else {
+                                // はみ出さない場合は、デフォルトの位置（CSSで定義）に戻す
+                                menuToToggle.style.left = ''; // JSでの指定をクリア
                             }
                         });
+                        // ▲▲▲ 修正ここまで ▲▲▲
                     }
                 }
             }
