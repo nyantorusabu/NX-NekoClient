@@ -2337,14 +2337,15 @@ async function openEditPostModal(postId) {
         }
 
         // --- ポストメニューの処理 ---
-
-        // --- 1. メニューを開く/閉じるボタンの処理 ---
+        // ▼▼▼ このブロックを修正 ▼▼▼
         const menuButton = target.closest('.post-menu-btn');
-        if (menuButton) {
+        // menuButtonが存在し、かつ、DMのメニューボタンではないことを確認
+        if (menuButton && !menuButton.classList.contains('dm-message-menu-btn')) {
             e.stopPropagation();
             window.togglePostMenu(menuButton);
             return;
         }
+        // ▲▲▲ 修正ここまで ▲▲▲
 
         // --- 2. メニュー内のボタンの処理 ---
         const editButton = target.closest('.edit-btn');
