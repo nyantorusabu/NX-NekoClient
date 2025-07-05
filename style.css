@@ -144,6 +144,13 @@ input, textarea {
     padding-bottom: 1rem;
 }
 
+.nav-item-icon-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .account-button {
     width: 100%;
     font-size: 1rem;
@@ -193,6 +200,11 @@ input, textarea {
     /* top, left, transform の指定はここでは行わず、後で設定する */
     box-shadow: 0 0 0 2px white;
     z-index: 1;
+
+     /* ▼▼▼ この3行を追記・変更 ▼▼▼ */
+    top: 0;
+    right: 0;
+    transform: translate(40%, -40%); /* 右肩に少しはみ出すように調整 */
 }
 
 .nav-item[href="#notifications"] {
@@ -1513,13 +1525,6 @@ input, textarea {
     }
 }
 
-/* 通常表示のバッジ位置 (1000pxより大きい場合) */
-.nav-item[href="#notifications"] .notification-badge {
-    top: 0.6rem;
-    left: 2rem;
-    transform: translate(-50%, -50%);
-}
-
 @media (max-width: 1000px) {
     #left-nav {
         width: 88px;
@@ -1533,14 +1538,6 @@ input, textarea {
 
     #left-nav .nav-item span {
         display: none;
-    }
-
-    /* 縮小ビューのバッジ位置 */
-    #left-nav .nav-item[href="#notifications"] .notification-badge {
-        top: 0.8rem;
-        left: 50%;
-        /* 中央から16px右、自身の高さの半分上に移動 */
-        transform: translate(16px, -50%);
     }
 
     .nav-item-post span {
@@ -1572,14 +1569,6 @@ input, textarea {
     
     #left-nav .nav-item {
         flex: 1;
-    }
-
-    /* モバイルビューのバッジ位置 */
-    #left-nav .nav-item[href="#notifications"] .notification-badge {
-        top: 0.5rem;
-        left: 50%;
-        /* 中央から18px右、自身の高さの半分上に移動 */
-        transform: translate(18px, -50%);
     }
 
     #nav-menu-top {
