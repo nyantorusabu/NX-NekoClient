@@ -1236,34 +1236,12 @@ input, textarea {
 .dm-message-menu-btn:hover {
     background-color: var(--bg-color);
 }
-
-/* ▼▼▼ このブロックを、以下の新しいコードに完全に置き換えてください ▼▼▼ */
-/* DM専用メニューのスタイル */
-.dm-menu {
-    position: absolute;
-    left: 2.5rem; /* ボタンの右側に配置 */
+.dm-message-container .post-menu {
+    left: 2.5rem; /* 修正: ボタンの右側に表示し、見切れを防ぐ */
+    right: auto;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 20;
-    
-    /* post-menuから基本スタイルをコピー */
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    min-width: 150px;
-    overflow: hidden;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.1s ease-out, visibility 0.1s;
-    pointer-events: none;
 }
-.dm-menu.is-visible {
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
-}
-/* ▲▲▲ 置き換えここまで ▲▲▲ */
 
 
 .dm-message-container.received {
