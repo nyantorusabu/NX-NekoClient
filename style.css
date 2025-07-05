@@ -287,8 +287,27 @@ input, textarea {
     border-bottom: 1px solid var(--border-color);
 }
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
-.timeline-tab-button { flex-grow: 1; padding: 1rem; border: none; background: none; font-size: 1rem; cursor: pointer; color: var(--secondary-text-color); font-weight: 500; position: relative; text-align: center; }
-.timeline-tab-button:hover { background-color: var(--bg-color); }
+.timeline-tab-button {
+    flex-grow: 1;
+    padding: 1rem;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--secondary-text-color);
+    font-weight: 500;
+    position: relative;
+    
+    /* ▼▼▼ この3行を追記・変更 ▼▼▼ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* ▲▲▲ 追記・変更ここまで ▲▲▲ */
+}
+
+.timeline-tab-button:hover {
+    background-color: var(--bg-color);
+}
 .timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
 .timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
 
@@ -737,10 +756,36 @@ input, textarea {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.8rem; /* 要素間の隙間を追加 */
 }
+
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+/* ユーザー情報を含むリンク（aタグ）の挙動を定義 */
+.recommend-user > a {
+    min-width: 0; /* flexアイテムが自身のコンテンツ幅以下に縮むことを許可 */
+    flex-shrink: 1; /* 親コンテナが狭いときに縮むことを許可 */
+    overflow: hidden; /* はみ出し防止のため */
+}
+
+/* ユーザー名とIDを囲むdiv */
+.recommend-user > a > div {
+    overflow: hidden; /* 中のspanがはみ出た場合に隠すため */
+}
+
+/* フォローボタンは縮まないようにする */
+.recommend-user > button {
+    flex-shrink: 0;
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 
 .recommend-user span {
     font-weight: 700;
+    /* ▼▼▼ 以下の4行を追加 ▼▼▼ */
+    display: block;      /* ellipsisを効かせるためにblock要素にする */
+    white-space: nowrap; /* テキストを折り返さない */
+    overflow: hidden;    /* はみ出たテキストを隠す */
+    text-overflow: ellipsis; /* はみ出た部分を...で表示 */
 }
 
 /* ★★★ フォローボタンの形状問題を解決 ★★★ */
