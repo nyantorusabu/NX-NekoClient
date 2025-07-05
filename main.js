@@ -1529,25 +1529,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 11. ユーザーアクション (変更なし) ---
-    window.togglePostMenu = (postId) => {
-        const targetMenu = document.getElementById(`menu-${postId}`);
-        if (!targetMenu) {
-            return;
-        }
-
-        const isCurrentlyVisible = targetMenu.classList.contains('is-visible');
-
-        // まず、現在開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-            menu.classList.remove('is-visible');
-        });
-
-        // ターゲットメニューが今閉じたものでなければ、開く
-        if (!isCurrentlyVisible) {
-            targetMenu.classList.add('is-visible');
-        }
-    };
-
     window.deletePost = async (postId) => {
         if (!confirm('このポストを削除しますか？')) return;
     showLoading(true);
@@ -2303,121 +2284,99 @@ async function openEditPostModal(postId) {
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- メニューの外側をクリックした際の処理を最初に定義 ---
-        // DMメニューでも通常のポストメニューでもない領域がクリックされた場合、開いているメニューをすべて閉じる
-        if (!target.closest('.post-menu') && !target.closest('.post-menu-btn')) {
+        // --- 1. メニューの開閉トリガー処理 ---
+        const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
+            
+            let menuToToggle;
+            if (menuButton.classList.contains('dm-message-menu-btn')) {
+                menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+            } else {
+                menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
+            }
+
+            if (menuToToggle) {
+                const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
+                
+                // 開いている他のメニューをすべて閉じる
+                document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+                    menu.classList.remove('is-visible');
+                });
+
+                // ターゲットが閉じていた場合のみ開く
+                if (!isCurrentlyVisible) {
+                    menuToToggle.classList.add('is-visible');
+                }
+            }
+            return; // メニュー開閉処理はここで終了
+        }
+
+        // --- 2. メニューの外側がクリックされた場合の処理 ---
+        if (!target.closest('.post-menu')) {
             document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
                 menu.classList.remove('is-visible');
             });
         }
-        
-        // --- DMメッセージ関連のクリック処理 ---
-        const dmMessageContainer = target.closest('.dm-message-container');
-        if (dmMessageContainer) {
-            const dmMenuButton = target.closest('.dm-message-menu-btn');
-            const dmEditBtn = target.closest('.edit-dm-msg-btn');
-            const dmDeleteBtn = target.closest('.delete-dm-msg-btn');
-            
-            if (dmMenuButton) {
-                e.stopPropagation();
-                const menu = dmMessageContainer.querySelector('.post-menu');
-                document.querySelectorAll('.post-menu.is-visible').forEach(m => {
-                    if (m !== menu) m.classList.remove('is-visible');
-                });
-                menu.classList.toggle('is-visible');
-                return; // 処理を終了
-            }
-            if (dmEditBtn) {
-                const messageId = dmMessageContainer.dataset.messageId;
-                const dmId = window.location.hash.substring(4);
-                openDmEditModal(dmId, messageId);
-                dmEditBtn.closest('.post-menu')?.classList.remove('is-visible');
-                return; // 処理を終了
-            }
-            if (dmDeleteBtn) {
-                const messageId = dmMessageContainer.dataset.messageId;
-                const dmId = window.location.hash.substring(4);
-                handleDeleteDmMessage(dmId, messageId);
-                return; // 処理を終了
-            }
-            return; // DMメッセージ内の他のクリックはここで処理を終了
+
+        // --- 3. メニュー内のアクションボタン処理 ---
+        const dmEditBtn = target.closest('.edit-dm-msg-btn');
+        if (dmEditBtn) {
+            const container = dmEditBtn.closest('.dm-message-container');
+            openDmEditModal(window.location.hash.substring(4), container.dataset.messageId);
+            return;
+        }
+        const dmDeleteBtn = target.closest('.delete-dm-msg-btn');
+        if (dmDeleteBtn) {
+            const container = dmDeleteBtn.closest('.dm-message-container');
+            handleDeleteDmMessage(window.location.hash.substring(4), container.dataset.messageId);
+            return;
+        }
+        const editButton = target.closest('.edit-btn');
+        if (editButton) {
+            const postElement = editButton.closest('.post');
+            if(postElement) openEditPostModal(postElement.dataset.postId);
+            return;
+        }
+        const deleteButton = target.closest('.delete-btn:not(.delete-dm-msg-btn)');
+        if (deleteButton) {
+            const postElement = deleteButton.closest('.post');
+            if (postElement) window.deletePost(postElement.dataset.postId);
+            return;
         }
 
-        // --- 通常のポスト関連のクリック処理 ---
+        // --- 4. ポストのアクションや本体のクリック処理 ---
         const postElement = target.closest('.post');
         if (postElement) {
-            const menuButton = target.closest('.post-menu-btn');
-            const editButton = target.closest('.edit-btn');
-            const deleteButton = target.closest('.delete-btn');
             const replyButton = target.closest('.reply-button');
             const likeButton = target.closest('.like-button');
             const starButton = target.closest('.star-button');
             const imageAttachment = target.closest('.attachment-item img');
             const downloadLink = target.closest('.attachment-download-link');
 
-            if (menuButton) {
-                e.stopPropagation();
-                window.togglePostMenu(menuButton);
-                return; // ★★★★★ 処理をここで確実に終了させる
-            }
-            if (editButton) {
-                openEditPostModal(postElement.dataset.postId);
-                editButton.closest('.post-menu')?.classList.remove('is-visible');
-                return;
-            }
-            if (deleteButton) {
-                window.deletePost(postElement.dataset.postId);
-                return;
-            }
-            if (replyButton) {
-                window.handleReplyClick(postElement.dataset.postId, replyButton.dataset.username);
-                return;
-            }
-            if (likeButton) {
-                window.handleLike(likeButton, postElement.dataset.postId);
-                return;
-            }
-            if (starButton) {
-                window.handleStar(starButton, postElement.dataset.postId);
-                return;
-            }
-            if (imageAttachment) {
-                window.openImageModal(imageAttachment.src);
-                return;
-            }
-            if (downloadLink) {
-                e.preventDefault();
-                window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name);
-                return;
-            }
+            if (replyButton) { window.handleReplyClick(postElement.dataset.postId, replyButton.dataset.username); return; }
+            if (likeButton) { window.handleLike(likeButton, postElement.dataset.postId); return; }
+            if (starButton) { window.handleStar(starButton, postElement.dataset.postId); return; }
+            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
             
-            // ポストのインタラクティブ要素以外がクリックされたら詳細ページへ
-            if (!target.closest('a') && !target.closest('.post-menu')) {
+            if (!target.closest('a')) {
                 window.location.hash = `#post/${postElement.dataset.postId}`;
                 return;
             }
         }
         
-        // --- その他のグローバルなクリック処理 ---
+        // --- 5. その他のグローバルなクリック処理 ---
         const timelineTab = target.closest('.timeline-tab-button');
-        if(timelineTab) {
-            switchTimelineTab(timelineTab.dataset.tab);
-            return;
-        }
+        if (timelineTab) { switchTimelineTab(timelineTab.dataset.tab); return; }
         
         const bannerSignup = target.closest('#banner-signup-button');
-        if(bannerSignup) {
-            goToLoginPage();
-            return;
-        }
+        if (bannerSignup) { goToLoginPage(); return; }
 
         const bannerLogin = target.closest('#banner-login-button');
-        if(bannerLogin) {
-            goToLoginPage();
-            return;
-        }
+        if (bannerLogin) { goToLoginPage(); return; }
     });
-
+    
     // 「再試行」ボタンのイベントリスナー
     DOM.retryConnectionBtn.addEventListener('click', () => {
         DOM.connectionErrorOverlay.classList.add('hidden'); // エラー表示を隠す
