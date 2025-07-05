@@ -1389,6 +1389,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('settings-screen');
         newIconDataUrl = null;
         resetIconToDefault = false;
+        // ▼▼▼ innerHTMLの生成部分を修正 ▼▼▼
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
                 <label for="setting-username">ユーザー名:</label>
@@ -1411,7 +1412,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
                 <button type="submit">設定を保存</button>
-            </form>`;
+            </form>
+            <div class="settings-danger-zone">
+                <button id="settings-logout-btn">ログアウト</button>
+            </div>
+            `;
+        // ▲▲▲ 修正ここまで ▲▲▲
         
         const iconInput = document.getElementById('setting-icon-input');
         const iconPreview = document.getElementById('setting-icon-preview');
@@ -1438,6 +1444,9 @@ window.addEventListener('DOMContentLoaded', () => {
         });
 
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+        // ▼▼▼ この行を追加 ▼▼▼
+        document.getElementById('settings-logout-btn').addEventListener('click', handleLogout);
+        // ▲▲▲ 追加ここまで ▲▲▲
         showLoading(false);
     }
     
