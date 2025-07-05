@@ -581,7 +581,9 @@ window.addEventListener('DOMContentLoaded', () => {
             postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
-            menu.id = `menu-${post.id}`;
+            // ▼▼▼ この行を削除 ▼▼▼
+            // menu.id = `menu-${post.id}`; 
+            // ▲▲▲ 削除ここまで ▲▲▲
             menu.className = 'post-menu';
 
             const editBtn = document.createElement('button');
@@ -2036,10 +2038,7 @@ async function openEditPostModal(postId) {
         const menuButton = target.closest('.post-menu-btn');
         if (menuButton) {
             e.stopPropagation();
-            const postElement = menuButton.closest('.post');
-            if (postElement) {
-                window.togglePostMenu(postElement.dataset.postId);
-            }
+            window.togglePostMenu(menuButton);
             return;
         }
 
@@ -2050,7 +2049,12 @@ async function openEditPostModal(postId) {
             if (postElement) {
                 // 編集モーダルを開き、メニューを閉じる
                 openEditPostModal(postElement.dataset.postId);
-                document.getElementById(`menu-${postElement.dataset.postId}`)?.classList.remove('is-visible');
+                // ▼▼▼ このブロックを修正 ▼▼▼
+                const menu = editButton.closest('.post-menu');
+                if (menu) {
+                    menu.classList.remove('is-visible');
+                }
+                // ▲▲▲ 修正ここまで ▲▲▲
             }
             return;
         }
