@@ -1237,10 +1237,10 @@ input, textarea {
     background-color: var(--bg-color);
 }
 .dm-message-container .post-menu {
-    left: 2.5rem; /* 修正: ボタンの右側に表示し、見切れを防ぐ */
+    left: -150px; /* 修正: ボタンの左側に表示（見切れはJSで調整） */
     right: auto;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%); /* 修正: translateXはJSで制御するため削除 */
 }
 
 
