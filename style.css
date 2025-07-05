@@ -172,19 +172,7 @@ input, textarea {
     font-weight: 700;
 }
 
-/* 左側ナビゲーションのアイコンコンテナ */
-.nav-item-icon-container {
-    position: relative;
-    display: flex; /* この行を忘れずに追加 */
-    align-items: center;
-    justify-content: center;
-}
-
-/* 通知バッジのスタイル（最重要） */
-.nav-item-icon-container .notification-badge {
-    position: absolute;
-    top: -5px;   /* アイコンの上端から少しはみ出す */
-    right: -5px; /* アイコンの右端から少しはみ出す */
+.notification-badge {
     background-color: var(--primary-color);
     color: white;
     font-size: 0.7rem;
@@ -194,8 +182,13 @@ input, textarea {
     height: 1.5em;
     line-height: 1.5em;
     text-align: center;
+    position: absolute;
     box-shadow: 0 0 0 2px white;
     z-index: 1;
+    /* アイコンの右上隅に配置 */
+    top: -4px;
+    right: -4px;
+}
 
 .nav-item[href="#notifications"] {
     position: relative;
@@ -1309,27 +1302,14 @@ input, textarea {
 .dm-message-container.sent .dm-message-meta {
     text-align: right;
 }
-/* DMメッセージの強制改行 */
 .dm-message {
     padding: 0.8rem 1rem;
     border-radius: 18px;
     white-space: pre-wrap;
     font-weight: 400;
     line-height: 1.4;
-    overflow-wrap: break-word;
-    word-break: break-all; /* 長い英単語を強制的に改行 */
-}
-/* DMメッセージメニューのデフォルト位置 */
-.dm-message-container .post-menu {
-    left: -160px; /* ボタンの左側に配置 */
-    right: auto;
-    top: 50%;
-    transform: translateY(-50%);
-}
-/* DMメッセージメニューのはみ出し防止用スタイル */
-.dm-message-container .post-menu.is-flipped {
-    left: 2.5rem; /* ボタンの右側に反転 */
-    right: auto;
+    /* ▼▼▼ この1行を追加 ▼▼▼ */
+    overflow-wrap: break-word; /* 長い英数字を強制的に改行 */
 }
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
