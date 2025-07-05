@@ -2395,21 +2395,22 @@ async function openEditPostModal(postId) {
 
                     // DMメニューの場合のみ、位置調整を行う
                     if (isDmMenu) {
-                        // メニューがDOMに描画された後に位置を計算
+                        // ▼▼▼ このブロックを修正 ▼▼▼
                         requestAnimationFrame(() => {
                             const mainContentRect = DOM.mainContent.getBoundingClientRect();
                             const menuRect = menuToToggle.getBoundingClientRect();
-
+                            const buttonRect = menuButton.getBoundingClientRect();
+                            
                             // メニューがメインコンテンツの左端からはみ出しているかチェック
                             if (menuRect.left < mainContentRect.left) {
-                                const overflowAmount = mainContentRect.left - menuRect.left;
-                                // はみ出した分だけ右にずらす（10pxの余白を追加）
-                                menuToToggle.style.transform = `translateX(${overflowAmount + 10}px) translateY(-50%)`;
+                                // はみ出す場合は、ボタンの右側にメニューを表示する
+                                menuToToggle.style.left = `${buttonRect.right - menuRect.left + 5}px`;
                             } else {
-                                // はみ出していない場合は、デフォルトの垂直位置だけを設定
-                                menuToToggle.style.transform = 'translateY(-50%)';
+                                // はみ出さない場合は、デフォルトの位置（CSSで定義）に戻す
+                                menuToToggle.style.left = ''; // JSでの指定をクリア
                             }
                         });
+                        // ▲▲▲ 修正ここまで ▲▲▲
                     }
                 }
             }
