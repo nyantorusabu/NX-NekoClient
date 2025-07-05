@@ -1161,6 +1161,28 @@ input, textarea {
     cursor: pointer;
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.settings-danger-zone {
+    margin-top: 2rem;
+    padding: 1.5rem 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+#settings-logout-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    background: none;
+    border: 1px solid #fdd8e5; /* like-colorの薄い版 */
+    color: var(--like-color);
+    transition: background-color 0.2s;
+}
+
+#settings-logout-btn:hover {
+    background-color: #fef0f4; /* like-colorのさらに薄い版 */
+}
+
 /* DM画面のスタイル */
 #dm-content {
     display: flex;
