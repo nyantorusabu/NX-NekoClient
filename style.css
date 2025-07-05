@@ -77,14 +77,17 @@ input, textarea {
 /* アイコンとバッジを囲むコンテナ */
 .nav-item-icon-container {
     position: relative; /* バッジの位置の基準 */
-    display: flex;
+    display: flex; /* 中の要素をflexで制御 */
     align-items: center;
     justify-content: center;
+    /* アイコンのサイズに合わせる */
+    width: 1.75rem;
+    height: 1.75rem;
 }
 
 .nav-item svg {
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 100%; /* コンテナいっぱいに広がる */
+    height: 100%;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;
@@ -185,9 +188,10 @@ input, textarea {
     position: absolute;
     box-shadow: 0 0 0 2px white;
     z-index: 1;
-    /* アイコンの右上隅に配置 */
-    top: -4px;
-    right: -4px;
+    /* アイコンコンテナの右上隅に配置 */
+    top: -5px;  /* 上に少しはみ出す */
+    right: -5px; /* 右に少しはみ出す */
+    /* transformは不要なため削除 */
 }
 
 .nav-item[href="#notifications"] {
@@ -1285,14 +1289,17 @@ input, textarea {
     display: flex;
     flex-direction: column;
 }
-/* ★★★ メッセージの縦方向の配置を修正 ★★★ */
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end; /* 右寄せ */
 }
-
 .dm-message-container.received .dm-message-wrapper {
     align-items: flex-start; /* 左寄せ */
 }
+/* ▼▼▼ このブロックを追加 ▼▼▼ */
+.dm-message-wrapper {
+    min-width: 0; /* Flexアイテムがコンテンツ幅以下に縮むことを許可 */
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
 .dm-message-meta {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
