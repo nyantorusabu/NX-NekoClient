@@ -811,10 +811,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(false);
     }
 
-    async function showPostDetail(postId) {
-        DOM.pageHeader.innerHTML = `
-            <div class="header-with-back-button">
-                <button class="header-back-btn" onclick="windoasync function showPostDetail(postId) {
+        async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
