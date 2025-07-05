@@ -228,7 +228,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-            else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
+            // ▼▼▼ このelse ifブロックを修正 ▼▼▼
+            else if (hash.startsWith('#profile/')) {
+                const parts = hash.substring(9).split('/');
+                const userId = parseInt(parts[0]);
+                if (isNaN(userId)) {
+                    // 不正なIDの場合はホームへ
+                    window.location.hash = '#';
+                    return;
+                }
+                const subpage = parts[1] || 'posts'; // デフォルトは 'posts'
+                await showProfileScreen(userId, subpage);
+            }
+            // ▲▲▲ 修正ここまで ▲▲▲
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
             else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
             else if (hash === '#dm') await showDmScreen();
@@ -1197,7 +1209,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 10. プロフィールと設定 ---
-    async function showProfileScreen(userId) {
+    async function showProfileScreen(userId, subpage = 'posts') {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
@@ -1206,20 +1218,25 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
-        const profileContent = document.getElementById('profile-content');
         
-        // ★★★ 以前の凍結通知が残っていれば削除 ★★★
         const existingFriezeNotice = DOM.mainContent.querySelector('.frieze-notice');
         if (existingFriezeNotice) existingFriezeNotice.remove();
+        
+        // サブタブコンテナも初期化
+        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
+        if (!subTabsContainer) {
+            profileTabs.insertAdjacentHTML('afterend', '<div id="profile-sub-tabs-container"></div>');
+        }
 
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
-        profileContent.innerHTML = '';
+        document.getElementById('profile-sub-tabs-container').innerHTML = ''; // サブタブもクリア
+        document.getElementById('profile-content').innerHTML = '';
 
         try {
             const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star').eq('id', userId).single();
             if (error || !user) {
-                profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
+                 profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
                 showLoading(false);
                 return;
             }
@@ -1282,17 +1299,34 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // ▼▼▼ この行に「フォロワー」タブを追加 ▼▼▼
-            profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button><button class="tab-button" data-tab="followers">フォロワー</button>`;
-            // ▲▲▲ 追加ここまで ▲▲▲
+            // メインのタブを定義
+            const mainTabs = [
+                { key: 'posts', name: 'ポスト' },
+                { key: 'likes', name: 'いいね' },
+                { key: 'stars', name: 'お気に入り' },
+                { key: 'follows', name: 'フォロー' } // 「フォロー中」と「フォロワー」を統合
+            ];
+
+            // 現在アクティブにすべきメインタブを決定
+            const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
+
+            profileTabs.innerHTML = mainTabs.map(tab => 
+                `<button class="tab-button ${tab.key === activeMainTabKey ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
+            ).join('');
+
+            // メインタブのクリックイベントを設定
             profileTabs.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', (e) => {
+                button.onclick = (e) => {
                     e.stopPropagation();
-                    loadProfileTabContent(user, button.dataset.tab);
-                });
+                    const tabKey = button.dataset.tab;
+                    // 「フォロー」タブがクリックされたら、デフォルトで「フォロー中」サブページに遷移
+                    const defaultSubpage = (tabKey === 'follows') ? 'following' : tabKey;
+                    window.location.hash = `#profile/${userId}/${defaultSubpage}`;
+                };
             });
 
-            await loadProfileTabContent(user, 'posts');
+            // コンテンツとサブタブを読み込む
+            await loadProfileTabContent(user, subpage);
 
         } catch(err) {
             profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
@@ -1302,16 +1336,37 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadProfileTabContent(user, tab) {
-        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    async function loadProfileTabContent(user, subpage) {
+        // メインのタブのアクティブ状態を更新
+        const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
+        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeMainTabKey));
+        
+        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
         const contentDiv = document.getElementById('profile-content');
         
-        isLoadingMore = false; // 読み込み状態をリセット
+        subTabsContainer.innerHTML = ''; // サブメニューをリセット
+        isLoadingMore = false;
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
+        // 「フォロー」系のサブページが選択されている場合のみ、サブメニューを描画
+        if (activeMainTabKey === 'follows') {
+            subTabsContainer.innerHTML = `
+                <div class="profile-sub-tabs">
+                    <button class="tab-button ${subpage === 'following' ? 'active' : ''}" data-sub-tab="following">フォロー中</button>
+                    <button class="tab-button ${subpage === 'followers' ? 'active' : ''}" data-sub-tab="followers">フォロワー</button>
+                </div>`;
+            
+            subTabsContainer.querySelectorAll('.tab-button').forEach(button => {
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    window.location.hash = `#profile/${user.id}/${button.dataset.subTab}`;
+                };
+            });
+        }
+        
         try {
-            switch(tab) {
+            switch(subpage) {
                 case 'posts':
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [] });
                     break;
@@ -1323,7 +1378,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
                     await loadPostsWithPagination(contentDiv, 'stars', { ids: user.star || [] });
                     break;
-                case 'follows':
+                case 'following': // 以前の'follows'
                     contentDiv.innerHTML = '<div class="spinner"></div>';
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
                     if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
@@ -1331,50 +1386,31 @@ window.addEventListener('DOMContentLoaded', () => {
                     const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
-                    fUsers?.forEach(u => { // ★★★ ループ変数を 'f' から 'u' に修正
-                        const userCard = document.createElement('div');
-                        userCard.className = 'profile-card';
-                        const userLink = document.createElement('a');
-                        userLink.href = `#profile/${u.id}`;
-                        userLink.className = 'profile-link';
+                    fUsers?.forEach(u => {
+                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
+                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
                         userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
                         userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
-                        userCard.appendChild(userLink);
-                        contentDiv.appendChild(userCard);
+                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
                     });
                     break;
                 case 'followers':
                     contentDiv.innerHTML = '<div class="spinner"></div>';
-                    if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { 
-                        contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; 
-                        break; 
-                    }
+                    if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; break; }
                     
-                    // ▼▼▼ このブロックを修正 ▼▼▼
-                    // 新しいDB関数を呼び出す
                     const { data: followersData, error: followersRpcError } = await supabase.rpc('get_followers', { target_user_id: user.id });
                     if(followersRpcError) throw followersRpcError;
-
-                    if (!followersData || followersData.length === 0) {
-                        contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>';
-                        break;
-                    }
+                    if (!followersData || followersData.length === 0) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>'; break; }
                     
                     contentDiv.innerHTML = '';
                     followersData.forEach(u => {
-                        const userCard = document.createElement('div');
-                        userCard.className = 'profile-card';
-                        const userLink = document.createElement('a');
-                        userLink.href = `#profile/${u.id}`;
-                        userLink.className = 'profile-link';
+                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
+                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
                         userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
                         userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
-                        userCard.appendChild(userLink);
-                        contentDiv.appendChild(userCard);
+                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
                     });
-                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
-                
             }
         } catch(err) {
             contentDiv.innerHTML = `<p class="error-message">コンテンツの読み込みに失敗しました。</p>`;
