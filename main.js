@@ -1109,13 +1109,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     };
                     reader.readAsDataURL(file);
                 } else if (file.type.startsWith('audio/')) {
-                    // ▼▼▼ このブロックを修正 ▼▼▼
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                         previewItem.innerHTML = `<audio src="${e.target.result}" controls style="height: 40px; width: 100%; max-width: 250px;"></audio><button class="file-preview-remove" data-index="${index}">×</button>`;
-                    };
-                    reader.readAsDataURL(file);
-                    // ▲▲▲ 修正ここまで ▲▲▲
+                    previewItem.innerHTML = `<span>🎵 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 } else {
                     previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 }
