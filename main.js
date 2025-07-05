@@ -584,7 +584,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), } = options; // mainPostId を追加
+        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), profileOwnerUser = null } = options;
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
@@ -644,7 +644,8 @@ window.addEventListener('DOMContentLoaded', () => {
             menu.className = 'post-menu';
 
             // ▼▼▼ このブロックを追加 ▼▼▼
-            const isPinned = currentUser.pin === post.id;
+            const referenceUser = profileOwnerUser || currentUser;
+            const isPinned = referenceUser && referenceUser.pin === post.id;
             const pinBtn = document.createElement('button');
             pinBtn.className = 'pin-btn';
             pinBtn.textContent = isPinned ? 'ピン留めを外す' : 'ピン留め';
@@ -1404,7 +1405,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     // ピン留めポストと通常のポスト一覧を並行して読み込む
                     await Promise.all([
                         showPinnedPost(pinnedPostContainer, user),
-                        loadPostsWithPagination(postsContainer, 'profile_posts', { ids: user.post || [] })
+                        loadPostsWithPagination(postsContainer, 'profile_posts', { ids: user.post || [], profileOwner: user })
                     ]);
                     // ▲▲▲ 修正ここまで ▲▲▲
                     break;
@@ -1526,6 +1527,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     async function loadPostsWithPagination(container, type, options = {}) {
         currentPagination = { page: 0, hasMore: true, type, options };
+        const profileOwner = options.profileOwner || null;
         
         let trigger = container.querySelector('.load-more-trigger');
         if (trigger) trigger.remove();
@@ -1552,9 +1554,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+            } else if (type === 'likes' || type === 'stars') { // profile_postsを除外
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
+            } else if (type === 'profile_posts') { // profile_posts の処理を追加
+                let postIds = options.ids || [];
+                // ピン留めされたポストを除外する
+                if (profileOwner && profileOwner.pin) {
+                    postIds = postIds.filter(id => id !== profileOwner.pin);
+                }
+                if (postIds.length === 0) { currentPagination.hasMore = false; }
+                else { query = query.in('id', postIds); }
             }
             
             query = query.order('time', { ascending: false });
@@ -1598,7 +1608,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
-                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender });
+                        // ▼▼▼ profileOwnerを渡す ▼▼▼
+                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender, profileOwnerUser: profileOwner });
                         if (postEl) trigger.before(postEl);
                     }
     
@@ -2162,7 +2173,12 @@ async function openEditPostModal(postId) {
             }
             return;
         }
-
+        
+        // ▼▼▼ このブロックを追加 ▼▼▼
+        const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: [post.id] });
+        const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
+        // ▲▲▲ 追加ここまで ▲▲▲
+        
         const postEl = await renderPost(post, post.user);
         container.innerHTML = `
             <div class="pinned-post-indicator">
