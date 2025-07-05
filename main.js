@@ -325,7 +325,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         ${item.icon}
                         ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
                     </div>
-                    <span>${item.name}</span>
+                    <span class="nav-item-text">${item.name}</span>
                 </a>`;
             // ▲▲▲ HTML構造は前回と同じですが、CSSとの連携で重要なので再確認 ▲▲▲
         }).join('');
@@ -2367,56 +2367,34 @@ async function openEditPostModal(postId) {
         const target = e.target;
 
         // --- 1. メニューの開閉トリガー処理 ---
-        const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
-        if (menuButton) {
-            e.stopPropagation();
-            
-            let menuToToggle;
-            let isDmMenu = false; // DMメニューかどうかのフラグ
-            if (menuButton.classList.contains('dm-message-menu-btn')) {
-                menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
-                isDmMenu = true;
-            } else {
-                menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
-            }
+const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
+if (menuButton) {
+    e.stopPropagation();
+    
+    let menuToToggle;
+    // ▼▼▼ この if-else ブロックを修正 ▼▼▼
+    if (menuButton.classList.contains('dm-message-menu-btn')) {
+        menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+    } else {
+        menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
+    }
 
-            if (menuToToggle) {
-                const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
-                
-                // 開いている他のメニューをすべて閉じる（位置調整もリセット）
-                document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-                    menu.classList.remove('is-visible');
-                    menu.style.transform = ''; // JSで設定したtransformをリセット
-                });
+    if (menuToToggle) {
+        const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
+        
+        // 開いている他のメニューをすべて閉じる
+        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+            menu.classList.remove('is-visible');
+        });
 
-                // ターゲットが閉じていた場合のみ開く
-                if (!isCurrentlyVisible) {
-                    menuToToggle.classList.add('is-visible');
-
-                    // DMメニューの場合のみ、位置調整を行う
-                    if (isDmMenu) {
-                        // ▼▼▼ このブロックを修正 ▼▼▼
-                        requestAnimationFrame(() => {
-                            const mainContentRect = DOM.mainContent.getBoundingClientRect();
-                            const menuRect = menuToToggle.getBoundingClientRect();
-                            const buttonRect = menuButton.getBoundingClientRect();
-                            
-                            // メニューがメインコンテンツの左端からはみ出しているかチェック
-                            if (menuRect.left < mainContentRect.left) {
-                                // はみ出す場合は、ボタンの右側にメニューを表示する
-                                menuToToggle.style.left = `${buttonRect.right - menuRect.left + 5}px`;
-                            } else {
-                                // はみ出さない場合は、デフォルトの位置（CSSで定義）に戻す
-                                menuToToggle.style.left = ''; // JSでの指定をクリア
-                            }
-                        });
-                        // ▲▲▲ 修正ここまで ▲▲▲
-                    }
-                }
-            }
-            return; // メニュー開閉処理はここで終了
+        // ターゲットが閉じていた場合のみ開く
+        if (!isCurrentlyVisible) {
+            menuToToggle.classList.add('is-visible');
         }
-
+        // ▲▲▲ isDmMenuや位置調整のロジックをすべて削除 ▲▲▲
+    }
+    return; // メニュー開閉処理はここで終了
+}
         // --- 2. メニューの外側がクリックされた場合の処理 ---
         if (!target.closest('.post-menu')) {
             document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
