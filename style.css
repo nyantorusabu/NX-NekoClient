@@ -203,10 +203,9 @@ input, textarea {
 
 /* 中央メインコンテンツ */
 #main-content {
-    flex-shrink: 0;
-    flex-grow: 1; /* 追加 */
-    max-width: 860px; /* 追加 */
-    min-width: 600px; /* 追加 */
+    flex-grow: 1;     /* 利用可能なスペースを埋めるように広がる */
+    flex-shrink: 1;   /* スペースが足りない場合に縮むことを許可 */
+    min-width: 0;     /* flexアイテムがコンテンツ幅以下に縮むための定石 */
     border-left: 1px solid var(--border-color);
     border-right: 1px solid var(--border-color);
 }
