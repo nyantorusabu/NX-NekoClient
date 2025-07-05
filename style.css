@@ -1523,24 +1523,69 @@ input, textarea {
 }
 
 /* レスポンシブ */
-/* 以前のレスポンシブセクション内のバッジに関する記述はすべて削除し、以下のようにします */
 @media (max-width: 1100px) {
     #right-sidebar {
         display: none;
     }
 }
+
 @media (max-width: 1000px) {
-    #left-nav { width: 88px; }
-    #left-nav .nav-item { justify-content: center; }
-    #left-nav .nav-item span { display: none; }
-    .nav-item-post span { display: block !important; }
+    #left-nav {
+        width: 88px;
+    }
+    #left-nav .nav-item {
+        justify-content: center;
+    }
+    #left-nav .nav-item span {
+        display: none;
+    }
+    .nav-item-post span {
+        display: block !important;
+    }
 }
+
 @media (max-width: 680px) {
-    .app-container { flex-direction: column; padding-bottom: 50px; }
-    #left-nav { position: fixed; bottom: 0; top: auto; left: 0; right: 0; width: 100%; height: auto; flex-direction: row; background-color: white; border-top: 1px solid var(--border-color); z-index: 100; padding: 0; }
-    #left-nav .nav-item { flex: 1; }
-    #nav-menu-top { flex-direction: row; width: 100%; }
-    .nav-item[href="#likes"], .nav-item[href="#stars"], .nav-item-post, #nav-menu-bottom { display: none; }
-    #main-content { border: none; width: 100%; }
-    #login-banner { flex-direction: column; text-align: center; gap: 1rem; }
+    .app-container {
+        flex-direction: column;
+        padding-bottom: 50px;
+    }
+    #left-nav {
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        background-color: white;
+        border-top: 1px solid var(--border-color);
+        z-index: 100;
+        padding: 0;
+    }
+    #left-nav .nav-item {
+        flex: 1;
+    }
+    #nav-menu-top {
+        flex-direction: row;
+        justify-content: space-around;
+        width: 100%;
+    }
+    .nav-item[href="#likes"],
+    .nav-item[href="#stars"] {
+        display: none;
+    }
+    .nav-item-post, #nav-menu-bottom {
+        display: none;
+    }
+    #main-content {
+        border: none;
+        width: 100%;
+    }
+    #login-banner {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
 }
