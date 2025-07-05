@@ -1315,8 +1315,8 @@ input, textarea {
     white-space: pre-wrap;
     font-weight: 400;
     line-height: 1.4;
-    /* ▼▼▼ この1行を追加 ▼▼▼ */
-    overflow-wrap: break-word; /* 長い英数字を強制的に改行 */
+    overflow-wrap: break-word;
+    word-break: break-all; /* 長い英単語を強制的に改行 */
 }
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
