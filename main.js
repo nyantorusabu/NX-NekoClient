@@ -318,7 +318,16 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 isActive = hash.startsWith(item.hash);
             }
-            return ` <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}"> ${item.icon} <span>${item.name}</span> ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''} </a>`
+            // ▼▼▼ このreturn文を、新しいHTML構造に差し替え ▼▼▼
+            return `
+                <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}">
+                    <div class="nav-item-icon-container">
+                        ${item.icon}
+                        ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
+                    </div>
+                    <span>${item.name}</span>
+                </a>`;
+            // ▲▲▲ 差し替えここまで ▲▲▲
         }).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
@@ -803,21 +812,37 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('notifications-screen');
         const contentDiv = DOM.notificationsContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
+        
         try {
-            await updateNavAndSidebars();
-            if (currentUser.notice_count > 0) {
-                const { error: resetError } = await supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id);
-                if (resetError) { console.error('通知数のリセットに失敗:', resetError); } 
-                else {
-                    currentUser.notice_count = 0;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                    await updateNavAndSidebars();
-                }
+            // 画面を開いた時点での未読通知数を記録
+            const unreadCount = currentUser.notice_count || 0;
+
+            // バックグラウンドでDBの未読数を0に更新し、成功したらUI（バッジ）も更新
+            if (unreadCount > 0) {
+                supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id)
+                    .then(({ error: resetError }) => {
+                        if (!resetError) {
+                            currentUser.notice_count = 0;
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                            updateNavAndSidebars(); // バッジ表示を更新
+                        } else {
+                            console.error('通知数のリセットに失敗:', resetError);
+                        }
+                    });
             }
+            
+            // DB更新を待たずに通知リストを描画
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
-                currentUser.notice.forEach(n => {
-                    const noticeEl = document.createElement('div'); noticeEl.className = 'widget-item';
+                currentUser.notice.forEach((n, index) => {
+                    const noticeEl = document.createElement('div');
+                    noticeEl.className = 'widget-item';
+                    
+                    // 記録しておいた未読数に基づいてハイライトクラスを付与
+                    if (index < unreadCount) {
+                        noticeEl.classList.add('notification-new');
+                    }
+                    
                     noticeEl.textContent = n;
                     contentDiv.appendChild(noticeEl);
                 });
