@@ -1251,20 +1251,17 @@ input, textarea {
     opacity: 1;
 }
 
+/* ▼▼▼ この2つのブロックを、以下の新しい定義に完全に置き換え ▼▼▼ */
 .dm-message-menu-btn {
     position: absolute;
-    /* ▼▼▼ 位置をメッセージの右下に変更 ▼▼▼ */
-    bottom: 0;
-    right: 100%; /* メッセージバブルのすぐ左隣に配置 */
-    margin-right: 0.5rem; /* 少し隙間を空ける */
-    /* ▲▲▲ 変更ここまで ▲▲▲ */
-    top: auto;
-    transform: none; /* transformは不要 */
+    top: 0.2rem;
+    right: 0.2rem;
+    z-index: 1; /* メッセージ内容より手前に表示 */
     background: none;
     border: none;
-    font-size: 1rem; /* 少し小さくして邪魔にならないように */
+    font-size: 1.2rem;
     color: var(--secondary-text-color);
-    padding: 0.5rem;
+    padding: 0.25rem;
     border-radius: 50%;
     cursor: pointer;
     opacity: 1;
@@ -1274,16 +1271,18 @@ input, textarea {
 .dm-message-menu-btn:hover {
     background-color: var(--bg-color);
 }
+
 .dm-message-container .post-menu {
-    /* ▼▼▼ メニューの表示位置をボタンの左上に変更 ▼▼▼ */
-    right: 100%;
-    bottom: 1.8rem;
-    /* ▲▲▲ 変更ここまで ▲▲▲ */
+    /* ボタンの右下あたりに表示 */
+    top: 1.8rem;
+    right: 0.5rem;
+    /* 古い位置指定をリセット */
     left: auto;
-    top: auto;
+    bottom: auto;
     transform: none;
-    transition: opacity 0.1s ease-out, visibility 0.1s;
+    /* 他のプロパティは共通の.post-menuから継承 */
 }
+/* ▲▲▲ 置き換えここまで ▲▲▲ */
 
 .dm-message-container.received {
     align-self: flex-start; /* 左寄せ */
@@ -1305,11 +1304,11 @@ input, textarea {
 .dm-message-container.received .dm-message-wrapper {
     align-items: flex-start; /* 左寄せ */
 }
-/* ▼▼▼ このブロックを追加 ▼▼▼ */
 .dm-message-wrapper {
-    min-width: 0; /* Flexアイテムがコンテンツ幅以下に縮むことを許可 */
+    /* ▼▼▼ この2行を追加 ▼▼▼ */
+    position: relative; /* メニューボタンとメニューの位置基準 */
+    min-width: 0;
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 .dm-message-meta {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
