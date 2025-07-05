@@ -1275,15 +1275,12 @@ input, textarea {
 }
 
 .dm-message-container .post-menu {
-    /* ボタンの右下あたりに表示 */
-    top: 24px;
+    top: 0px;
     right: 0;
-    /* 古い位置指定をリセット */
     left: auto;
     bottom: auto;
     transform: none;
 }
-
 .dm-message-container.received {
     align-self: flex-start; /* 左寄せ */
 }
