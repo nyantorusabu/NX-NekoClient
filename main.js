@@ -137,7 +137,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (sent) {
             const menuHTML = `
                 <button class="dm-message-menu-btn">…</button>
-                <div class="post-menu">
+                <div class="dm-menu"> <!-- ★★★ クラス名を .post-menu から .dm-menu に変更 ★★★ -->
                     <button class="edit-dm-msg-btn">編集</button>
                     <button class="delete-dm-msg-btn delete-btn">削除</button>
                 </div>
@@ -2303,10 +2303,9 @@ async function openEditPostModal(postId) {
     document.addEventListener('click', (e) => {
         const target = e.target;
 
-        // --- メニューの外側をクリックした際の処理を最初に定義 ---
-        // DMメニューでも通常のポストメニューでもない領域がクリックされた場合、開いているメニューをすべて閉じる
-        if (!target.closest('.post-menu') && !target.closest('.post-menu-btn')) {
-            document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+        // メニュー外のクリックで、開いている全てのメニュー（.post-menuと.dm-menu）を閉じる
+        if (!target.closest('.post-menu') && !target.closest('.dm-menu') && !target.closest('.post-menu-btn')) {
+            document.querySelectorAll('.post-menu.is-visible, .dm-menu.is-visible').forEach(menu => {
                 menu.classList.remove('is-visible');
             });
         }
@@ -2320,19 +2319,20 @@ async function openEditPostModal(postId) {
             
             if (dmMenuButton) {
                 e.stopPropagation();
-                const menu = dmMessageContainer.querySelector('.post-menu');
-                document.querySelectorAll('.post-menu.is-visible').forEach(m => {
+                const menu = dmMessageContainer.querySelector('.dm-menu'); // ★★★ 探すクラス名を変更 ★★★
+                // 他のメニューを閉じる
+                document.querySelectorAll('.post-menu.is-visible, .dm-menu.is-visible').forEach(m => {
                     if (m !== menu) m.classList.remove('is-visible');
                 });
                 menu.classList.toggle('is-visible');
-                return; // 処理を終了
+                return;
             }
             if (dmEditBtn) {
                 const messageId = dmMessageContainer.dataset.messageId;
                 const dmId = window.location.hash.substring(4);
                 openDmEditModal(dmId, messageId);
-                dmEditBtn.closest('.post-menu')?.classList.remove('is-visible');
-                return; // 処理を終了
+                dmEditBtn.closest('.dm-menu')?.classList.remove('is-visible'); // ★★★ 探すクラス名を変更 ★★★
+                return;
             }
             if (dmDeleteBtn) {
                 const messageId = dmMessageContainer.dataset.messageId;
