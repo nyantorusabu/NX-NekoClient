@@ -421,9 +421,17 @@ input, textarea {
     height: 20px;
     border: none;
     cursor: pointer;
-    font-size: 0.8rem;
-    line-height: 20px;
+    font-size: 0.8rem; /* 変更なし */
+    line-height: 20px; /* 変更なし */
     text-align: center;
+}
+
+/* ▼▼▼ DMプレビューのボタンサイズを上書き ▼▼▼ */
+.dm-file-preview .file-preview-remove {
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    font-size: 0.7rem;
 }
 
 /* ポスト表示 */
@@ -1157,7 +1165,41 @@ input, textarea {
 .dm-message-container.sent {
     flex-direction: row-reverse;
     align-self: flex-end; /* 右寄せ */
+    position: relative; /* メニューの位置基準 */
 }
+
+.dm-message-container.sent:hover .dm-message-menu-btn {
+    opacity: 1; /* ホバー時にメニューボタンを表示 */
+}
+
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.dm-message-menu-btn {
+    position: absolute;
+    left: -2.5rem; /* メッセージの左側に配置 */
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--secondary-text-color);
+    padding: 0.25rem;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background-color 0.2s;
+}
+.dm-message-menu-btn:hover {
+    background-color: var(--bg-color);
+}
+.dm-message-container .post-menu {
+    left: -150px; /* メニューボタンのさらに左に配置 */
+    right: auto;
+    top: 50%;
+    transform: translateY(-50%);
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
+
 .dm-message-container.received {
     align-self: flex-start; /* 左寄せ */
 }
