@@ -1254,17 +1254,15 @@ input, textarea {
 /* ▼▼▼ この2つのブロックを、以下の新しい定義に完全に置き換え ▼▼▼ */
 .dm-message-menu-btn {
     position: absolute;
-    /* バブルの上辺からさらに上に配置 */
-    top: -12px;
+    top: -28px;
     right: 8px;
-    z-index: 1; 
-    /* 背景色を付けて、下の要素と重なっても見えるようにする */
-    background: white; 
-    border: 1px solid var(--border-color);
+    z-index: 1;
+    background: none;
+    border: none;
     font-size: 1.2rem;
     color: var(--secondary-text-color);
     padding: 0.1rem;
-    width: 28px; /* 幅と高さを指定して円にする */
+    width: 28px;
     height: 28px;
     display: flex;
     align-items: center;
@@ -1273,11 +1271,7 @@ input, textarea {
     cursor: pointer;
     opacity: 1;
     transition: background-color 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.dm-message-menu-btn:hover {
-    background-color: var(--bg-color);
+    box-shadow: none;
 }
 
 .dm-message-container .post-menu {
