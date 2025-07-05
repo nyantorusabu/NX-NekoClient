@@ -1319,9 +1319,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 button.onclick = (e) => {
                     e.stopPropagation();
                     const tabKey = button.dataset.tab;
-                    // 「フォロー」タブがクリックされたら、デフォルトで「フォロー中」サブページに遷移
                     const defaultSubpage = (tabKey === 'follows') ? 'following' : tabKey;
-                    window.location.hash = `#profile/${userId}/${defaultSubpage}`;
+                    // hashを変更せずにコンテンツをロード
+                    loadProfileTabContent(user, defaultSubpage);
                 };
             });
 
@@ -1350,6 +1350,14 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '';
 
         // 「フォロー」系のサブページが選択されている場合のみ、サブメニューを描画
+        // ▼▼▼ このブロックを追加 ▼▼▼
+        // URLを履歴に追加し、ブラウザの表示を更新する（hashchangeは発火させない）
+        const newUrl = `#profile/${user.id}/${subpage}`;
+        if (window.location.hash !== newUrl) {
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+        // ▲▲▲ 追加ここまで ▲▲▲
+
         if (activeMainTabKey === 'follows') {
             subTabsContainer.innerHTML = `
                 <div class="profile-sub-tabs">
@@ -1357,12 +1365,15 @@ window.addEventListener('DOMContentLoaded', () => {
                     <button class="tab-button ${subpage === 'followers' ? 'active' : ''}" data-sub-tab="followers">フォロワー</button>
                 </div>`;
             
+            // ▼▼▼ このブロックを修正 ▼▼▼
             subTabsContainer.querySelectorAll('.tab-button').forEach(button => {
                 button.onclick = (e) => {
                     e.stopPropagation();
-                    window.location.hash = `#profile/${user.id}/${button.dataset.subTab}`;
+                    // hashを変更せずにコンテンツをロード
+                    loadProfileTabContent(user, button.dataset.subTab);
                 };
             });
+            // ▲▲▲ 修正ここまで ▲▲▲
         }
         
         try {
