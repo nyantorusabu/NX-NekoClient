@@ -327,7 +327,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <span>${item.name}</span>
                 </a>`;
-            // ▲▲▲ 差し替えここまで ▲▲▲
+            // ▲▲▲ HTML構造は前回と同じですが、CSSとの連携で重要なので再確認 ▲▲▲
         }).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
@@ -2372,8 +2372,10 @@ async function openEditPostModal(postId) {
             e.stopPropagation();
             
             let menuToToggle;
+            let isDmMenu = false; // DMメニューかどうかのフラグ
             if (menuButton.classList.contains('dm-message-menu-btn')) {
                 menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+                isDmMenu = true;
             } else {
                 menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
             }
@@ -2381,22 +2383,31 @@ async function openEditPostModal(postId) {
             if (menuToToggle) {
                 const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
                 
-                // 開いている他のメニューをすべて閉じる
+                // 開いている他のメニューをすべて閉じる（位置調整もリセット）
                 document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-                    menu.classList.remove('is-visible', 'is-flipped');
+                    menu.classList.remove('is-visible');
+                    menu.style.transform = ''; // JSで設定したtransformをリセット
                 });
 
                 // ターゲットが閉じていた場合のみ開く
                 if (!isCurrentlyVisible) {
                     menuToToggle.classList.add('is-visible');
 
-                    // DMメニューの場合のみ、位置をチェックして反転クラスを付与
-                    if (menuButton.classList.contains('dm-message-menu-btn')) {
+                    // DMメニューの場合のみ、位置調整を行う
+                    if (isDmMenu) {
+                        // メニューがDOMに描画された後に位置を計算
                         requestAnimationFrame(() => {
+                            const mainContentRect = DOM.mainContent.getBoundingClientRect();
                             const menuRect = menuToToggle.getBoundingClientRect();
-                            // メニューが画面の左端より外側にはみ出ていたら
-                            if (menuRect.left < 0) {
-                                menuToToggle.classList.add('is-flipped');
+
+                            // メニューがメインコンテンツの左端からはみ出しているかチェック
+                            if (menuRect.left < mainContentRect.left) {
+                                const overflowAmount = mainContentRect.left - menuRect.left;
+                                // はみ出した分だけ右にずらす（10pxの余白を追加）
+                                menuToToggle.style.transform = `translateX(${overflowAmount + 10}px) translateY(-50%)`;
+                            } else {
+                                // はみ出していない場合は、デフォルトの垂直位置だけを設定
+                                menuToToggle.style.transform = 'translateY(-50%)';
                             }
                         });
                     }
