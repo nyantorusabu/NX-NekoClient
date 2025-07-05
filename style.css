@@ -25,8 +25,8 @@ input, textarea {
 
 .app-container {
     display: flex;
-    justify-content: center;
-    max-width: 1400px; /* 修正 */
+    /* justify-content: center; を削除 */
+    /* max-width: 1400px; を削除 */
     margin: 0 auto;
     min-height: 100vh;
 }
