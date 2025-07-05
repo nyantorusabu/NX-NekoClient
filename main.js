@@ -2178,6 +2178,63 @@ async function openEditPostModal(postId) {
         }
     }
     
+    // ▼▼▼ この関数をまるごと追加 ▼▼▼
+    window.openCreateDmModal = function() {
+        DOM.createDmModalContent.innerHTML = `
+            <div style="padding: 1.5rem;">
+                <h3>新しいメッセージ</h3>
+                <p>ユーザーを検索してDMを開始します。</p>
+                <input type="text" id="dm-user-search" placeholder="ユーザー名またはIDで検索" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                <div id="dm-user-search-results" style="margin-top: 1rem; max-height: 200px; overflow-y: auto;"></div>
+            </div>
+        `;
+
+        const searchInput = DOM.createDmModalContent.querySelector('#dm-user-search');
+        const resultsContainer = DOM.createDmModalContent.querySelector('#dm-user-search-results');
+        
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                const query = searchInput.value.trim();
+                if (query.length < 2) {
+                    resultsContainer.innerHTML = '';
+                    return;
+                }
+                const { data: users, error } = await supabase.from('user')
+                    .select('id, name, scid')
+                    .or(`name.ilike.%${query}%,id.eq.${parseInt(query) || 0}`)
+                    .neq('id', currentUser.id)
+                    .limit(5);
+
+                if (users && users.length > 0) {
+                    resultsContainer.innerHTML = users.map(u => `
+                        <div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}" data-user-name="${escapeHTML(u.name)}">
+                            <strong>${escapeHTML(u.name)}</strong> (#${u.id})
+                        </div>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = `<div class="widget-item">ユーザーが見つかりません。</div>`;
+                }
+            }, 300);
+        });
+
+        resultsContainer.addEventListener('click', (e) => {
+            const userDiv = e.target.closest('[data-user-id]');
+            if (userDiv) {
+                const targetUserId = parseInt(userDiv.dataset.userId);
+                DOM.createDmModal.classList.add('hidden');
+                handleDmButtonClick(targetUserId);
+            }
+        });
+        
+        DOM.createDmModal.classList.remove('hidden');
+        DOM.createDmModal.querySelector('.modal-close-btn').onclick = () => {
+            DOM.createDmModal.classList.add('hidden');
+        };
+    }
+    // ▲▲▲ 追加ここまで ▲▲▲
+    
     async function sendDmMessage(dmId, files = []) {
         const input = document.getElementById('dm-message-input');
         const content = input.value.trim();
