@@ -75,20 +75,14 @@ input, textarea {
 }
 
 /* アイコンとバッジを囲むコンテナ */
-/* アイコンとバッジを囲むコンテナ */
 .nav-item-icon-container {
-    position: relative; /* 古いJSとの互換性のため残すが、Gridが優先される */
-    display: grid; /* Gridレイアウトを有効化 */
-    place-items: center; /* アイコンを中央に配置 */
-    width: 1.75rem;  /* アイコンの基本サイズ */
+    position: relative; /* バッジの位置の基準 */
+    display: flex; /* 中の要素をflexで制御 */
+    align-items: center;
+    justify-content: center;
+    /* アイコンのサイズに合わせる */
+    width: 1.75rem;
     height: 1.75rem;
-}
-
-/* アイコンとバッジを同じグリッドセルに配置して重ねる */
-.nav-item-icon-container > svg,
-.nav-item-icon-container > .notification-badge {
-    grid-column: 1 / 1;
-    grid-row: 1 / 1;
 }
 
 .nav-item svg {
@@ -187,19 +181,17 @@ input, textarea {
     font-size: 0.7rem;
     font-weight: bold;
     border-radius: 50%;
-    min-width: 1.5em; /* コンテンツが少なくても円形を保つ */
+    width: 1.5em;
     height: 1.5em;
-    padding: 0 0.4em; /* 数字が2桁になったときのため */
     line-height: 1.5em;
     text-align: center;
+    position: absolute;
     box-shadow: 0 0 0 2px white;
     z-index: 1;
-
-    /* Gridレイアウト内で右上に配置 */
-    justify-self: end;
-    align-self: start;
-    /* 位置を微調整 */
-    transform: translate(45%, -45%);
+    /* アイコンコンテナの右上隅に配置 */
+    top: -5px;  /* 上に少しはみ出す */
+    right: -5px; /* 右に少しはみ出す */
+    /* transformは不要なため削除 */
 }
 
 .nav-item[href="#notifications"] {
@@ -1276,19 +1268,12 @@ input, textarea {
     background-color: var(--bg-color);
 }
 .dm-message-container .post-menu {
-    left: -160px; /* デフォルトはボタンの左側 */
+    left: -150px; /* 修正: ボタンの左側に表示（見切れはJSで調整） */
     right: auto;
     top: 50%;
-    transform: translateY(-50%);
-    transition: opacity 0.1s ease-out, visibility 0.1s, left 0s, right 0s; /* transitionを調整 */
+    transform: translateY(-50%); /* 修正: translateXはJSで制御するため削除 */
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
-/* メニューを反転表示させるためのクラス */
-.dm-message-container .post-menu.is-flipped {
-    left: auto;
-    right: -160px; /* ボタンの右側に配置 */
-}
 
 .dm-message-container.received {
     align-self: flex-start; /* 左寄せ */
