@@ -104,7 +104,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
     }
 
-    function renderDmMessage(msg) {
+    unction renderDmMessage(msg) {
         if (msg.type === 'system') {
             return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
         }
@@ -131,25 +131,24 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             attachmentsHTML += '</div>';
         }
+
+        // ▼▼▼ この1行を追加 ▼▼▼
+        const formattedContent = msg.content ? formatPostContent(msg.content, allUsersCache) : '';
+        // ▲▲▲ 追加ここまで ▲▲▲
         
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
-            // ▼▼▼ このブロックを修正 ▼▼▼
-            const menuHTML = `
-                <button class="dm-message-menu-btn">…</button>
-                <div class="post-menu">
-                    <button class="edit-dm-msg-btn">編集</button>
-                    <button class="delete-dm-msg-btn delete-btn">削除</button>
-                </div>
-            `;
             return `<div class="dm-message-container sent" data-message-id="${msg.id}">
                 <div class="dm-message-wrapper">
-                    ${menuHTML}
-                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
+                    <button class="dm-message-menu-btn">…</button>
+                    <div class="post-menu">
+                        <button class="edit-dm-msg-btn">編集</button>
+                        <button class="delete-dm-msg-btn delete-btn">削除</button>
+                    </div>
+                    <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
                 </div>
             </div>`;
-            // ▲▲▲ 修正ここまで ▲▲▲
         } else {
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -157,7 +156,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <img src="${getUserIconUrl(user)}" class="dm-message-icon">
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
-                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
+                    <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
                 </div>
             </div>`;
         }
@@ -1326,18 +1325,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'followers':
                     contentDiv.innerHTML = '<div class="spinner"></div>';
-                    // ▼▼▼ このif文の条件を修正 ▼▼▼
                     if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { 
                         contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; 
                         break; 
                     }
-                    // ▲▲▲ 修正ここまで ▲▲▲
                     
+                    // ▼▼▼ このブロックを修正 ▼▼▼
                     // 新しいDB関数を呼び出す
-                    const { data: followers, error: followersError } = await supabase.rpc('get_followers', { target_user_id: user.id });
-                    if(fErr) throw fErr;
+                    const { data: followersData, error: followersError } = await supabase.rpc('get_followers', { target_user_id: user.id });
+                    if(followersError) throw followersError;
+
+                    if (!followersData || followersData.length === 0) {
+                        contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>';
+                        break;
+                    }
+                    
                     contentDiv.innerHTML = '';
-                    fUsers?.forEach(u => { // ★★★ ループ変数を 'f' から 'u' に修正
+                    followersData.forEach(u => {
                         const userCard = document.createElement('div');
                         userCard.className = 'profile-card';
                         const userLink = document.createElement('a');
@@ -1348,6 +1352,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         userCard.appendChild(userLink);
                         contentDiv.appendChild(userCard);
                     });
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
                 // ▼▼▼ このブロックを新規追加 ▼▼▼
                 case 'followers':
@@ -2311,6 +2316,22 @@ async function openEditPostModal(postId) {
         sendButton.disabled = true;
 
         try {
+            // ▼▼▼ このブロックを新規追加 ▼▼▼
+            // メンションされたユーザー情報を取得してキャッシュする
+            const mentionRegex = /@(\d+)/g;
+            const mentionedIds = new Set();
+            let match;
+            while ((match = mentionRegex.exec(content)) !== null) {
+                mentionedIds.add(parseInt(match[1]));
+            }
+            
+            const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
+            if (newIdsToFetch.length > 0) {
+                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+            }
+            // ▲▲▲ 追加ここまで ▲▲▲
+
             let attachmentsData = [];
             if (files.length > 0) {
                 showLoading(true);
