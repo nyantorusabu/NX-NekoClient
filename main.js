@@ -2179,7 +2179,7 @@ async function openEditPostModal(postId) {
         const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
         // ▲▲▲ 追加ここまで ▲▲▲
         
-        const postEl = await renderPost(post, post.user);
+        const postEl = await renderPost(post, post.user, { replyCountsMap, profileOwnerUser: user });
         container.innerHTML = `
             <div class="pinned-post-indicator">
                 ${ICONS.pin} ピン留めされたポスト
