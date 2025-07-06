@@ -178,14 +178,32 @@ window.addEventListener('DOMContentLoaded', () => {
         buttonElement.disabled = false;
     }
 
-    async function sendNotification(recipientId, message) {
+    async function sendNotification(recipientId, message, openHash = '') {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
+        
+        // メンションされたユーザーIDを収集して、後で名前を取得するために使う
+        const mentionRegex = /@(\d+)/g;
+        const mentionedIds = new Set();
+        let match;
+        while ((match = mentionRegex.exec(message)) !== null) {
+            mentionedIds.add(parseInt(match[1]));
+        }
+
         try {
             const { data: userData, error: fetchError } = await supabase.from('user').select('notice, notice_count').eq('id', recipientId).single();
             if (fetchError || !userData) { console.error('通知受信者の情報取得に失敗:', fetchError); return; }
+            
+            const newNotification = {
+                id: crypto.randomUUID(), // 各通知に一意のIDを付与
+                message: message,
+                open: openHash,
+                click: false
+            };
+            
             const currentNotices = userData.notice || [];
-            const updatedNotices = [`${new Date().toLocaleDateString('ja-JP')} ${new Date().toLocaleTimeString('ja-JP')} - ${message}`, ...currentNotices].slice(0, 50);
+            const updatedNotices = [newNotification, ...currentNotices].slice(0, 50);
             const updatedNoticeCount = (userData.notice_count || 0) + 1;
+            
             const { error: updateError } = await supabase.from('user').update({ notice: updatedNotices, notice_count: updatedNoticeCount }).eq('id', recipientId);
             if (updateError) { console.error('通知の更新に失敗:', updateError); }
         } catch (e) { console.error('通知送信中にエラー発生:', e); }
@@ -536,7 +554,8 @@ window.addEventListener('DOMContentLoaded', () => {
             if (replyingTo) {
                 const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
                 if (parentPost && parentPost.userid !== currentUser.id) {
-                    sendNotification(parentPost.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストに返信しました。`);
+                    // ▼▼▼ この行を修正 ▼▼▼
+                    sendNotification(parentPost.userid, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
                 }
             }
             
@@ -832,36 +851,59 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
         
         try {
-            // 画面を開いた時点での未読通知数を記録
-            const unreadCount = currentUser.notice_count || 0;
+            // メンションされたユーザー情報を取得
+            const allMentionedIds = new Set();
+            (currentUser.notice || []).forEach(n => {
+                const message = typeof n === 'object' ? n.message : n;
+                const mentionRegex = /@(\d+)/g;
+                let match;
+                while ((match = mentionRegex.exec(message)) !== null) {
+                    allMentionedIds.add(parseInt(match[1]));
+                }
+            });
+            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
+            if (newIdsToFetch.length > 0) {
+                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+            }
 
-            // バックグラウンドでDBの未読数を0に更新し、成功したらUI（バッジ）も更新
-            if (unreadCount > 0) {
+            // バックグラウンドでDBの未読数を0に更新
+            if (currentUser.notice_count > 0) {
                 supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id)
                     .then(({ error: resetError }) => {
                         if (!resetError) {
                             currentUser.notice_count = 0;
                             localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                            updateNavAndSidebars(); // バッジ表示を更新
-                        } else {
-                            console.error('通知数のリセットに失敗:', resetError);
+                            updateNavAndSidebars();
                         }
                     });
             }
             
-            // DB更新を待たずに通知リストを描画
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
-                currentUser.notice.forEach((n, index) => {
-                    const noticeEl = document.createElement('div');
-                    noticeEl.className = 'widget-item';
+                currentUser.notice.forEach(n_obj => {
+                    const isObject = typeof n_obj === 'object' && n_obj !== null;
                     
-                    // 記録しておいた未読数に基づいてハイライトクラスを付与
-                    if (index < unreadCount) {
+                    const notification = isObject ? n_obj : { id: crypto.randomUUID(), message: n_obj, open: '', click: true };
+                    
+                    const noticeEl = document.createElement('div');
+                    noticeEl.className = 'widget-item notification-item';
+                    if (!notification.click) {
                         noticeEl.classList.add('notification-new');
                     }
+                    noticeEl.dataset.notificationId = notification.id;
+
+                    const content = document.createElement('div');
+                    content.className = 'notification-item-content';
+                    content.innerHTML = formatPostContent(notification.message, allUsersCache);
                     
-                    noticeEl.textContent = n;
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'notification-delete-btn';
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.title = '通知を削除';
+
+                    noticeEl.appendChild(content);
+                    noticeEl.appendChild(deleteBtn);
                     contentDiv.appendChild(noticeEl);
                 });
             } else {
@@ -1682,7 +1724,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
         
-        const countSpan = button.querySelector('span');
+        // ▼▼▼ この行を修正 ▼▼▼
+        const countSpan = button.querySelector('span:not(.icon)');
+        // ▲▲▲ 修正ここまで ▲▲▲
         const isLiked = currentUser.like?.includes(postId);
         const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
         const incrementValue = isLiked ? -1 : 1;
@@ -1704,20 +1748,23 @@ window.addEventListener('DOMContentLoaded', () => {
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('liked', !isLiked);
             
-            if (!isLiked) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
-                }
+        if (!isLiked) {
+            const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                // ▼▼▼ この行を修正 ▼▼▼
+                sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストにいいねしました。`, `#post/${postData.id}`);
             }
         }
+    }
         button.disabled = false;
     };
-    window.handleStar = async (button, postId) => {
+        window.handleStar = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
         
-        const countSpan = button.querySelector('span');
+        // ▼▼▼ この行を修正 ▼▼▼
+        const countSpan = button.querySelector('span:not(.icon)');
+        // ▲▲▲ 修正ここまで ▲▲▲
         const isStarred = currentUser.star?.includes(postId);
         const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
         const incrementValue = isStarred ? -1 : 1;
@@ -1740,12 +1787,13 @@ window.addEventListener('DOMContentLoaded', () => {
             button.classList.toggle('starred', !isStarred);
 
             if (!isStarred) {
-                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-                if (postData?.userid && postData.userid !== currentUser.id) {
-                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
-                }
+            const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
+            if (postData?.userid && postData.userid !== currentUser.id) {
+                // ▼▼▼ この行を修正 ▼▼▼
+                sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストをお気に入りに登録しました。`, `#post/${postData.id}`);
             }
         }
+    }
         button.disabled = false;
     };
     
@@ -1762,7 +1810,10 @@ window.addEventListener('DOMContentLoaded', () => {
         } else {
             currentUser.follow = updatedFollows; // メモリ上のユーザー情報を更新
             updateFollowButtonState(button, !isFollowing);
-            if (!isFollowing) { sendNotification(targetUserId, `${escapeHTML(currentUser.name)}さんがあなたをフォローしました。`); }
+            if (!isFollowing) { 
+            // ▼▼▼ この行を修正 ▼▼▼
+            sendNotification(targetUserId, `@${currentUser.id}さんがあなたをフォローしました。`, `#profile/${currentUser.id}`);
+            }
             const followerCountSpan = document.querySelector('#follower-count strong');
             if (followerCountSpan) {
                 const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
@@ -1974,8 +2025,9 @@ async function openEditPostModal(postId) {
         if (error) {
             alert('メンバーの削除に失敗しました。');
         } else {
-            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToRemove}さんを強制退出させました`);
-            await sendNotification(userIdToRemove, `${currentUser.name}さんによってDMから削除されました。`);
+            await sendSystemDmMessage(dmId, `@${currentUser.id}さんが@${userIdToRemove}さんを強制退出させました`);
+            // ▼▼▼ この行を修正 ▼▼▼
+            sendNotification(userIdToRemove, `@${currentUser.id}さんによってDMから削除されました。`);
             alert('メンバーを削除しました。');
             openDmManageModal(dmId); // モーダルを再描画
         }
@@ -1995,8 +2047,9 @@ async function openEditPostModal(postId) {
         if (error) {
             alert('メンバーの追加に失敗しました。');
         } else {
-            await sendSystemDmMessage(dmId, `${currentUser.name}さんが${userNameToAdd}さんを招待しました`);
-            await sendNotification(userIdToAdd, `${currentUser.name}さんがあなたをDMに招待しました。`);
+            await sendSystemDmMessage(dmId, `@${currentUser.id}さんが@${userIdToAdd}さんを招待しました`);
+            // ▼▼▼ この行を修正 ▼▼▼
+            sendNotification(userIdToAdd, `@${currentUser.id}さんがあなたをDMに招待しました。`, `#dm/${dmId}`);
             alert('メンバーを追加しました。');
             openDmManageModal(dmId); // モーダルを再描画
         }
@@ -2135,7 +2188,7 @@ async function openEditPostModal(postId) {
                     if (createError) throw createError;
 
                     // 招待通知を送信
-                    await sendNotification(targetUserId, `${currentUser.name}さんがあなたをDMに招待しました。`);
+                    await sendNotification(targetUserId, `@${currentUser.id}さんがあなたをDMに招待しました。`, `#dm/${newDm.id}`);
                     window.location.hash = `#dm/${newDm.id}`;
                 } catch(e) {
                     alert('DMの作成に失敗しました。');
@@ -2580,6 +2633,36 @@ if (menuButton) {
         }
         
         // --- 5. その他のグローバルなクリック処理 ---
+
+        // ▼▼▼ このブロックを新規追加 ▼▼▼
+        const notificationItem = target.closest('.notification-item');
+        if (notificationItem) {
+            const notificationId = notificationItem.dataset.notificationId;
+            const notification = currentUser.notice.find(n => n.id === notificationId);
+
+            // 削除ボタンがクリックされた場合
+            if (target.closest('.notification-delete-btn')) {
+                e.stopPropagation();
+                currentUser.notice = currentUser.notice.filter(n => n.id !== notificationId);
+                supabase.from('user').update({ notice: currentUser.notice }).eq('id', currentUser.id).then(() => {
+                    notificationItem.remove();
+                });
+                return;
+            }
+            
+            // 通知自体がクリックされた場合
+            if (notification && !notification.click) {
+                notification.click = true;
+                notificationItem.classList.remove('notification-new');
+                supabase.from('user').update({ notice: currentUser.notice }).eq('id', currentUser.id);
+            }
+            if (notification && notification.open) {
+                window.location.hash = notification.open;
+            }
+            return;
+        }
+        // ▲▲▲ 追加ここまで ▲▲▲
+        
         const timelineTab = target.closest('.timeline-tab-button');
         if (timelineTab) { switchTimelineTab(timelineTab.dataset.tab); return; }
         
