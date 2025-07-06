@@ -1448,9 +1448,9 @@ input, textarea {
     resize: none;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 0.8rem; /* 修正: 上下のpaddingを統一 */
+    padding: 0.5rem;
     font-size: 1rem;
-    line-height: 1.4; /* 追加: 行の高さを調整 */
+    line-height: 1.2;
     background-color: var(--bg-color);
 }
 
