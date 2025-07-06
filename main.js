@@ -584,7 +584,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         if (!post || !author) return null;
-        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), profileOwnerUser = null } = options;
+        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), profileOwnerUser = null, referenceUserForPin = null } = options;
 
         const postEl = document.createElement('div');
         postEl.className = 'post';
@@ -604,7 +604,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
         
-        // ▼▼▼ 返信先表示のロジックをこのブロックに差し替え ▼▼▼
         if (post.reply_to && post.reply_to.user) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
@@ -615,7 +614,6 @@ window.addEventListener('DOMContentLoaded', () => {
             replyDiv.append(' さんに返信');
             postMain.appendChild(replyDiv);
         }
-        // ▲▲▲ 差し替えここまで ▲▲▲
 
         const postHeader = document.createElement('div');
         postHeader.className = 'post-header';
@@ -638,20 +636,16 @@ window.addEventListener('DOMContentLoaded', () => {
             postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
-            // ▼▼▼ この行を削除 ▼▼▼
-            // menu.id = `menu-${post.id}`; 
-            // ▲▲▲ 削除ここまで ▲▲▲
             menu.className = 'post-menu';
 
-            // ▼▼▼ このブロックを追加 ▼▼▼
             const referenceUser = referenceUserForPin || profileOwnerUser || currentUser;
             const isPinned = referenceUser && referenceUser.pin === post.id;
+            
             const pinBtn = document.createElement('button');
             pinBtn.className = 'pin-btn';
-            pinBtn.textContent = isPinned ? 'ピン留めを外す' : 'ピン留め';
+            pinBtn.textContent = isPinned ? 'プロフィールからピン留めを外す' : 'プロフィールにピン留めする';
             pinBtn.dataset.postId = post.id;
             menu.appendChild(pinBtn);
-            // ▲▲▲ 追加ここまで ▲▲▲
 
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
@@ -667,11 +661,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         
         postMain.appendChild(postHeader);
-        
+
         const postContent = document.createElement('div');
         postContent.className = 'post-content';
         const contentP = document.createElement('p');
-        // ★★★ 不要な await を削除 ★★★
         contentP.innerHTML = formatPostContent(post.content, userCache);
         postContent.appendChild(contentP);
         postMain.appendChild(postContent);
@@ -727,10 +720,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
             replyBtn.title = '返信';
-            // ▼▼▼ この行を修正 ▼▼▼
-            // SVGをラップしていた <span class="icon"> を削除
-            replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
-            // ▲▲▲ 修正ここまで ▲▲▲
+            replyBtn.innerHTML = `<span class="icon">${ICONS.reply}</span> <span>${replyCount}</span>`;
             replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
 
@@ -749,15 +739,9 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(actionsDiv);
         }
         
-        // ツリー表示用のコンテナを追加
-        // const subRepliesContainer = document.createElement('div');
-        // subRepliesContainer.className = 'sub-replies-container';
-        // postMain.appendChild(subRepliesContainer);
-
         postEl.appendChild(postMain);
         return postEl;
     }
-
         // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
@@ -1525,7 +1509,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(false);
     }
     
-    async function loadPostsWithPagination(container, type, options = {}) {
+        async function loadPostsWithPagination(container, type, options = {}) {
         currentPagination = { page: 0, hasMore: true, type, options };
         const profileOwner = options.profileOwner || null;
         
@@ -1554,12 +1538,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars') { // profile_postsを除外
+            } else if (type === 'likes' || type === 'stars') {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
-            } else if (type === 'profile_posts') { // profile_posts の処理を追加
+            } else if (type === 'profile_posts') {
                 let postIds = options.ids || [];
-                // ピン留めされたポストを除外する
                 if (profileOwner && profileOwner.pin) {
                     postIds = postIds.filter(id => id !== profileOwner.pin);
                 }
@@ -1603,19 +1586,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
                     if (newIdsToFetch.length > 0) {
                         const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
-                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
+                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                     }
                     const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
-                        // ▼▼▼ この行を修正 ▼▼▼
                         const postEl = await renderPost(post, post.user || {}, { 
                             replyCountsMap, 
                             userCache: userCacheForRender, 
                             profileOwnerUser: profileOwner,
-                            referenceUserForPin: profileOwner // ここで渡す
+                            referenceUserForPin: profileOwner 
                         });
-                        // ▲▲▲ 修正ここまで ▲▲▲
                         if (postEl) trigger.before(postEl);
                     }
     
@@ -1644,7 +1625,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         postLoadObserver.observe(trigger);
     }
-
+    
     async function switchTimelineTab(tab) {
         if (tab === 'following' && !currentUser) return;
         isLoadingMore = false; // 読み込み状態をリセット
