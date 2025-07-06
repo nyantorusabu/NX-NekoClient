@@ -1390,8 +1390,8 @@ input, textarea {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    /* ▼▼▼ この1行が最重要 ▼▼▼ */
-    max-width: 75%; /* メッセージが画面幅の75%以上は広がらないように、箱の最大幅を固定 */
+    /* ▼▼▼ このコンテナから最大幅の指定を削除 ▼▼▼ */
+    /* max-width: 75%; */ 
 }
 .dm-message-meta {
     font-size: 0.8rem;
@@ -1409,13 +1409,10 @@ input, textarea {
     font-weight: 400;
     line-height: 1.4;
 
-    /* ▼▼▼ 改行処理と幅の指定を、以下の形に書き換え ▼▼▼ */
-    /* 親要素の幅が固定されたので、これらのプロパティが正しく機能する */
-    overflow-wrap: break-word;
-    word-break: break-word; /* break-allより少し自然な改行を試みる */
-    hyphens: auto;
-    -webkit-hyphens: auto;
-    /* ▲▲▲ 書き換えここまで ▲▲▲ */
+    /* ▼▼▼ 表示幅と改行処理をこの要素に集約 ▼▼▼ */
+    max-width: 75%;           /* メッセージバブル自体の最大幅を画面の75%に制限 */
+    overflow-wrap: break-word;  /* コンテナの境界で単語を改行 */
+    word-break: break-word;     /* 長い単語やURLの途中でも改行を許可 */
 }
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
