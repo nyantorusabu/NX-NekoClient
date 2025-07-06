@@ -1323,7 +1323,6 @@ input, textarea {
     gap: 0.8rem;
     margin-bottom: 1rem;
     max-width: 80%;
-    align-self: flex-start;
 }
 .dm-message-container.sent {
     flex-direction: row-reverse;
@@ -1423,6 +1422,9 @@ input, textarea {
     background-color: var(--bg-color);
     color: var(--text-color);
     border-bottom-left-radius: 4px;
+    /* ▼▼▼ この2行を追加 ▼▼▼ */
+    width: -moz-fit-content; /* Firefox用の互換性指定 */
+    width: fit-content;      /* コンテンツの幅に合わせる指定 */
 }
 .dm-message-form {
     border-top: 1px solid var(--border-color);
