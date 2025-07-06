@@ -1679,58 +1679,73 @@ window.addEventListener('DOMContentLoaded', () => {
     window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
     window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
     window.handleLike = async (button, postId) => {
-    if (!currentUser) return alert("ログインが必要です。");
-    button.disabled = true;
-    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-    const isLiked = currentUser.like?.includes(postId);
-    const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
-    const incrementValue = isLiked ? -1 : 1;
-    const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
-    if (userError) { alert('いいねの更新に失敗しました。'); button.disabled = false; return; }
-    const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
-    if (postError) {
-        await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id);
-        alert('いいね数の更新に失敗しました。');
-    } else {
-        currentUser.like = updatedLikes; localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-        button.classList.toggle('liked', !isLiked);
-        iconSpan.textContent = isLiked ? '♡' : '♥';
-        if (!isLiked) {
-            const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-            if (postData?.userid && postData.userid !== currentUser.id) {
-                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
+        if (!currentUser) return alert("ログインが必要です。");
+        button.disabled = true;
+        
+        const countSpan = button.querySelector('span');
+        const isLiked = currentUser.like?.includes(postId);
+        const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
+        const incrementValue = isLiked ? -1 : 1;
+        
+        const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
+        if (userError) {
+            alert('いいねの更新に失敗しました。');
+            button.disabled = false;
+            return;
+        }
+
+        const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
+        if (postError) {
+            await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id); // ロールバック
+            alert('いいね数の更新に失敗しました。');
+        } else {
+            currentUser.like = updatedLikes;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
+            button.classList.toggle('liked', !isLiked);
+            
+            if (!isLiked) {
+                const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
+                if (postData?.userid && postData.userid !== currentUser.id) {
+                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストにいいねしました。`);
+                }
             }
         }
-     }
         button.disabled = false;
     };
     window.handleStar = async (button, postId) => {
-    if (!currentUser) return alert("ログインが必要です。");
-    button.disabled = true;
-    const iconSpan = button.querySelector('.icon'), countSpan = button.querySelector('span:last-child');
-    const isStarred = currentUser.star?.includes(postId);
-    const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-    const incrementValue = isStarred ? -1 : 1;
-    const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
-    if (userError) { alert('お気に入りの更新に失敗しました。'); button.disabled = false; return; }
-    const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
+        if (!currentUser) return alert("ログインが必要です。");
+        button.disabled = true;
+        
+        const countSpan = button.querySelector('span');
+        const isStarred = currentUser.star?.includes(postId);
+        const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
+        const incrementValue = isStarred ? -1 : 1;
+        
+        const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
+        if (userError) {
+            alert('お気に入りの更新に失敗しました。');
+            button.disabled = false;
+            return;
+        }
+
+        const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
         if (postError) {
-            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id);
+            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id); // ロールバック
             alert('お気に入り数の更新に失敗しました。');
         } else {
             currentUser.star = updatedStars;
-            // localStorageはIDしか保持しないので更新不要
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
             button.classList.toggle('starred', !isStarred);
-            iconSpan.textContent = isStarred ? '☆' : '★'; // アイコンのトグルを修正
+
             if (!isStarred) {
                 const { data: postData } = await supabase.from('post').select('userid').eq('id', postId).single();
-            if (postData?.userid && postData.userid !== currentUser.id) {
-                sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
+                if (postData?.userid && postData.userid !== currentUser.id) {
+                    sendNotification(postData.userid, `${escapeHTML(currentUser.name)}さんがあなたのポストをお気に入りに登録しました。`);
+                }
             }
         }
-     }
         button.disabled = false;
     };
     
