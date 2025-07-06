@@ -1323,6 +1323,7 @@ input, textarea {
     gap: 0.8rem;
     margin-bottom: 1rem;
     max-width: 80%;
+    align-self: flex-start;
 }
 .dm-message-container.sent {
     flex-direction: row-reverse;
