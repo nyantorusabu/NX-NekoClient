@@ -1608,8 +1608,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
-                        // ▼▼▼ profileOwnerを渡す ▼▼▼
-                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender, profileOwnerUser: profileOwner });
+                        // ▼▼▼ この行を修正 ▼▼▼
+                        const postEl = await renderPost(post, post.user || {}, { 
+                            replyCountsMap, 
+                            userCache: userCacheForRender, 
+                            profileOwnerUser: profileOwner,
+                            referenceUserForPin: profileOwner // ここで渡す
+                        });
+                        // ▲▲▲ 修正ここまで ▲▲▲
                         if (postEl) trigger.before(postEl);
                     }
     
