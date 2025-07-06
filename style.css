@@ -1504,8 +1504,8 @@ input, textarea {
     stroke: currentColor;
 }
 .dm-message-form #send-dm-btn svg {
-    fill: white; /* 送信ボタンのアイコンのみ塗りつぶす */
-    stroke: none;
+    fill: none;
+    stroke: white;
 }
 .dm-system-message {
     font-size: 0.8rem;
@@ -1635,8 +1635,8 @@ input, textarea {
         display: block; /* 縮小ビューではアイコンを表示 */
     }
     .nav-item-post .nav-item-icon svg {
-        fill: white;
-        stroke: none;
+        fill: none;
+        stroke: white;
         width: 1.5rem;
         height: 1.5rem;
     }
