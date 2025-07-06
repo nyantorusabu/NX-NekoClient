@@ -141,6 +141,12 @@ input, textarea {
     background-color: var(--primary-hover-color);
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.nav-item-post .nav-item-icon {
+    display: none; /* デフォルトではアイコンを非表示 */
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 #nav-menu-bottom {
     padding-bottom: 1rem;
 }
@@ -548,14 +554,34 @@ input, textarea {
 .like-button:hover, .like-button.liked {
     color: var(--like-color);
 }
+/* ▼▼▼ このブロックに .liked svg の指定を追加 ▼▼▼ */
+.like-button:hover svg, .like-button.liked svg {
+    fill: currentColor;
+    stroke: currentColor;
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
 
 .star-button:hover, .star-button.starred {
     color: var(--star-color);
 }
-
-.post-actions .icon {
-    font-size: 1.2rem;
+/* ▼▼▼ このブロックに .starred svg の指定を追加 ▼▼▼ */
+.star-button:hover svg, .star-button.starred svg {
+    fill: currentColor;
+    stroke: currentColor;
 }
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
+/* ▼▼▼ .post-actions .icon を削除し、svgの指定に統合 ▼▼▼ */
+.post-actions button svg {
+    width: 1.25rem; /* サイズを微調整 */
+    height: 1.25rem;
+    vertical-align: middle;
+    fill: none; /* デフォルトは塗りつぶしなし */
+    stroke: currentColor; /* 枠線の色は親のcolorに連動 */
+    stroke-width: 2;
+    transition: fill 0.2s, stroke 0.2s; /* 色の遷移を滑らかに */
+}
+
 
 .post-menu-btn {
     position: absolute;
@@ -1565,14 +1591,35 @@ input, textarea {
     #left-nav .nav-item {
         justify-content: center;
     }
-    /* ▼▼▼ このセレクタを修正 ▼▼▼ */
     #left-nav .nav-item .nav-item-text {
         display: none;
     }
-    /* ▲▲▲ 修正ここまで ▲▲▲ */
-    .nav-item-post span {
-        display: block !important;
+    
+    /* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+    /* ポストボタンのアイコン表示切り替え */
+    .nav-item-post {
+        width: 52px; /* アイコンに合わせたサイズ */
+        height: 52px;
+        padding: 0;
     }
+    .nav-item-post .nav-item-icon {
+        display: block; /* 縮小ビューではアイコンを表示 */
+    }
+    .nav-item-post .nav-item-icon svg {
+        fill: white;
+        stroke: none;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+    .nav-item-post .nav-item-text {
+        display: none; /* 縮小ビューではテキストを非表示 */
+    }
+
+    /* アカウントボタンのテキスト非表示 */
+    #left-nav #account-button .account-info {
+        display: none;
+    }
+    /* ▲▲▲ 追加ここまで ▲▲▲ */
 }
 
 @media (max-width: 680px) {
