@@ -1046,19 +1046,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repliesToRender = flatReplyList.slice(from, to);
 
                 for (const reply of repliesToRender) {
-                    // DB関数から返された情報を使って、postとauthorオブジェクトを再構築
                     const postForRender = { ...reply, like: reply.like, star: reply.star };
                     const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
                     
-                    // 「@{user}さんに返信」情報を付加
-                    if (reply.reply_id !== postId && reply.reply_to_user_id) {
-                        postForRender.reply_to = {
-                            user: {
-                                id: reply.reply_to_user_id,
-                                name: reply.reply_to_user_name
-                            }
-                        };
+                    // ▼▼▼ このブロックの条件を修正 ▼▼▼
+                    // reply_idがメインポストのIDではない、つまり「孫」以降の返信である場合にのみ、返信先情報を付加する
+                    if (reply.reply_id !== postId) {
+                        // DB関数から返された返信先情報が存在する場合のみオブジェクトを構築
+                        if (reply.reply_to_user_id && reply.reply_to_user_name) {
+                            postForRender.reply_to = {
+                                user: {
+                                    id: reply.reply_to_user_id,
+                                    name: reply.reply_to_user_name
+                                }
+                            };
+                        }
                     }
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     
                     const postEl = await renderPost(postForRender, authorForRender, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
                     if (postEl) repliesContainer.appendChild(postEl);
