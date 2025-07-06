@@ -461,24 +461,6 @@ input, textarea {
     gap: 0.5rem;
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
-.pinned-post-indicator {
-    padding-left: 58px; /* アイコン+隙間の分だけインデント */
-    padding-bottom: 0.5rem;
-    color: var(--secondary-text-color);
-    font-size: 0.8rem;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-.pinned-post-indicator svg {
-    width: 1em;
-    height: 1em;
-    fill: currentColor;
-}
-/* ▲▲▲ 追加ここまで ▲▲▲ */
-
 .post .user-icon {
     width: 48px;
     height: 48px;
