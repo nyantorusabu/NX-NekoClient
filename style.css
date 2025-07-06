@@ -141,6 +141,12 @@ input, textarea {
     background-color: var(--primary-hover-color);
 }
 
+/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+.nav-item-post .nav-item-icon {
+    display: none; /* デフォルトではアイコンを非表示 */
+}
+/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 #nav-menu-bottom {
     padding-bottom: 1rem;
 }
@@ -531,31 +537,53 @@ input, textarea {
     cursor: pointer;
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .post-actions button svg {
-    width: 1.2em; /* 親のfont-sizeに連動させる */
-    height: 1.2em;
-    vertical-align: middle; /* テキストとの位置を微調整 */
+    width: 1.25rem;
+    height: 1.25rem;
+    vertical-align: middle;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    transition: fill 0.2s, stroke 0.2s, color 0.2s;
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .reply-button:hover {
     color: var(--primary-color);
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 
-.like-button:hover, .like-button.liked {
+.like-button:hover {
     color: var(--like-color);
 }
+.like-button.liked {
+    color: var(--like-color);
+    font-weight: bold; /* いいね済みの数字を太字に */
+}
+.like-button.liked svg {
+    fill: currentColor; /* いいね済みのアイコンを塗りつぶす */
+}
 
-.star-button:hover, .star-button.starred {
+.star-button:hover {
     color: var(--star-color);
 }
-
-.post-actions .icon {
-    font-size: 1.2rem;
+.star-button.starred {
+    color: var(--star-color);
+    font-weight: bold; /* お気に入り済みの数字を太字に */
 }
+.star-button.starred svg {
+    fill: currentColor; /* お気に入り済みのアイコンを塗りつぶす */
+}
+
+/* ▼▼▼ .post-actions .icon を削除し、svgの指定に統合 ▼▼▼ */
+.post-actions button svg {
+    width: 1.25rem; /* サイズを微調整 */
+    height: 1.25rem;
+    vertical-align: middle;
+    fill: none; /* デフォルトは塗りつぶしなし */
+    stroke: currentColor; /* 枠線の色は親のcolorに連動 */
+    stroke-width: 2;
+    transition: fill 0.2s, stroke 0.2s; /* 色の遷移を滑らかに */
+}
+
 
 .post-menu-btn {
     position: absolute;
@@ -716,6 +744,7 @@ input, textarea {
     padding: 0.75rem 1rem;
 }
 
+/* ▼▼▼ このブロックを修正 ▼▼▼ */
 .widget-item {
     padding: 0.75rem 1rem;
     cursor: pointer;
@@ -726,24 +755,42 @@ input, textarea {
     background-color: #e7e7e8;
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
-.notification-new {
-    position: relative; /* 疑似要素の位置基準 */
-    /* 背景色をフェードアウトさせるアニメーション */
-    animation: highlight-bg-fade 3s ease-out forwards;
+.notification-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+/* ▲▲▲ 修正ここまで ▲▲▲ */
+
+.notification-item-content {
+    flex-grow: 1;
 }
 
-/* ハイライト用の左側の縦線 */
-.notification-new::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background-color: var(--primary-color);
-    /* 縦線をフェードアウトさせるアニメーション */
-    animation: highlight-border-fade 3s ease-out forwards;
+.notification-new {
+    background-color: #e8f5fd;
+    border-left: 4px solid var(--primary-color);
+    /* padding-leftをwidget-itemのpaddingと合わせる */
+    padding-left: calc(1rem - 4px); 
+}
+
+/* ▼▼▼ クラス名を修正 ▼▼▼ */
+.notification-delete-btn {
+    background: none;
+    border: none;
+    color: var(--secondary-text-color);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0.25rem;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+/* ▲▲▲ 修正ここまで ▲▲▲ */
+
+.notification-delete-btn:hover {
+    background-color: #e0e0e0;
 }
 
 /* 背景色のアニメーション定義 */
@@ -1565,14 +1612,35 @@ input, textarea {
     #left-nav .nav-item {
         justify-content: center;
     }
-    /* ▼▼▼ このセレクタを修正 ▼▼▼ */
     #left-nav .nav-item .nav-item-text {
         display: none;
     }
-    /* ▲▲▲ 修正ここまで ▲▲▲ */
-    .nav-item-post span {
-        display: block !important;
+    
+    /* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+    /* ポストボタンのアイコン表示切り替え */
+    .nav-item-post {
+        width: 52px; /* アイコンに合わせたサイズ */
+        height: 52px;
+        padding: 0;
     }
+    .nav-item-post .nav-item-icon {
+        display: block; /* 縮小ビューではアイコンを表示 */
+    }
+    .nav-item-post .nav-item-icon svg {
+        fill: white;
+        stroke: none;
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+    .nav-item-post .nav-item-text {
+        display: none; /* 縮小ビューではテキストを非表示 */
+    }
+
+    /* アカウントボタンのテキスト非表示 */
+    #left-nav #account-button .account-info {
+        display: none;
+    }
+    /* ▲▲▲ 追加ここまで ▲▲▲ */
 }
 
 @media (max-width: 680px) {
