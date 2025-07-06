@@ -525,8 +525,12 @@ input, textarea {
     text-decoration: underline;
 }
 
-.dm-message a {
+.dm-message-container.sent .dm-message a {
     color: white;
+    text-decoration: none;
+}
+.dm-message-container.received .dm-message a {
+    color: var(--primary-color);
     text-decoration: none;
 }
 
@@ -1438,6 +1442,17 @@ input, textarea {
 .dm-message-container.sent .attachment-download-link {
     color: white;
     font-weight: 500;
+    text-decoration: underline;
+}
+.dm-message-container.received .attachment-download-link {
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: underline;
+}
+.attachment-download-link {
+    text-decoration: none;
+}
+.attachment-download-link:hover {
     text-decoration: underline;
 }
 .dm-message-container.received .dm-message {
