@@ -467,6 +467,11 @@ input, textarea {
     gap: 0.5rem;
 }
 
+/* 孫返信用のインデントスタイル */
+.grandchild-reply {
+    padding-left: calc(1rem + 48px + 0.5rem); /* 通常のpadding + アイコン幅 + gap */
+}
+
 .post .user-icon {
     width: 48px;
     height: 48px;
