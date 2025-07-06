@@ -515,13 +515,15 @@ input, textarea {
 }
 
 .post-content a,
-.notification-item-content a {
+.notification-item-content a,
+.dm-message a {
     color: var(--primary-color);
     text-decoration: none;
 }
 
 .post-content a:hover,
-.notification-item-content a:hover {
+.notification-item-content a:hover,
+.dm-message a:hover {
     text-decoration: underline;
 }
 
