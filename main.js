@@ -2643,10 +2643,22 @@ if (menuButton) {
             // 削除ボタンがクリックされた場合
             if (target.closest('.notification-delete-btn')) {
                 e.stopPropagation();
-                currentUser.notice = currentUser.notice.filter(n => n.id !== notificationId);
-                supabase.from('user').update({ notice: currentUser.notice }).eq('id', currentUser.id).then(() => {
-                    notificationItem.remove();
+                // ▼▼▼ このブロックを修正 ▼▼▼
+                // DB関数を呼び出して通知を削除
+                supabase.rpc('delete_notification', {
+                    target_user_id: currentUser.id,
+                    notification_id_to_delete: notificationId
+                }).then(({ error }) => {
+                    if (error) {
+                        console.error('通知の削除に失敗:', error);
+                        alert('通知の削除に失敗しました。');
+                    } else {
+                        // 成功したら、ローカルのデータとUIからも削除
+                        currentUser.notice = currentUser.notice.filter(n => n.id !== notificationId);
+                        notificationItem.remove();
+                    }
                 });
+                // ▲▲▲ 修正ここまで ▲▲▲
                 return;
             }
             
