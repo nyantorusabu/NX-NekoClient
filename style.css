@@ -515,14 +515,21 @@ input, textarea {
 }
 
 .post-content a,
-.notification-item-content a,
-.dm-message a {
+.notification-item-content a {
     color: var(--primary-color);
     text-decoration: none;
 }
 
 .post-content a:hover,
-.notification-item-content a:hover,
+.notification-item-content a:hover {
+    text-decoration: underline;
+}
+
+.dm-message a {
+    color: white;
+    text-decoration: none;
+}
+
 .dm-message a:hover {
     text-decoration: underline;
 }
