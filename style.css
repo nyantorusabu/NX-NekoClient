@@ -537,39 +537,41 @@ input, textarea {
     cursor: pointer;
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .post-actions button svg {
-    width: 1.2em; /* 親のfont-sizeに連動させる */
-    height: 1.2em;
-    vertical-align: middle; /* テキストとの位置を微調整 */
+    width: 1.25rem;
+    height: 1.25rem;
+    vertical-align: middle;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    transition: fill 0.2s, stroke 0.2s, color 0.2s;
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .reply-button:hover {
     color: var(--primary-color);
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 
-.like-button:hover, .like-button.liked {
+.like-button:hover {
     color: var(--like-color);
 }
-/* ▼▼▼ このブロックに .liked svg の指定を追加 ▼▼▼ */
-.like-button:hover svg, .like-button.liked svg {
-    fill: currentColor;
-    stroke: currentColor;
+.like-button.liked {
+    color: var(--like-color);
+    font-weight: bold; /* いいね済みの数字を太字に */
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
+.like-button.liked svg {
+    fill: currentColor; /* いいね済みのアイコンを塗りつぶす */
+}
 
-.star-button:hover, .star-button.starred {
+.star-button:hover {
     color: var(--star-color);
 }
-/* ▼▼▼ このブロックに .starred svg の指定を追加 ▼▼▼ */
-.star-button:hover svg, .star-button.starred svg {
-    fill: currentColor;
-    stroke: currentColor;
+.star-button.starred {
+    color: var(--star-color);
+    font-weight: bold; /* お気に入り済みの数字を太字に */
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
+.star-button.starred svg {
+    fill: currentColor; /* お気に入り済みのアイコンを塗りつぶす */
+}
 
 /* ▼▼▼ .post-actions .icon を削除し、svgの指定に統合 ▼▼▼ */
 .post-actions button svg {
