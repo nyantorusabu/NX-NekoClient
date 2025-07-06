@@ -1406,6 +1406,8 @@ input, textarea {
     line-height: 1.4;
     overflow-wrap: break-word;
     word-break: break-all; /* 長い英単語を強制的に改行 */
+    width: -moz-fit-content; /* Firefox用の互換性指定 */
+    width: fit-content;      /* コンテンツの幅に合わせる指定 */
 }
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
@@ -1422,9 +1424,6 @@ input, textarea {
     background-color: var(--bg-color);
     color: var(--text-color);
     border-bottom-left-radius: 4px;
-    /* ▼▼▼ この2行を追加 ▼▼▼ */
-    width: -moz-fit-content; /* Firefox用の互換性指定 */
-    width: fit-content;      /* コンテンツの幅に合わせる指定 */
 }
 .dm-message-form {
     border-top: 1px solid var(--border-color);
