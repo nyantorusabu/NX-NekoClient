@@ -938,7 +938,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(false);
     }
 
-        async function showPostDetail(postId) {
+    async function showPostDetail(postId) {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
@@ -949,7 +949,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
         try {
-            // 1. メインポスト、親ポスト、全返信ツリーを一括で取得
+            // 1. メインポストと親ポストを取得
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
                 .select('id, content, attachments, "like", star, time, userid, reply_id, user(id, name, scid, icon_data), reply_to:reply_id(id, content, attachments, "like", star, time, userid, user(id, name, scid, icon_data))')
@@ -958,29 +958,23 @@ window.addEventListener('DOMContentLoaded', () => {
     
             if (postError || !mainPost) throw new Error('ポストが見つかりません。');
             
+            // 2. 全ての返信を、返信先情報も含めて一括取得
             const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
             if (repliesError) throw repliesError;
 
-            // 2. 表示に必要な全ポストのIDを収集し、メンションと返信数を一括取得
-            const allPostIdsOnPage = new Set();
-            allPostIdsOnPage.add(mainPost.id);
-            if (mainPost.reply_to) {
-                allPostIdsOnPage.add(mainPost.reply_to.id);
-            }
-            allRepliesRaw.forEach(reply => allPostIdsOnPage.add(reply.id));
+            // 3. 必要なユーザー情報と返信数を一括で取得
+            const allPostIdsOnPage = new Set([mainPost.id, ...allRepliesRaw.map(r => r.id)]);
+            if(mainPost.reply_to) allPostIdsOnPage.add(mainPost.reply_to.id);
 
-            // メンションユーザーを取得
-            const mentionRegex = /@(\d+)/g;
             const allMentionedIds = new Set();
+            const mentionRegex = /@(\d+)/g;
             const collectMentions = (text) => {
                 if (!text) return;
                 const matches = text.matchAll(mentionRegex);
                 for (const match of matches) allMentionedIds.add(parseInt(match[1]));
             };
             collectMentions(mainPost.content);
-            if (mainPost.reply_to) {
-                collectMentions(mainPost.reply_to.content);
-            }
+            if (mainPost.reply_to) collectMentions(mainPost.reply_to.content);
             allRepliesRaw.forEach(reply => collectMentions(reply.content));
             
             const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
@@ -989,11 +983,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
             
-            // 返信数を一括取得
             const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: Array.from(allPostIdsOnPage) });
             const replyCountsMapForDetail = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
 
-            // 3. DOMの初期化とメインポストの描画
+            // 4. DOMの初期化と描画
             contentDiv.innerHTML = '';
     
             if (mainPost.reply_to) {
@@ -1012,28 +1005,12 @@ window.addEventListener('DOMContentLoaded', () => {
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
-            // 4. データを整形し、深さ優先でフラットなリストを構築
-            const repliesMap = new Map(allRepliesRaw.map(r => [r.id, r]));
+            // 5. 返信リストを構築
             const repliesByParentId = new Map();
-
-            for (const reply of allRepliesRaw) {
-                const parentId = reply.reply_id;
-                if (parentId === postId) {
-                    reply.reply_to = mainPost;
-                } else if (repliesMap.has(parentId)) {
-                    const parentPostData = repliesMap.get(parentId);
-                    reply.reply_to = {
-                        ...parentPostData,
-                        user: {
-                            id: parentPostData.author_id,
-                            name: parentPostData.author_name,
-                        }
-                    };
-                }
-                if (!repliesByParentId.has(parentId)) repliesByParentId.set(parentId, []);
-                repliesByParentId.get(parentId).push(reply);
-            }
-
+            allRepliesRaw.forEach(reply => {
+                if (!repliesByParentId.has(reply.reply_id)) repliesByParentId.set(reply.reply_id, []);
+                repliesByParentId.get(reply.reply_id).push(reply);
+            });
             for (const replies of repliesByParentId.values()) {
                 replies.sort((a, b) => new Date(a.time) - new Date(b.time));
             }
@@ -1042,16 +1019,13 @@ window.addEventListener('DOMContentLoaded', () => {
             const buildFlatList = (parentId) => {
                 const children = repliesByParentId.get(parentId) || [];
                 for (const child of children) {
-                    if (child.reply_id === postId) {
-                        delete child.reply_to; 
-                    }
                     flatReplyList.push(child);
                     buildFlatList(child.id);
                 }
             };
             buildFlatList(postId);
 
-            // 5. 無限スクロールのセットアップ
+            // 6. 無限スクロールのセットアップ
             const repliesContainer = document.createElement('div');
             contentDiv.appendChild(repliesContainer);
             const trigger = document.createElement('div');
@@ -1072,8 +1046,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repliesToRender = flatReplyList.slice(from, to);
 
                 for (const reply of repliesToRender) {
+                    // DB関数から返された情報を使って、postとauthorオブジェクトを再構築
                     const postForRender = { ...reply, like: reply.like, star: reply.star };
                     const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
+                    
+                    // 「@{user}さんに返信」情報を付加
+                    if (reply.reply_id !== postId && reply.reply_to_user_id) {
+                        postForRender.reply_to = {
+                            user: {
+                                id: reply.reply_to_user_id,
+                                name: reply.reply_to_user_name
+                            }
+                        };
+                    }
+                    
                     const postEl = await renderPost(postForRender, authorForRender, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
                     if (postEl) repliesContainer.appendChild(postEl);
                 }
