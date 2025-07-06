@@ -2664,9 +2664,19 @@ if (menuButton) {
             
             // 通知自体がクリックされた場合
             if (notification && !notification.click) {
-                notification.click = true;
-                notificationItem.classList.remove('notification-new');
-                supabase.from('user').update({ notice: currentUser.notice }).eq('id', currentUser.id);
+                // DB関数を呼び出して既読化
+                supabase.rpc('mark_notification_as_read', {
+                    target_user_id: currentUser.id,
+                    notification_id_to_update: notificationId
+                }).then(({ error }) => {
+                    if (error) {
+                        console.error('通知の既読化に失敗:', error);
+                    } else {
+                        // 成功したらローカルのデータとUIも更新
+                        notification.click = true;
+                        notificationItem.classList.remove('notification-new');
+                    }
+                });
             }
             if (notification && notification.open) {
                 window.location.hash = notification.open;
