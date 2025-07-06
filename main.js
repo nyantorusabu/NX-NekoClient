@@ -131,25 +131,24 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             attachmentsHTML += '</div>';
         }
+
+        // ▼▼▼ この1行を追加 ▼▼▼
+        const formattedContent = msg.content ? formatPostContent(msg.content, allUsersCache) : '';
+        // ▲▲▲ 追加ここまで ▲▲▲
         
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
-            // ▼▼▼ このブロックを修正 ▼▼▼
-            const menuHTML = `
-                <button class="dm-message-menu-btn">…</button>
-                <div class="post-menu">
-                    <button class="edit-dm-msg-btn">編集</button>
-                    <button class="delete-dm-msg-btn delete-btn">削除</button>
-                </div>
-            `;
             return `<div class="dm-message-container sent" data-message-id="${msg.id}">
                 <div class="dm-message-wrapper">
-                    ${menuHTML}
-                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
+                    <button class="dm-message-menu-btn">…</button>
+                    <div class="post-menu">
+                        <button class="edit-dm-msg-btn">編集</button>
+                        <button class="delete-dm-msg-btn delete-btn">削除</button>
+                    </div>
+                    <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
                 </div>
             </div>`;
-            // ▲▲▲ 修正ここまで ▲▲▲
         } else {
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
@@ -157,7 +156,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <img src="${getUserIconUrl(user)}" class="dm-message-icon">
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
-                    <div class="dm-message">${msg.content ? escapeHTML(msg.content) : ''}${attachmentsHTML}</div>
+                    <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
                 </div>
             </div>`;
         }
@@ -229,7 +228,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-            else if (hash.startsWith('#profile/')) await showProfileScreen(parseInt(hash.substring(9)));
+            // ▼▼▼ このelse ifブロックを修正 ▼▼▼
+            else if (hash.startsWith('#profile/')) {
+                const parts = hash.substring(9).split('/');
+                const userId = parseInt(parts[0]);
+                if (isNaN(userId)) {
+                    // 不正なIDの場合はホームへ
+                    window.location.hash = '#';
+                    return;
+                }
+                const subpage = parts[1] || 'posts'; // デフォルトは 'posts'
+                await showProfileScreen(userId, subpage);
+            }
+            // ▲▲▲ 修正ここまで ▲▲▲
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
             else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
             else if (hash === '#dm') await showDmScreen();
@@ -359,7 +370,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
-                const { data, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings').eq('id', parseInt(userId)).single();
+                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
 
@@ -1198,7 +1209,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- 10. プロフィールと設定 ---
-    async function showProfileScreen(userId) {
+    async function showProfileScreen(userId, subpage = 'posts') {
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
@@ -1207,20 +1218,25 @@ window.addEventListener('DOMContentLoaded', () => {
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
-        const profileContent = document.getElementById('profile-content');
         
-        // ★★★ 以前の凍結通知が残っていれば削除 ★★★
         const existingFriezeNotice = DOM.mainContent.querySelector('.frieze-notice');
         if (existingFriezeNotice) existingFriezeNotice.remove();
+        
+        // サブタブコンテナも初期化
+        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
+        if (!subTabsContainer) {
+            profileTabs.insertAdjacentHTML('afterend', '<div id="profile-sub-tabs-container"></div>');
+        }
 
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
-        profileContent.innerHTML = '';
+        document.getElementById('profile-sub-tabs-container').innerHTML = ''; // サブタブもクリア
+        document.getElementById('profile-content').innerHTML = '';
 
         try {
             const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star').eq('id', userId).single();
             if (error || !user) {
-                profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
+                 profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
                 showLoading(false);
                 return;
             }
@@ -1283,15 +1299,34 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            profileTabs.innerHTML = `<button class="tab-button active" data-tab="posts">ポスト</button><button class="tab-button" data-tab="likes">いいね</button><button class="tab-button" data-tab="stars">お気に入り</button><button class="tab-button" data-tab="follows">フォロー中</button>`;
+            // メインのタブを定義
+            const mainTabs = [
+                { key: 'posts', name: 'ポスト' },
+                { key: 'likes', name: 'いいね' },
+                { key: 'stars', name: 'お気に入り' },
+                { key: 'follows', name: 'フォロー' } // 「フォロー中」と「フォロワー」を統合
+            ];
+
+            // 現在アクティブにすべきメインタブを決定
+            const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
+
+            profileTabs.innerHTML = mainTabs.map(tab => 
+                `<button class="tab-button ${tab.key === activeMainTabKey ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
+            ).join('');
+
+            // メインタブのクリックイベントを設定
             profileTabs.querySelectorAll('.tab-button').forEach(button => {
-                button.addEventListener('click', (e) => {
+                button.onclick = (e) => {
                     e.stopPropagation();
-                    loadProfileTabContent(user, button.dataset.tab);
-                });
+                    const tabKey = button.dataset.tab;
+                    const defaultSubpage = (tabKey === 'follows') ? 'following' : tabKey;
+                    // hashを変更せずにコンテンツをロード
+                    loadProfileTabContent(user, defaultSubpage);
+                };
             });
 
-            await loadProfileTabContent(user, 'posts');
+            // コンテンツとサブタブを読み込む
+            await loadProfileTabContent(user, subpage);
 
         } catch(err) {
             profileHeader.innerHTML = '<h2>プロフィールの読み込みに失敗しました</h2>';
@@ -1301,16 +1336,48 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadProfileTabContent(user, tab) {
-        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    async function loadProfileTabContent(user, subpage) {
+        // メインのタブのアクティブ状態を更新
+        const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
+        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeMainTabKey));
+        
+        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
         const contentDiv = document.getElementById('profile-content');
         
-        isLoadingMore = false; // 読み込み状態をリセット
+        subTabsContainer.innerHTML = ''; // サブメニューをリセット
+        isLoadingMore = false;
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
+        // 「フォロー」系のサブページが選択されている場合のみ、サブメニューを描画
+        // ▼▼▼ このブロックを追加 ▼▼▼
+        // URLを履歴に追加し、ブラウザの表示を更新する（hashchangeは発火させない）
+        const newUrl = `#profile/${user.id}/${subpage}`;
+        if (window.location.hash !== newUrl) {
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+        // ▲▲▲ 追加ここまで ▲▲▲
+
+        if (activeMainTabKey === 'follows') {
+            subTabsContainer.innerHTML = `
+                <div class="profile-sub-tabs">
+                    <button class="tab-button ${subpage === 'following' ? 'active' : ''}" data-sub-tab="following">フォロー中</button>
+                    <button class="tab-button ${subpage === 'followers' ? 'active' : ''}" data-sub-tab="followers">フォロワー</button>
+                </div>`;
+            
+            // ▼▼▼ このブロックを修正 ▼▼▼
+            subTabsContainer.querySelectorAll('.tab-button').forEach(button => {
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    // hashを変更せずにコンテンツをロード
+                    loadProfileTabContent(user, button.dataset.subTab);
+                };
+            });
+            // ▲▲▲ 修正ここまで ▲▲▲
+        }
+        
         try {
-            switch(tab) {
+            switch(subpage) {
                 case 'posts':
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [] });
                     break;
@@ -1322,7 +1389,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
                     await loadPostsWithPagination(contentDiv, 'stars', { ids: user.star || [] });
                     break;
-                case 'follows':
+                case 'following': // 以前の'follows'
                     contentDiv.innerHTML = '<div class="spinner"></div>';
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
                     if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
@@ -1330,16 +1397,29 @@ window.addEventListener('DOMContentLoaded', () => {
                     const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
                     if(fErr) throw fErr;
                     contentDiv.innerHTML = '';
-                    fUsers?.forEach(u => { // ★★★ ループ変数を 'f' から 'u' に修正
-                        const userCard = document.createElement('div');
-                        userCard.className = 'profile-card';
-                        const userLink = document.createElement('a');
-                        userLink.href = `#profile/${u.id}`;
-                        userLink.className = 'profile-link';
+                    fUsers?.forEach(u => {
+                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
+                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
                         userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
                         userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
-                        userCard.appendChild(userLink);
-                        contentDiv.appendChild(userCard);
+                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
+                    });
+                    break;
+                case 'followers':
+                    contentDiv.innerHTML = '<div class="spinner"></div>';
+                    if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; break; }
+                    
+                    const { data: followersData, error: followersRpcError } = await supabase.rpc('get_followers', { target_user_id: user.id });
+                    if(followersRpcError) throw followersRpcError;
+                    if (!followersData || followersData.length === 0) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>'; break; }
+                    
+                    contentDiv.innerHTML = '';
+                    followersData.forEach(u => {
+                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
+                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
+                        userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
+                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
                     });
                     break;
             }
@@ -1349,12 +1429,14 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
     async function showSettingsScreen() {
         if (!currentUser) return router();
         DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
         showScreen('settings-screen');
         newIconDataUrl = null;
         resetIconToDefault = false;
+        // ▼▼▼ innerHTMLの生成部分を修正 ▼▼▼
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
                 <label for="setting-username">ユーザー名:</label>
@@ -1372,11 +1454,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 <fieldset><legend>公開設定</legend>
                     <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
                     <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
                 <button type="submit">設定を保存</button>
-            </form>`;
+            </form>
+            <div class="settings-danger-zone">
+                <button id="settings-logout-btn">ログアウト</button>
+            </div>
+            `;
+        // ▲▲▲ 修正ここまで ▲▲▲
         
         const iconInput = document.getElementById('setting-icon-input');
         const iconPreview = document.getElementById('setting-icon-preview');
@@ -1403,6 +1491,9 @@ window.addEventListener('DOMContentLoaded', () => {
         });
 
         document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+        // ▼▼▼ この行を追加 ▼▼▼
+        document.getElementById('settings-logout-btn').addEventListener('click', handleLogout);
+        // ▲▲▲ 追加ここまで ▲▲▲
         showLoading(false);
     }
     
@@ -1531,6 +1622,7 @@ window.addEventListener('DOMContentLoaded', () => {
             settings: {
                 show_like: form.querySelector('#setting-show-like').checked,
                 show_follow: form.querySelector('#setting-show-follow').checked,
+                show_follower: form.querySelector('#setting-show-follower').checked, // この行を追加
                 show_star: form.querySelector('#setting-show-star').checked,
                 show_scid: form.querySelector('#setting-show-scid').checked,
             },
@@ -2272,6 +2364,22 @@ async function openEditPostModal(postId) {
         sendButton.disabled = true;
 
         try {
+            // ▼▼▼ このブロックを新規追加 ▼▼▼
+            // メンションされたユーザー情報を取得してキャッシュする
+            const mentionRegex = /@(\d+)/g;
+            const mentionedIds = new Set();
+            let match;
+            while ((match = mentionRegex.exec(content)) !== null) {
+                mentionedIds.add(parseInt(match[1]));
+            }
+            
+            const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
+            if (newIdsToFetch.length > 0) {
+                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+            }
+            // ▲▲▲ 追加ここまで ▲▲▲
+
             let attachmentsData = [];
             if (files.length > 0) {
                 showLoading(true);

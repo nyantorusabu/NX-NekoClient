@@ -68,7 +68,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 id: newUserId,
                 name: scratchUser.name, // NyaXの初期表示名もScratchユーザー名に
                 scid: scratchUser.name, // scidにScratchのユーザー名を保存
-                settings: { show_like: true, show_follow: true, show_star: true, show_scid: true }
+                settings: { show_like: true, show_follow: true, show_follower: true, show_star: true, show_scid: true }
             };
             const { data: createdUser, error } = await supabase.from('user').insert(newUserPayload).select().single();
             if(error) throw error;
