@@ -538,14 +538,35 @@ window.addEventListener('DOMContentLoaded', () => {
             currentUser.post = updatedPostIds;
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
+            // --- 通知送信ロジック ---
+            let repliedUserId = null; // 返信通知を送った相手を記録
             if (replyingTo) {
                 const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
                 if (parentPost && parentPost.userid !== currentUser.id) {
-                    // ▼▼▼ この行を修正 ▼▼▼
-                    sendNotification(parentPost.userid, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
+                    repliedUserId = parentPost.userid;
+                    sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
+                }
+            }
+
+            // メンション通知
+            const mentionRegex = /@(\d+)/g;
+            const mentionedIds = new Set();
+            let match;
+            while ((match = mentionRegex.exec(content)) !== null) {
+                const mentionedId = parseInt(match[1]);
+                // 自分自身と、すでに返信通知を送った相手は除外する
+                if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
+                    mentionedIds.add(mentionedId);
                 }
             }
             
+            if (mentionedIds.size > 0) {
+                mentionedIds.forEach(id => {
+                    sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
+                });
+            }
+            // --- 通知送信ロジックここまで ---
+
             selectedFiles = [];
             contentEl.value = '';
             container.querySelector('.file-preview-container').innerHTML = '';
