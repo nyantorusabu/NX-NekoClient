@@ -373,7 +373,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const userId = localStorage.getItem('nyaxUserId');
         if (userId) {
             try {
-                const { data, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings').eq('id', parseInt(userId)).single();
+                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 currentUser = data;
 
@@ -644,7 +644,7 @@ window.addEventListener('DOMContentLoaded', () => {
             menu.className = 'post-menu';
 
             // ▼▼▼ このブロックを追加 ▼▼▼
-            const referenceUser = profileOwnerUser || currentUser;
+            const referenceUser = referenceUserForPin || profileOwnerUser || currentUser;
             const isPinned = referenceUser && referenceUser.pin === post.id;
             const pinBtn = document.createElement('button');
             pinBtn.className = 'pin-btn';
@@ -2179,7 +2179,7 @@ async function openEditPostModal(postId) {
         const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
         // ▲▲▲ 追加ここまで ▲▲▲
         
-        const postEl = await renderPost(post, post.user, { replyCountsMap, profileOwnerUser: user });
+        const postEl = await renderPost(post, post.user, { replyCountsMap, referenceUserForPin: user });
         container.innerHTML = `
             <div class="pinned-post-indicator">
                 ${ICONS.pin} ピン留めされたポスト
