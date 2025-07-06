@@ -181,32 +181,19 @@ window.addEventListener('DOMContentLoaded', () => {
     async function sendNotification(recipientId, message, openHash = '') {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
         
-        // メンションされたユーザーIDを収集して、後で名前を取得するために使う
-        const mentionRegex = /@(\d+)/g;
-        const mentionedIds = new Set();
-        let match;
-        while ((match = mentionRegex.exec(message)) !== null) {
-            mentionedIds.add(parseInt(match[1]));
-        }
-
         try {
-            const { data: userData, error: fetchError } = await supabase.from('user').select('notice, notice_count').eq('id', recipientId).single();
-            if (fetchError || !userData) { console.error('通知受信者の情報取得に失敗:', fetchError); return; }
-            
-            const newNotification = {
-                id: crypto.randomUUID(), // 各通知に一意のIDを付与
-                message: message,
-                open: openHash,
-                click: false
-            };
-            
-            const currentNotices = userData.notice || [];
-            const updatedNotices = [newNotification, ...currentNotices].slice(0, 50);
-            const updatedNoticeCount = (userData.notice_count || 0) + 1;
-            
-            const { error: updateError } = await supabase.from('user').update({ notice: updatedNotices, notice_count: updatedNoticeCount }).eq('id', recipientId);
-            if (updateError) { console.error('通知の更新に失敗:', updateError); }
-        } catch (e) { console.error('通知送信中にエラー発生:', e); }
+            const { error } = await supabase.rpc('send_notification_with_timestamp', {
+                recipient_id: recipientId,
+                message_text: message,
+                open_hash: openHash
+            });
+
+            if (error) {
+                console.error('通知の送信に失敗しました:', error);
+            }
+        } catch (e) {
+            console.error('通知送信中にエラー発生:', e);
+        }
     }
     
     function formatPostContent(text, userCache = new Map()) { // ★★★ デフォルト値を追加
