@@ -1379,15 +1379,19 @@ input, textarea {
     min-width: 0;
 }
 .dm-message-container.sent .dm-message-wrapper {
-    align-items: flex-end; /* 右寄せ */
+    align-items: flex-end;
 }
 .dm-message-container.received .dm-message-wrapper {
-    align-items: flex-start; /* 左寄せ */
+    align-items: flex-start;
 }
+
 .dm-message-wrapper {
-    /* ▼▼▼ この2行を追加 ▼▼▼ */
-    position: relative; /* メニューボタンとメニューの位置基準 */
+    position: relative;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    /* ▼▼▼ この1行が最重要 ▼▼▼ */
+    max-width: 75%; /* メッセージが画面幅の75%以上は広がらないように、箱の最大幅を固定 */
 }
 .dm-message-meta {
     font-size: 0.8rem;
@@ -1401,24 +1405,17 @@ input, textarea {
 .dm-message {
     padding: 0.8rem 1rem;
     border-radius: 18px;
-    white-space: pre-wrap;     /* 基本の改行と空白を保持 */
+    white-space: pre-wrap;
     font-weight: 400;
     line-height: 1.4;
 
-    /* --- 改行処理の強化 --- */
-    /* 1. 長い単語やURLを強制的に改行する（最も強力） */
-    word-break: break-all;
-    
-    /* 2. 上記で対応できない場合のための予備（コンテナからはみ出すのを防ぐ） */
-    overflow-wrap: break-word; 
-
-    /* 3. 親要素の幅に合わせて自身の幅を調整 */
-    width: -moz-fit-content;
-    width: fit-content;
-    max-width: 100%; /* 親コンテナの幅を超えないようにする */
-
-    /* 4. flexアイテムとしての挙動を制御 */
-    min-width: 0;
+    /* ▼▼▼ 改行処理と幅の指定を、以下の形に書き換え ▼▼▼ */
+    /* 親要素の幅が固定されたので、これらのプロパティが正しく機能する */
+    overflow-wrap: break-word;
+    word-break: break-word; /* break-allより少し自然な改行を試みる */
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    /* ▲▲▲ 書き換えここまで ▲▲▲ */
 }
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
