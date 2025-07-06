@@ -342,7 +342,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 </a>`;
             // ▲▲▲ HTML構造は前回と同じですが、CSSとの連携で重要なので再確認 ▲▲▲
         }).join('');
-        if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span>ポスト</span></button>`;
+        // ▼▼▼ この行を修正 ▼▼▼
+        if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span class="nav-item-text">ポスト</span><span class="nav-item-icon">${ICONS.send}</span></button>`;
+        // ▲▲▲ 修正ここまで ▲▲▲
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
@@ -724,14 +726,17 @@ window.addEventListener('DOMContentLoaded', () => {
             const likeBtn = document.createElement('button');
             const isLiked = currentUser.like?.includes(post.id);
             likeBtn.className = `like-button ${isLiked ? 'liked' : ''}`;
-            likeBtn.innerHTML = `<span class="icon">${isLiked ? '♥' : '♡'}</span> <span>${post.like}</span>`;
+            likeBtn.innerHTML = `<span class="icon">${ICONS.likes}</span> <span>${post.like}</span>`;
             actionsDiv.appendChild(likeBtn);
+            // ▲▲▲ 修正ここまで ▲▲▲
 
+            // ▼▼▼ お気に入りボタンのHTMLを修正 ▼▼▼
             const starBtn = document.createElement('button');
             const isStarred = currentUser.star?.includes(post.id);
             starBtn.className = `star-button ${isStarred ? 'starred' : ''}`;
-            starBtn.innerHTML = `<span class="icon">${isStarred ? '★' : '☆'}</span> <span>${post.star}</span>`;
+            starBtn.innerHTML = `<span class="icon">${ICONS.stars}</span> <span>${post.star}</span>`;
             actionsDiv.appendChild(starBtn);
+            // ▲▲▲ 修正ここまで ▲▲▲
             
             postMain.appendChild(actionsDiv);
         }
