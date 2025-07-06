@@ -509,12 +509,14 @@ input, textarea {
     cursor: pointer;
 }
 
-.post-content a {
+.post-content a,
+.notification-item-content a {
     color: var(--primary-color);
     text-decoration: none;
 }
 
-.post-content a:hover {
+.post-content a:hover,
+.notification-item-content a:hover {
     text-decoration: underline;
 }
 
