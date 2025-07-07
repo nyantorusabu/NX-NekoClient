@@ -928,12 +928,14 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showLikesScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">いいね</h2>`;
         showScreen('likes-screen');
+        DOM.likesContent.innerHTML = '';
         await loadPostsWithPagination(DOM.likesContent, 'likes', { ids: currentUser.like });
         showLoading(false);
     }
     async function showStarsScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">お気に入り</h2>`;
         showScreen('stars-screen');
+        DOM.starsContent.innerHTML = '';
         await loadPostsWithPagination(DOM.starsContent, 'stars', { ids: currentUser.star });
         showLoading(false);
     }
@@ -1398,14 +1400,13 @@ window.addEventListener('DOMContentLoaded', () => {
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
-        // 「フォロー」系のサブページが選択されている場合のみ、サブメニューを描画
-        // ▼▼▼ このブロックを追加 ▼▼▼
-        // URLを履歴に追加し、ブラウザの表示を更新する（hashchangeは発火させない）
+        // ▼▼▼ このブロックを修正 ▼▼▼
         const newUrl = `#profile/${user.id}/${subpage}`;
+        // URLがまだ更新されていない場合のみ、履歴に追加する
         if (window.location.hash !== newUrl) {
             window.history.pushState({ path: newUrl }, '', newUrl);
         }
-        // ▲▲▲ 追加ここまで ▲▲▲
+        // ▲▲▲ 修正ここまで ▲▲▲
 
         if (activeMainTabKey === 'follows') {
             subTabsContainer.innerHTML = `
