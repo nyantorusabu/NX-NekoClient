@@ -242,7 +242,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     window.location.hash = '#';
                     return;
                 }
-                const subpage = parts[1] || 'posts'; // デフォルトは 'posts'
+                const subpageMatch = path.match(/\/(.+)/);
+                const subpage = subpageMatch ? subpageMatch[1] : 'posts'; // サブページがなければ'posts'
+                
                 await showProfileScreen(userId, subpage);
             }
             // ▲▲▲ 修正ここまで ▲▲▲
@@ -1370,13 +1372,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 button.onclick = (e) => {
                     e.stopPropagation();
                     const tabKey = button.dataset.tab;
-                    const defaultSubpage = (tabKey === 'follows') ? 'following' : tabKey;
-                    // hashを変更せずにコンテンツをロード
-                    loadProfileTabContent(user, defaultSubpage);
+                    let newSubpage;
+                    // ▼▼▼ このif-elseブロックを修正 ▼▼▼
+                    if (tabKey === 'posts') {
+                        newSubpage = ''; // ポストタブの場合はサブページなし
+                    } else if (tabKey === 'follows') {
+                        newSubpage = 'following'; // フォロータブの場合は'following'をデフォルトに
+                    } else {
+                        newSubpage = tabKey;
+                    }
+                    loadProfileTabContent(user, newSubpage || 'posts'); // newSubpageが空なら'posts'として扱う
+                    // ▲▲▲ 修正ここまで ▲▲▲
                 };
             });
 
-            // コンテンツとサブタブを読み込む
             await loadProfileTabContent(user, subpage);
 
         } catch(err) {
