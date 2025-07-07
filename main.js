@@ -1409,13 +1409,16 @@ window.addEventListener('DOMContentLoaded', () => {
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
-        // ▼▼▼ このブロックを修正 ▼▼▼
-        const newUrl = `#profile/${user.id}/${subpage}`;
-        // URLがまだ更新されていない場合のみ、履歴に追加する
+        let newUrl;
+        if (subpage === 'posts') {
+            newUrl = `#profile/${user.id}`; // ポストタブはサブページなし
+        } else {
+            newUrl = `#profile/${user.id}/${subpage}`;
+        }
+        
         if (window.location.hash !== newUrl) {
             window.history.pushState({ path: newUrl }, '', newUrl);
         }
-        // ▲▲▲ 修正ここまで ▲▲▲
 
         if (activeMainTabKey === 'follows') {
             subTabsContainer.innerHTML = `
