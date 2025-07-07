@@ -1534,16 +1534,44 @@ window.addEventListener('DOMContentLoaded', () => {
         iconPreview.addEventListener('click', () => iconInput.click());
         iconInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                resetIconToDefault = false;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    newIconDataUrl = event.target.result;
+            if (!file || !file.type.startsWith('image/')) return;
+
+            resetIconToDefault = false;
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX_DIMENSION = 128;
+                    let { width, height } = img;
+
+                    // リサイズが必要か判定
+                    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                        if (width > height) {
+                            height = Math.round((height * MAX_DIMENSION) / width);
+                            width = MAX_DIMENSION;
+                        } else {
+                            width = Math.round((width * MAX_DIMENSION) / height);
+                            height = MAX_DIMENSION;
+                        }
+                    }
+
+                    // canvasを使ってリサイズ
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // リサイズ後の画像をData URLとして取得
+                    newIconDataUrl = canvas.toDataURL(file.type); // 元のファイル形式を維持
                     iconPreview.src = newIconDataUrl;
                 };
-                reader.readAsDataURL(file);
-            }
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
+        // ▲▲▲ 置き換えここまで ▲▲▲
 
         document.getElementById('reset-icon-btn').addEventListener('click', () => {
             resetIconToDefault = true;
