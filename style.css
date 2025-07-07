@@ -1429,12 +1429,10 @@ input, textarea {
 .dm-message-container.sent .attachment-download-link {
     color: white;
     font-weight: 500;
-    text-decoration: underline;
 }
 .dm-message-container.received .attachment-download-link {
     color: var(--primary-color);
     font-weight: 500;
-    text-decoration: underline;
 }
 .attachment-download-link {
     text-decoration: none;
