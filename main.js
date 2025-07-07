@@ -233,15 +233,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-            // ▼▼▼ このelse ifブロックを修正 ▼▼▼
             else if (hash.startsWith('#profile/')) {
-                const parts = hash.substring(9).split('/');
-                const userId = parseInt(parts[0]);
+                const path = hash.substring(9);
+                const userId = parseInt(path, 10); // パスの先頭がユーザーID
+                
                 if (isNaN(userId)) {
-                    // 不正なIDの場合はホームへ
-                    window.location.hash = '#';
-                    return;
+                    window.location.hash = '#'; return;
                 }
+
+                // URLからサブページ名を取得
                 const subpageMatch = path.match(/\/(.+)/);
                 const subpage = subpageMatch ? subpageMatch[1] : 'posts'; // サブページがなければ'posts'
                 
