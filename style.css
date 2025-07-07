@@ -525,19 +525,6 @@ input, textarea {
     text-decoration: underline;
 }
 
-.dm-message-container.sent .dm-message a {
-    color: white;
-    text-decoration: none;
-}
-.dm-message-container.received .dm-message a {
-    color: var(--primary-color);
-    text-decoration: none;
-}
-
-.dm-message a:hover {
-    text-decoration: underline;
-}
-
 .post-actions {
     display: flex;
     justify-content: space-around;
@@ -1548,6 +1535,24 @@ input, textarea {
     margin: auto;
     text-align: center;
     color: var(--secondary-text-color);
+}
+.dm-message a {
+    text-decoration: none;
+}
+/* 共通: ホバー時に下線を表示 */
+.dm-message a:hover {
+    text-decoration: underline;
+}
+
+/* 受信メッセージのリンク色 */
+.dm-message-container.received .dm-message a {
+    color: var(--primary-color);
+}
+
+/* 送信メッセージのリンク色 */
+.dm-message-container.sent .dm-message a {
+    color: white; /* ダウンロードリンクも白になる */
+    font-weight: 500;
 }
 
 /* DM管理モーダルのボタンスタイル */
