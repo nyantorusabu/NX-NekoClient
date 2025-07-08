@@ -106,7 +106,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function renderDmMessage(msg) {
         if (msg.type === 'system') {
-            return `<div class="dm-system-message">${escapeHTML(msg.content)}</div>`;
+            const formattedContent = formatPostContent(msg.content, allUsersCache);
+            return `<div class="dm-system-message">${formattedContent}</div>`;
         }
 
         let attachmentsHTML = '';
@@ -132,13 +133,11 @@ window.addEventListener('DOMContentLoaded', () => {
             attachmentsHTML += '</div>';
         }
 
-        // ▼▼▼ この1行を追加 ▼▼▼
         const formattedContent = msg.content ? formatPostContent(msg.content, allUsersCache) : '';
-        // ▲▲▲ 追加ここまで ▲▲▲
-        
         const sent = msg.userid === currentUser.id;
         
         if (sent) {
+            // 送信メッセージ
             return `<div class="dm-message-container sent" data-message-id="${msg.id}">
                 <div class="dm-message-wrapper">
                     <button class="dm-message-menu-btn">…</button>
@@ -150,12 +149,18 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
         } else {
+            // 受信メッセージ
             const user = allUsersCache.get(msg.userid) || {};
             const time = new Date(msg.time).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
             return `<div class="dm-message-container received">
-                <img src="${getUserIconUrl(user)}" class="dm-message-icon">
+                <a href="#profile/${user.id}" class="dm-user-link">
+                    <img src="${getUserIconUrl(user)}" class="dm-message-icon">
+                </a>
                 <div class="dm-message-wrapper">
-                    <div class="dm-message-meta">${escapeHTML(user.name || '不明')}・${time}</div>
+                    <div class="dm-message-meta">
+                        <a href="#profile/${user.id}" class="dm-user-link">${escapeHTML(user.name || '不明')}</a>
+                        ・${time}
+                    </div>
                     <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
                 </div>
             </div>`;
@@ -1115,6 +1120,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
         if (error) { DOM.dmContent.innerHTML = 'DMの読み込みに失敗しました。'; console.error(error); return; }
 
+        // 表示する可能性のある全メンバーのIDを収集
+        const allMemberIds = new Set(dms.flatMap(dm => dm.member));
+        const newIdsToFetch = [...allMemberIds].filter(id => !allUsersCache.has(id));
+        if (newIdsToFetch.length > 0) {
+            const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+            if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+        }
+        
         let dmListHTML = dms.map(dm => `
             <div class="dm-list-item ${dm.id === dmId ? 'active' : ''}" onclick="window.location.hash='#dm/${dm.id}'">
                 <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
@@ -1150,10 +1163,11 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const memberIds = dm.member.filter(id => !allUsersCache.has(id));
-        if(memberIds.length > 0) {
-            const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', memberIds);
-            if(users) users.forEach(u => allUsersCache.set(u.id, u));
+        const memberIds = dm.member;
+        const newIdsToFetch = memberIds.filter(id => !allUsersCache.has(id));
+        if (newIdsToFetch.length > 0) {
+            const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+            if (users) users.forEach(u => allUsersCache.set(u.id, u));
         }
         
         const posts = dm.post || [];
@@ -2147,6 +2161,19 @@ async function openEditPostModal(postId) {
     }
 
     async function sendSystemDmMessage(dmId, content) {
+        const mentionRegex = /@(\d+)/g;
+        const mentionedIds = new Set();
+        let match;
+        while ((match = mentionRegex.exec(content)) !== null) {
+            mentionedIds.add(parseInt(match[1]));
+        }
+        
+        const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
+        if (newIdsToFetch.length > 0) {
+            const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+            if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
+        }
+        
         const message = {
             id: crypto.randomUUID(),
             time: new Date().toISOString(),
