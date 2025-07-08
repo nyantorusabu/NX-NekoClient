@@ -357,7 +357,8 @@ window.addEventListener('DOMContentLoaded', () => {
         // ▼▼▼ この行を修正 ▼▼▼
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span class="nav-item-text">ポスト</span><span class="nav-item-icon">${ICONS.send}</span></button>`;
         // ▲▲▲ 修正ここまで ▲▲▲
-        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : `<button id="login-button" class="nav-item"><span>ログイン</span></button>`;
+        // 未ログイン時は何も表示せず、ログインしている場合のみアカウントボタンを表示する
+        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : '';
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
@@ -366,7 +367,8 @@ window.addEventListener('DOMContentLoaded', () => {
             };
         });
         // ▲▲▲ [修正点2] ここまで ▼▼▼
-        DOM.navMenuBottom.querySelector('button')?.addEventListener('click', currentUser ? handleLogout : goToLoginPage);
+        // ログアウトボタン（account-button）が存在する場合のみイベントリスナーを設定
+        DOM.navMenuBottom.querySelector('#account-button')?.addEventListener('click', handleLogout);
         DOM.navMenuTop.querySelector('.nav-item-post')?.addEventListener('click', () => openPostModal());
         loadRightSidebar();
     }
@@ -1465,38 +1467,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (!user.settings.show_star && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのお気に入りは非公開です。</p>'; break; }
                     await loadPostsWithPagination(contentDiv, 'stars', { ids: user.star || [] });
                     break;
-                case 'following': // 以前の'follows'
-                    contentDiv.innerHTML = '<div class="spinner"></div>';
+                case 'following':
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
-                    if (!user.follow?.length) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">誰もフォローしていません。</p>'; break; }
-                    
-                    const { data: fUsers, error: fErr } = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', user.follow);
-                    if(fErr) throw fErr;
-                    contentDiv.innerHTML = '';
-                    fUsers?.forEach(u => {
-                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
-                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
-                        userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
-                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
-                    });
+                    // ▼▼▼ このブロックを修正 ▼▼▼
+                    await loadUsersWithPagination(contentDiv, 'follows', { ids: user.follow || [] });
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
                 case 'followers':
-                    contentDiv.innerHTML = '<div class="spinner"></div>';
                     if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; break; }
-                    
-                    const { data: followersData, error: followersRpcError } = await supabase.rpc('get_followers', { target_user_id: user.id });
-                    if(followersRpcError) throw followersRpcError;
-                    if (!followersData || followersData.length === 0) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">まだフォロワーがいません。</p>'; break; }
-                    
-                    contentDiv.innerHTML = '';
-                    followersData.forEach(u => {
-                        const userCard = document.createElement('div'); userCard.className = 'profile-card';
-                        const userLink = document.createElement('a'); userLink.href = `#profile/${u.id}`; userLink.className = 'profile-link';
-                        userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                        userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
-                        userCard.appendChild(userLink); contentDiv.appendChild(userCard);
-                    });
+                    // ▼▼▼ このブロックを修正 ▼▼▼
+                    await loadUsersWithPagination(contentDiv, 'followers', { userId: user.id });
+                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
             }
         } catch(err) {
@@ -1705,6 +1686,86 @@ window.addEventListener('DOMContentLoaded', () => {
         postLoadObserver.observe(trigger);
     }
 
+    async function loadUsersWithPagination(container, type, options = {}) {
+        currentPagination = { page: 0, hasMore: true, type, options };
+
+        let trigger = container.querySelector('.load-more-trigger');
+        if (trigger) trigger.remove();
+        
+        trigger = document.createElement('div');
+        trigger.className = 'load-more-trigger';
+        container.appendChild(trigger);
+
+        const renderUserCard = (u) => {
+            const userCard = document.createElement('div');
+            userCard.className = 'profile-card';
+            const userLink = document.createElement('a');
+            userLink.href = `#profile/${u.id}`;
+            userLink.className = 'profile-link';
+            userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
+            userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+            userCard.appendChild(userLink);
+            return userCard;
+        };
+        
+        const loadMore = async () => {
+            if (isLoadingMore || !currentPagination.hasMore) return;
+            isLoadingMore = true;
+            trigger.innerHTML = '<div class="spinner"></div>';
+
+            const from = currentPagination.page * POSTS_PER_PAGE;
+            const to = from + POSTS_PER_PAGE - 1;
+
+            let users = [];
+            let error = null;
+
+            if (type === 'follows') {
+                const idsToFetch = (options.ids || []).slice(from, to + 1);
+                if (idsToFetch.length > 0) {
+                    const result = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', idsToFetch);
+                    users = result.data;
+                    error = result.error;
+                }
+            } else if (type === 'followers') {
+                const result = await supabase.rpc('get_followers', { target_user_id: options.userId }).range(from, to);
+                users = result.data;
+                error = result.error;
+            }
+
+            if (error) {
+                console.error(`${type}のユーザー読み込みに失敗:`, error);
+                trigger.innerHTML = '読み込みに失敗しました。';
+            } else {
+                if (users && users.length > 0) {
+                    users.forEach(u => container.insertBefore(renderUserCard(u), trigger));
+                    currentPagination.page++;
+                    if (users.length < POSTS_PER_PAGE) {
+                        currentPagination.hasMore = false;
+                    }
+                } else {
+                    currentPagination.hasMore = false;
+                }
+
+                if (!currentPagination.hasMore) {
+                    const emptyMessages = { follows: '誰もフォローしていません。', followers: 'まだフォロワーがいません。' };
+                    trigger.innerHTML = container.querySelectorAll('.profile-card').length === 0 ? emptyMessages[type] : 'すべてのユーザーを読み込みました';
+                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
+                } else {
+                    trigger.innerHTML = '';
+                }
+            }
+            isLoadingMore = false;
+        };
+
+        postLoadObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore) {
+                loadMore();
+            }
+        }, { rootMargin: '200px' });
+        
+        postLoadObserver.observe(trigger);
+    }
+    
     async function switchTimelineTab(tab) {
         if (tab === 'following' && !currentUser) return;
         isLoadingMore = false; // 読み込み状態をリセット
