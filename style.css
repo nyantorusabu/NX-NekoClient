@@ -1472,6 +1472,7 @@ input, textarea {
     color: var(--secondary-text-color);
     margin-bottom: 0.25rem;
     padding: 0 0.5rem;
+    white-space: nowrap; /* テキストの折り返しを禁止 */
 }
 .dm-message-container.sent .dm-message-meta {
     text-align: right;
