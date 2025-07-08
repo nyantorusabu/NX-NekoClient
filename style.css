@@ -1542,6 +1542,26 @@ input, textarea {
     text-decoration: underline;
 }
 
+/* システムメッセージのリンク */
+.dm-system-message a {
+    color: inherit; /* 親要素の色を継承（色を変えない） */
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.dm-system-message a:hover {
+    text-decoration: underline;
+}
+
+/* ユーザーアイコンと名前のリンク */
+.dm-user-link {
+    color: inherit !important; /* 強制的に色を継承 */
+    text-decoration: none !important;
+}
+.dm-user-link:hover {
+    text-decoration: underline !important;
+}   
+
 /* 受信メッセージのリンク色 */
 .dm-message-container.received .dm-message a {
     color: var(--primary-color);
