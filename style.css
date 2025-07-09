@@ -497,13 +497,6 @@ input, textarea {
     text-decoration: none;
 }
 
-.verified-badge {
-    height: 1.1em; /* テキストの高さに合わせる */
-    width: 1.1em;
-    vertical-align: -0.15em; /* テキストとの垂直位置を微調整 */
-    margin-left: 4px;
-}
-
 .post-author:hover {
     text-decoration: underline;
 }
@@ -1059,65 +1052,7 @@ input, textarea {
     align-items: center;
     gap: 0.5rem;
 }
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
-.admin-menu-container {
-    position: relative;
-}
-.admin-menu-btn {
-    padding: 0.5rem;
-    border-radius: 50%;
-    border: 1px solid var(--text-color);
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.admin-menu-btn:hover {
-    background-color: var(--bg-color);
-}
-.admin-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 0.5rem;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 101;
-    min-width: 200px;
-    overflow: hidden;
-    /* .post-menuのスタイルを流用 */
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.1s ease-out, visibility 0.1s;
-    pointer-events: none;
-}
-.admin-menu.is-visible {
-    visibility: visible;
-    opacity: 1;
-    pointer-events: auto;
-}
-.admin-menu button {
-    width: 100%;
-    padding: 0.8rem 1.2rem;
-    text-align: left;
-    background: none;
-    border: none;
-    color: var(--text-color);
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.admin-menu button:hover {
-    background-color: var(--bg-color);
-}
-.admin-menu .danger-btn {
-    color: var(--like-color);
-    font-weight: bold;
-}
-/* ▲▲▲ 追加ここまで ▲▲▲ */
+
 #profile-header .dm-button {
     padding: 0.5rem;
     border-radius: 50%;
