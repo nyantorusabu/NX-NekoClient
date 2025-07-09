@@ -1625,7 +1625,6 @@ input, textarea {
 .dm-user-link {
     color: inherit !important; /* 強制的に色を継承 */
     text-decoration: none !important;
-    display: flex; /* 内部のimg要素に高さをフィットさせる */
     line-height: 1; /* aタグ自体の余分な高さをなくす */
 }
 .dm-user-link:hover {
