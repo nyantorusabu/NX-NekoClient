@@ -786,6 +786,30 @@ window.addEventListener('DOMContentLoaded', () => {
         return postEl;
     }
 
+    function createAdPostHTML() {
+        const adContainer = document.createElement('div');
+        adContainer.className = 'post ad-post'; // 広告用のクラスを付与
+
+        adContainer.innerHTML = `
+            <a href="#" class="user-icon-link" onclick="event.preventDefault();">
+                <img src="favicon.png" class="user-icon" alt="広告アイコン">
+            </a>
+            <div class="post-main">
+                <div class="post-header">
+                    <a href="#" class="post-author" onclick="event.preventDefault();">[広告]</a>
+                </div>
+                <div class="post-content">
+                    <!-- admax -->
+                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
+                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
+                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                    <!-- admax -->
+                </div>
+            </div>
+        `;
+        return adContainer;
+    }
+
         // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
@@ -1633,6 +1657,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (posts.length > 0) {
+                    // 2ページ目以降の読み込み時に広告を挿入する
+                    if (currentPagination.page > 0) {
+                        const adPostEl = createAdPostHTML();
+                        trigger.before(adPostEl);
+                    }
+                    
                     const postIds = posts.map(p => p.id);
 
                     const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: postIds });
