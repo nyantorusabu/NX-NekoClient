@@ -659,6 +659,15 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.href = `#profile/${author.id}`;
         authorLink.className = 'post-author';
         authorLink.textContent = escapeHTML(author.name || '不明');
+
+        let badgesHTML = '';
+        if (author.check && author.check.length > 0) {
+            badgesHTML = author.check.slice(0, 3).map(c => 
+                `<img src="/${c.id}.png" class="verified-badge" title="${escapeHTML(c.info)}" alt="${escapeHTML(c.id)}">`
+            ).join('');
+        }
+        authorLink.innerHTML += badgesHTML;
+        
         postHeader.appendChild(authorLink);
 
         const postTime = document.createElement('span');
@@ -666,7 +675,8 @@ window.addEventListener('DOMContentLoaded', () => {
         postTime.textContent = `#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
         postHeader.appendChild(postTime);
 
-        if (currentUser?.id === post.userid) {
+        const isTeam = currentUser && currentUser.check?.some(c => c.id === 'nyax_team');
+        if (currentUser && (currentUser.id === post.userid || isTeam)) {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
@@ -1303,7 +1313,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('profile-content').innerHTML = '';
 
         try {
-            const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star').eq('id', userId).single();
+            const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star, "check"').eq('id', userId).single();
             if (error || !user) {
                  profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
                 showLoading(false);
@@ -1331,6 +1341,13 @@ window.addEventListener('DOMContentLoaded', () => {
             // --- 凍結されていない場合の通常の描画処理 ---
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
+            
+            let badgesHTML = '';
+            if (user.check && user.check.length > 0) {
+                badgesHTML = user.check.map(c => 
+                    `<img src="/icons/${c.id}.png" class="verified-badge" title="${escapeHTML(c.info)}" alt="${escapeHTML(c.id)}">`
+                ).join('');
+            }
 
             profileHeader.innerHTML = `
                 <div class="header-top">
@@ -1338,7 +1355,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div id="profile-actions" class="profile-actions"></div>
                 </div>
                 <div class="profile-info">
-                    <h2>${escapeHTML(user.name)}</h2>
+                    <h2>${escapeHTML(user.name)}${badgesHTML}</h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
                     <p class="user-me">${escapeHTML(user.me || '')}</p>
                     <div class="user-stats">
@@ -1347,9 +1364,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
             
-            if (currentUser && userId !== currentUser.id) {
-                const actionsContainer = profileHeader.querySelector('#profile-actions');
-                if (actionsContainer) {
+            // 運営メニューと通常のフォローボタンの表示
+            const actionsContainer = profileHeader.querySelector('#profile-actions');
+            const isTeam = currentUser && currentUser.check?.some(c => c.id === 'nyax_team');
+
+            if (isTeam && currentUser.id !== userId) {
+                // 運営メニューの表示
+                actionsContainer.innerHTML = `
+                    <div class="admin-menu-container">
+                        <button class="admin-menu-btn" title="運営メニュー">…</button>
+                        <div class="admin-menu">
+                            <button onclick="window.sendAdminNotification(${userId})">通知を送信</button>
+                            <button onclick="window.addVerification(${userId})">認証を付与</button>
+                            <button class="danger-btn" onclick="window.freezeUser(${userId})">アカウントを凍結</button>
+                            <button class="danger-btn" onclick="window.loginAsUser(${userId})">このアカウントとしてログイン</button>
+                        </div>
+                    </div>`;
+            } else if (currentUser && userId !== currentUser.id) {
                     // DMボタン
                     const dmButton = document.createElement('button');
                     dmButton.className = 'dm-button';
@@ -2676,19 +2707,83 @@ async function openEditPostModal(postId) {
     
     // --- 13. 初期化処理 ---
 
+    // --- 運営アクション関数 ---
+    window.sendAdminNotification = async (targetUserId) => {
+        const message = prompt("送信する通知を入力してください:");
+        if (message === null || message.trim() === '') return;
+        const fullMessage = `[NyaXTeam] - ${message} @${currentUser.id}`;
+        await sendNotification(targetUserId, fullMessage, `#profile/${currentUser.id}`);
+        alert("通知を送信しました。");
+    };
+
+    window.addVerification = async (targetUserId) => {
+        const id = prompt("付与する認証のIDを入力してください:");
+        if (id === null || id.trim() === '') return;
+        const info = prompt("認証の説明文を入力してください:");
+        if (info === null || info.trim() === '') return;
+
+        showLoading(true);
+        try {
+            const { data: user, error: fetchError } = await supabase.from('user').select('"check"').eq('id', targetUserId).single();
+            if (fetchError) throw fetchError;
+            
+            const currentChecks = user.check || [];
+            // 既に同じIDが存在する場合は更新、なければ追加
+            const existingIndex = currentChecks.findIndex(c => c.id === id);
+            if (existingIndex > -1) {
+                currentChecks[existingIndex].info = info;
+            } else {
+                currentChecks.push({ id, info });
+            }
+            
+            const { error: updateError } = await supabase.from('user').update({ check: currentChecks }).eq('id', targetUserId);
+            if (updateError) throw updateError;
+            
+            alert("認証情報を更新しました。");
+            router();
+        } catch(e) {
+            alert("認証の付与に失敗しました: " + e.message);
+        } finally {
+            showLoading(false);
+        }
+    };
+
+    window.freezeUser = async (targetUserId) => {
+        const reason = prompt("凍結理由を入力してください:");
+        if (reason === null || reason.trim() === '') return;
+        
+        const { error } = await supabase.from('user').update({ frieze: reason }).eq('id', targetUserId);
+        if (error) {
+            alert("凍結処理に失敗しました: " + error.message);
+        } else {
+            alert("アカウントを凍結しました。");
+            router();
+        }
+    };
+    
+    window.loginAsUser = (targetUserId) => {
+        if (confirm(`【警告】\n\nあなたのアカウントからログアウトし、NyaXID: ${targetUserId} としてログインします。\nよろしいですか？`)) {
+            localStorage.setItem('nyaxUserId', targetUserId);
+            window.location.reload();
+        }
+    };
+
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
         const target = e.target;
 
         // --- 1. メニューの開閉トリガー処理 ---
-const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
-if (menuButton) {
+        // ▼▼▼ セレクタに .admin-menu-btn を追加 ▼▼▼
+        const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn, .admin-menu-btn');
+        if (menuButton) {
     e.stopPropagation();
     
     let menuToToggle;
     // ▼▼▼ この if-else ブロックを修正 ▼▼▼
     if (menuButton.classList.contains('dm-message-menu-btn')) {
         menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+    } else if (menuButton.classList.contains('admin-menu-btn')) { 
+                menuToToggle = menuButton.closest('.admin-menu-container')?.querySelector('.admin-menu');
     } else {
         menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
     }
