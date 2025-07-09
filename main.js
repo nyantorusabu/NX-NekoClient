@@ -790,23 +790,43 @@ window.addEventListener('DOMContentLoaded', () => {
         const adContainer = document.createElement('div');
         adContainer.className = 'post ad-post'; // 広告用のクラスを付与
 
+        // ▼▼▼ このブロックのHTMLとJavaScriptの処理を修正 ▼▼▼
         adContainer.innerHTML = `
-            <a href="#" class="user-icon-link" onclick="event.preventDefault();">
+            <div class="user-icon-link">
                 <img src="favicon.png" class="user-icon" alt="広告アイコン">
-            </a>
+            </div>
             <div class="post-main">
                 <div class="post-header">
-                    <a href="#" class="post-author" onclick="event.preventDefault();">[広告]</a>
+                    <span class="post-author">[広告]</span>
                 </div>
                 <div class="post-content">
                     <!-- admax -->
-                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
-                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
-                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                    <script src="https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46"></script>
                     <!-- admax -->
                 </div>
             </div>
         `;
+
+        // 広告用のスクリプトタグを動的に生成して追加する
+        // innerHTMLで追加された<script>は実行されないため、この処理が必要
+        const adContent = adContainer.querySelector('.post-content');
+        const adScript = document.createElement('script');
+        adScript.src = "https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46";
+        adScript.async = true;
+        // 一度中身を空にしてから、実行可能なスクリプトとして追加
+        adContent.innerHTML = '';
+        adContent.appendChild(adScript);
+
+        // 広告ポスト全体のクリックで詳細ページに飛ばないようにする
+        adContainer.addEventListener('click', (e) => {
+            // 広告内のリンク（もしあれば）は機能させる
+            if (e.target.closest('a')) {
+                return;
+            }
+            e.stopPropagation();
+        }, true); // キャプチャフェーズでイベントを捕捉して、他のリスナーより先に止める
+
+        // ▲▲▲ 修正ここまで ▲▲▲
         return adContainer;
     }
 
