@@ -1396,7 +1396,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     followButton.classList.add('profile-follow-button');
                     followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                     actionsContainer.appendChild(followButton);
-                }
             }
             
             // メインのタブを定義
