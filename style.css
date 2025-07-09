@@ -472,6 +472,18 @@ input, textarea {
     padding-left: calc(1rem + 48px + 0.5rem); /* 通常のpadding + アイコン幅 + gap */
 }
 
+/* 広告ポスト用のスタイル */
+.ad-post {
+    background-color: #f7f9f9; /* 通常のポストと少し色を変える */
+}
+.ad-post .post-author {
+    color: var(--secondary-text-color);
+    font-weight: normal; /* 太字にしない */
+}
+.ad-post .post-content {
+    cursor: default; /* クリックで詳細ページに飛ばないように */
+}
+
 .post .user-icon {
     width: 48px;
     height: 48px;
