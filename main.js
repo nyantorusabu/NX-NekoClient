@@ -788,9 +788,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function createAdPostHTML() {
         const adContainer = document.createElement('div');
-        adContainer.className = 'post ad-post'; // 広告用のクラスを付与
+        adContainer.className = 'post ad-post';
 
-        // ▼▼▼ このブロックのHTMLとJavaScriptの処理を修正 ▼▼▼
+        // iframeを使った広告描画用のHTML
         adContainer.innerHTML = `
             <div class="user-icon-link">
                 <img src="favicon.png" class="user-icon" alt="広告アイコン">
@@ -800,33 +800,34 @@ window.addEventListener('DOMContentLoaded', () => {
                     <span class="post-author">[広告]</span>
                 </div>
                 <div class="post-content">
-                    <!-- admax -->
-                    <script src="https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46"></script>
-                    <!-- admax -->
+                    <iframe scrolling="no" frameborder="0" style="width:300px; height:250px; border:0; overflow:hidden;"></iframe>
                 </div>
             </div>
         `;
 
-        // 広告用のスクリプトタグを動的に生成して追加する
-        // innerHTMLで追加された<script>は実行されないため、この処理が必要
-        const adContent = adContainer.querySelector('.post-content');
-        const adScript = document.createElement('script');
-        adScript.src = "https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46";
-        adScript.async = true;
-        // 一度中身を空にしてから、実行可能なスクリプトとして追加
-        adContent.innerHTML = '';
-        adContent.appendChild(adScript);
+        // iframe要素を取得
+        const iframe = adContainer.querySelector('iframe');
+        
+        // iframeの読み込みを待ってから、中に広告スクリプトを書き込む
+        iframe.onload = () => {
+            const iframeDoc = iframe.contentWindow.document;
+            iframeDoc.open();
+            // 広告スクリプトをiframeの中に直接書き込む
+            iframeDoc.write(`
+                <body style="margin:0; padding:0;">
+                    <!-- admax -->
+                    <script src="https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46"></script>
+                    <!-- admax -->
+                </body>
+            `);
+            iframeDoc.close();
+        };
 
-        // 広告ポスト全体のクリックで詳細ページに飛ばないようにする
+        // 広告ポスト全体のクリックイベントを止める
         adContainer.addEventListener('click', (e) => {
-            // 広告内のリンク（もしあれば）は機能させる
-            if (e.target.closest('a')) {
-                return;
-            }
             e.stopPropagation();
-        }, true); // キャプチャフェーズでイベントを捕捉して、他のリスナーより先に止める
+        }, true);
 
-        // ▲▲▲ 修正ここまで ▲▲▲
         return adContainer;
     }
 
