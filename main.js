@@ -3,8 +3,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MDA1MjEwMywiZXhwIjoyMDU1NjI4MTAzfQ.oeUdur2k0VsoLcaMn8XHnQGuRfwf3Qwbc3OkDeeOI_A";
-    const supabaseAdmin = window.supabase.createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     let selectedFiles = [];
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
@@ -377,37 +375,49 @@ window.addEventListener('DOMContentLoaded', () => {
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
         if(!confirm("ログアウトしますか？")) return;
-        currentUser = null; localStorage.removeItem('nyaxUserId');
-        if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-        window.location.hash = '#';
-        router();
+        // supabase.auth.signOut()を呼び出してセッションを破棄
+        supabase.auth.signOut().then(() => {
+            currentUser = null;
+            if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+            window.location.hash = '#';
+            router();
+        });
     }
      async function checkSession() {
-        const userId = localStorage.getItem('nyaxUserId');
-        if (userId) {
+        // localStorageからIDを読むのではなく、Supabaseのセッションを取得する
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+            console.error(sessionError);
+            DOM.connectionErrorOverlay.classList.remove('hidden');
+            return;
+        }
+
+        if (session) {
             try {
-                const { data, error } = await supabase.from('user').select('*').eq('id', parseInt(userId)).single();
+                // JWTのsub（＝NyaXのuser.id）を使って、ユーザーの完全なプロファイルを取得
+                const userId = session.user.id;
+                const { data, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings').eq('id', userId).single();
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
+                
                 currentUser = data;
 
-                // 凍結チェック
                 if (currentUser.frieze) {
                     DOM.friezeReason.textContent = currentUser.frieze;
                     DOM.friezeOverlay.classList.remove('hidden');
-                    return; // 凍結されている場合はここで処理を中断
+                    return;
                 }
 
-                // 凍結されていなければ、通常の起動処理を続行
                 subscribeToChanges();
                 router();
 
             } catch (error) {
                 console.error(error);
                 currentUser = null;
-                // localStorageは削除せず、エラー画面を表示
                 DOM.connectionErrorOverlay.classList.remove('hidden');
             }
         } else {
+            // セッションがない場合は未ログイン状態
             currentUser = null;
             router();
         }
@@ -526,10 +536,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let attachmentsData = [];
             if (selectedFiles.length > 0) {
                 for (const file of selectedFiles) {
-                    const fileId = crypto.randomUUID();
-                    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
-                    if (uploadError) throw new Error(`ファイルアップロードに失敗しました: ${uploadError.message}`);
-                    
+                    const fileId = await uploadFileViaEdgeFunction(file);
                     const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
                     attachmentsData.push({ type: fileType, id: fileId, name: file.name });
                 }
@@ -586,6 +593,40 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
+    }
+
+    async function uploadFileViaEdgeFunction(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const { data, error } = await supabase.functions.invoke('upload-file', {
+            body: formData,
+        });
+
+        if (error) {
+            throw new Error(`ファイルアップロードに失敗しました: ${error.message}`);
+        }
+        
+        // Edge Functionからの戻り値はdataの中にさらにdataプロパティがある場合がある
+        const responseData = data.data || data;
+        if (responseData.error) {
+             throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
+        }
+
+        return responseData.fileId;
+    }
+
+    async function deleteFilesViaEdgeFunction(fileIds) {
+        if (!fileIds || fileIds.length === 0) return;
+
+        const { error } = await supabase.functions.invoke('delete-files', {
+            body: JSON.stringify({ fileIds: fileIds }),
+        });
+
+        if (error) {
+            console.error('ファイルの削除に失敗しました:', error.message);
+            // ここではエラーをthrowせず、コンソールに出力するに留める
+        }
     }
     
     window.openImageModal = (src) => {
@@ -1874,8 +1915,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
         if (postData.attachments && postData.attachments.length > 0) {
             const fileIds = postData.attachments.map(file => file.id);
-            const { error: storageError } = await supabaseAdmin.storage.from('nyax').remove(fileIds);
-            if (storageError) { console.error('ストレージのファイル削除に失敗:', storageError.message); }
+            await deleteFilesViaEdgeFunction(fileIds);
         }
         const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
         if (deleteError) throw deleteError;
@@ -2256,7 +2296,7 @@ async function openEditPostModal(postId) {
                 .map(att => att.id);
 
             if (fileIdsToDelete.length > 0) {
-                await supabaseAdmin.storage.from('nyax').remove(fileIdsToDelete);
+                await deleteFilesViaEdgeFunction(fileIdsToDelete);
             }
 
             // DMを削除
@@ -2313,18 +2353,14 @@ async function openEditPostModal(postId) {
         try {
             // 1. ファイルを削除
             if (filesToDeleteIds.length > 0) {
-                const { error: deleteError } = await supabaseAdmin.storage.from('nyax').remove(filesToDeleteIds);
-                if (deleteError) console.error('ストレージのファイル削除に失敗:', deleteError);
+                await deleteFilesViaEdgeFunction(filesToDeleteIds);
             }
 
             // 2. ファイルをアップロード
             let newUploadedAttachments = [];
             if (filesToAdd.length > 0) {
                 for (const file of filesToAdd) {
-                    const fileId = crypto.randomUUID();
-                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
-                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
-                    
+                    const fileId = await uploadFileViaEdgeFunction(file);
                     const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
                     newUploadedAttachments.push({ type: fileType, id: fileId, name: file.name });
                 }
@@ -2475,16 +2511,14 @@ async function openEditPostModal(postId) {
         try {
             // ファイルの削除
             if (filesToDeleteIds.length > 0) {
-                await supabaseAdmin.storage.from('nyax').remove(filesToDeleteIds);
+                await deleteFilesViaEdgeFunction(filesToDeleteIds);
             }
 
             // ファイルのアップロード
             let newUploadedAttachments = [];
             if (filesToAdd.length > 0) {
                 for (const file of filesToAdd) {
-                    const fileId = crypto.randomUUID();
-                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
-                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
+                    const fileId = await uploadFileViaEdgeFunction(file);
                     const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
                     newUploadedAttachments.push({ type: fileType, id: fileId, name: file.name });
                 }
@@ -2537,7 +2571,7 @@ async function openEditPostModal(postId) {
             // 添付ファイルをストレージから削除
             if (messageToDelete && messageToDelete.attachments?.length > 0) {
                 const fileIds = messageToDelete.attachments.map(att => att.id);
-                await supabaseAdmin.storage.from('nyax').remove(fileIds);
+                await deleteFilesViaEdgeFunction(fileIds);
             }
             
             // DMのpost配列を更新
@@ -2641,10 +2675,7 @@ async function openEditPostModal(postId) {
             if (files.length > 0) {
                 showLoading(true);
                 for (const file of files) {
-                    const fileId = crypto.randomUUID();
-                    const { error: uploadError } = await supabaseAdmin.storage.from('nyax').upload(fileId, file);
-                    if (uploadError) throw new Error(`ファイルアップロードに失敗: ${uploadError.message}`);
-                    
+                    const fileId = await uploadFileViaEdgeFunction(file);
                     const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
                     attachmentsData.push({ type: fileType, id: fileId, name: file.name });
                 }
