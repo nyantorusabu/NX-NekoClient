@@ -40,14 +40,35 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     verifyCommentBtn.addEventListener('click', async () => {
-        showMessage('', false); showLoading(true);
-        try {
-            const { data, error } = await supabase.functions.invoke('scratch-auth-handler', { body: { type: 'verifyComment', username: currentUsername, code: currentCode } });
-            if (error || !data.ok) throw new Error(data?.error || '認証に失敗しました。');
-            await handleSuccessfulLogin(data.user);
-        } catch (err) { showMessage(err.message); }
-        finally { showLoading(false); }
-    });
+    showLoading(true);
+    errorMessage.classList.add('hidden');
+    
+    try {
+        const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'verifyComment', username: scratchUsername, code: verificationCodeElem.textContent })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || '認証に失敗しました。');
+
+        // 返ってきたJWTでセッションを設定
+        const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.jwt,
+            refresh_token: data.jwt, // refresh tokenも同じもので良い
+        });
+        if (sessionError) throw new Error('セッションの設定に失敗しました。');
+        
+        // ログイン成功、index.htmlに遷移
+        window.location.href = 'index.html';
+
+    } catch (e) {
+        errorMessage.textContent = e.message;
+        errorMessage.classList.remove('hidden');
+    } finally {
+        showLoading(false);
+    }
+});
 
     codeDisplay.addEventListener('click', () => {
         navigator.clipboard.writeText(codeDisplay.textContent).then(() => {
