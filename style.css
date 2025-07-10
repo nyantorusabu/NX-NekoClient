@@ -481,7 +481,9 @@ input, textarea {
     font-weight: normal; /* 太字にしない */
 }
 .ad-post .post-content {
-    cursor: default; /* クリックで詳細ページに飛ばないように */
+    cursor: default;
+    white-space: normal;
+    margin-bottom: 0;
 }
 
 .post .user-icon {
