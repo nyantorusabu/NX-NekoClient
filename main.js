@@ -816,8 +816,10 @@ window.addEventListener('DOMContentLoaded', () => {
             iframeDoc.write(`
                 <body style="margin:0; padding:0;">
                     <!-- admax -->
-                    <script src="https://adm.shinobi.jp/s/0bd891d69fb4e13cd644500a25fc1f46"></script>
-                    <!-- admax -->
+                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
+                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
+                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                <!-- admax -->
                 </body>
             `);
             iframeDoc.close();
