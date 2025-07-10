@@ -1,112 +1,93 @@
-window.addEventListener('DOMContentLoaded', () => {
-    // --- 1. 初期設定 & グローバル変数 ---
+document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // --- 2. DOM要素 ---
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const errorMessageDiv = document.getElementById('error-message');
-    const getCodeBtn = document.getElementById('get-code-btn');
-    const verifyCommentBtn = document.getElementById('verify-comment-btn');
-    const codeDisplay = document.getElementById('verification-code');
+    const authStep1 = document.getElementById('auth-step1');
+    const authStep2 = document.getElementById('auth-step2');
     const usernameInput = document.getElementById('username-input');
+    const getCodeBtn = document.getElementById('get-code-btn');
+    const verificationCodeElem = document.getElementById('verification-code');
+    const verifyCommentBtn = document.getElementById('verify-comment-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const errorMessage = document.getElementById('error-message');
+    const copyMessage = document.getElementById('copy-message');
 
-    let currentUsername = '';
-    let currentCode = '';
-
-    // --- 3. UI操作関数 ---
-    function showLoading(show) { loadingOverlay.classList.toggle('hidden', !show); }
-    function showMessage(message, isError = true) {
-        errorMessageDiv.textContent = message;
-        errorMessageDiv.classList.toggle('hidden', !message);
-        errorMessageDiv.style.color = isError ? '#f44336' : '#4caf50';
+    let scratchUsername = '';
+    
+    function showLoading(show) {
+        loadingOverlay.classList.toggle('hidden', !show);
     }
 
-    // --- 4. イベントリスナー ---
     getCodeBtn.addEventListener('click', async () => {
-        currentUsername = usernameInput.value.trim();
-        if (!currentUsername) return showMessage('ユーザー名を入力してください。');
-        showMessage('', false); showLoading(true);
+        scratchUsername = usernameInput.value.trim();
+        if (!scratchUsername) {
+            errorMessage.textContent = 'ユーザー名を入力してください。';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+
+        showLoading(true);
+        errorMessage.classList.add('hidden');
+
         try {
-            const { data, error } = await supabase.functions.invoke('scratch-auth-handler', { body: { type: 'generateCode' } });
-            if (error || !data.code) throw new Error(data?.error || 'コードの取得に失敗しました。');
-            currentCode = data.code;
-            codeDisplay.textContent = currentCode;
-            document.getElementById('auth-step1').classList.add('hidden');
-            document.getElementById('auth-step2').classList.remove('hidden');
-        } catch (err) { showMessage(err.message); } 
-        finally { showLoading(false); }
+            const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'generateCode' })
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error || 'コードの生成に失敗しました。');
+
+            verificationCodeElem.textContent = data.code;
+            authStep1.classList.add('hidden');
+            authStep2.classList.remove('hidden');
+
+        } catch (e) {
+            errorMessage.textContent = e.message;
+            errorMessage.classList.remove('hidden');
+        } finally {
+            showLoading(false);
+        }
+    });
+
+    verificationCodeElem.addEventListener('click', () => {
+        navigator.clipboard.writeText(verificationCodeElem.textContent).then(() => {
+            copyMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden'); // エラーメッセージは隠す
+            setTimeout(() => {
+                copyMessage.classList.add('hidden');
+            }, 2000);
+        });
     });
 
     verifyCommentBtn.addEventListener('click', async () => {
-    showLoading(true);
-    errorMessage.classList.add('hidden');
-    
-    try {
-        const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'verifyComment', username: scratchUsername, code: verificationCodeElem.textContent })
-        });
-        const data = await response.json();
-        if (!response.ok || data.error) throw new Error(data.error || '認証に失敗しました。');
-
-        // 返ってきたJWTでセッションを設定
-        const { error: sessionError } = await supabase.auth.setSession({
-            access_token: data.jwt,
-            refresh_token: data.jwt, // refresh tokenも同じもので良い
-        });
-        if (sessionError) throw new Error('セッションの設定に失敗しました。');
+        showLoading(true);
+        errorMessage.classList.add('hidden');
+        copyMessage.classList.add('hidden');
         
-        // ログイン成功、index.htmlに遷移
-        window.location.href = 'index.html';
+        try {
+            const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'verifyComment', username: scratchUsername, code: verificationCodeElem.textContent })
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) throw new Error(data.error || '認証に失敗しました。');
 
-    } catch (e) {
-        errorMessage.textContent = e.message;
-        errorMessage.classList.remove('hidden');
-    } finally {
-        showLoading(false);
-    }
-});
+            const { error: sessionError } = await supabase.auth.setSession({
+                access_token: data.jwt,
+                refresh_token: data.jwt,
+            });
+            if (sessionError) throw new Error('セッションの設定に失敗しました。');
+            
+            window.location.href = 'index.html';
 
-    codeDisplay.addEventListener('click', () => {
-        navigator.clipboard.writeText(codeDisplay.textContent).then(() => {
-            showMessage('認証コードをコピーしました！', false);
-            setTimeout(() => showMessage('', false), 2000);
-        });
+        } catch (e) {
+            errorMessage.textContent = e.message;
+            errorMessage.classList.remove('hidden');
+        } finally {
+            showLoading(false);
+        }
     });
-
-    // --- 5. 認証成功時の処理 ---
-    async function handleSuccessfulLogin(scratchUser) {
-        // ▼▼▼ scid (Scratchユーザー名) で既存ユーザーを検索 ▼▼▼
-        const { data: existingUser } = await supabase.from('user').select('*').eq('scid', scratchUser.name).single();
-        let finalUser = existingUser;
-        
-        if (!existingUser) {
-            const newUserId = await generateUniqueUserId();
-            const newUserPayload = {
-                id: newUserId,
-                name: scratchUser.name, // NyaXの初期表示名もScratchユーザー名に
-                scid: scratchUser.name, // scidにScratchのユーザー名を保存
-                settings: { show_like: true, show_follow: true, show_follower: true, show_star: true, show_scid: true }
-            };
-            const { data: createdUser, error } = await supabase.from('user').insert(newUserPayload).select().single();
-            if(error) throw error;
-            finalUser = createdUser;
-        }
-        
-        localStorage.setItem('nyaxUserId', finalUser.id);
-        window.location.href = 'index.html';
-    }
-
-    async function generateUniqueUserId() {
-        let userId, isUnique = false;
-        while (!isUnique) {
-            userId = Math.floor(1000 + Math.random() * 9000);
-            const { count } = await supabase.from('user').select('id', { count: 'exact', head: true }).eq('id', userId);
-            if (count === 0) isUnique = true;
-        }
-        return userId;
-    }
 });
