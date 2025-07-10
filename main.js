@@ -386,8 +386,7 @@ window.addEventListener('DOMContentLoaded', () => {
             router();
         });
     }
-     async function checkSession() {
-        // localStorageからIDを読むのではなく、Supabaseのセッションを取得する
+    async function checkSession() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -398,9 +397,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (session) {
             try {
-                // JWTのsub（＝NyaXのuser.id）を使って、ユーザーの完全なプロファイルを取得
-                const userId = session.user.id;
-                const { data, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings').eq('id', userId).single();
+                const authUserId = session.user.id; // これはUUID
+
+                // ▼▼▼ ここが最重要修正点 ▼▼▼
+                // 取得した認証UUIDを使って、'uuid'カラムを検索する
+                const { data, error } = await supabase
+                    .from('user')
+                    .select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings')
+                    .eq('uuid', authUserId) // 'id'ではなく'uuid'と比較する
+                    .single();
+                // ▲▲▲ 修正完了 ▲▲▲
+
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 
                 currentUser = data;
@@ -420,7 +427,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 DOM.connectionErrorOverlay.classList.remove('hidden');
             }
         } else {
-            // セッションがない場合は未ログイン状態
             currentUser = null;
             router();
         }
