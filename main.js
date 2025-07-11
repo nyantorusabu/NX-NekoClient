@@ -2277,18 +2277,29 @@ async function openEditPostModal(postId) {
     
     async function handleLeaveDm(dmId) {
         if (!confirm('本当にこのDMから退出しますか？')) return;
+        showLoading(true);
 
-        const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
-        const updatedMembers = dm.member.filter(id => id !== currentUser.id);
+        try {
+            // 新しいDB関数を呼び出す
+            const { error } = await supabase.rpc('leave_dm', {
+                dm_id_to_leave: dmId,
+                user_id_to_leave: currentUser.id
+            });
 
-        const { error } = await supabase.from('dm').update({ member: updatedMembers }).eq('id', dmId);
-        if (error) {
-            alert('DMからの退出に失敗しました。');
-        } else {
-            await sendSystemDmMessage(dmId, `${currentUser.name}さんが退出しました`);
+            if (error) throw error;
+            
+            // 退出したことをシステムメッセージとして記録（これはメンバー権限で実行可能）
+            await sendSystemDmMessage(dmId, `@${currentUser.id}さんが退出しました`);
+            
             alert('DMから退出しました。');
             DOM.dmManageModal.classList.add('hidden');
             window.location.hash = '#dm';
+
+        } catch (e) {
+            console.error('DMからの退出に失敗しました:', e);
+            alert('DMからの退出に失敗しました。');
+        } finally {
+            showLoading(false);
         }
     }
 
