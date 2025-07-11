@@ -1087,7 +1087,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. メインポストと親ポストを取得
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
-                .select('id, content, attachments, "like", star, time, userid, reply_id, user(id, name, scid, icon_data), reply_to:reply_id(id, content, attachments, "like", star, time, userid, user(id, name, scid, icon_data))')
+                .select('id, content, attachments, "like", star, time, userid, reply_id, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, content, attachments, "like", star, time, userid, user(id, name, scid, icon_data, admin, verify))')
                 .eq('id', postId)
                 .single();
     
