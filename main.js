@@ -730,6 +730,12 @@ window.addEventListener('DOMContentLoaded', () => {
             adminBadge.className = 'admin-badge';
             adminBadge.title = 'NyaXTeam';
             authorLink.appendChild(adminBadge);
+        } else if (author.verify) { // adminがfalseの場合のみverifyをチェック
+            const verifyBadge = document.createElement('img');
+            verifyBadge.src = 'icons/verify.png';
+            verifyBadge.className = 'verify-badge';
+            verifyBadge.title = '認証済み';
+            authorLink.appendChild(verifyBadge);
         }
 
         const postTime = document.createElement('span');
@@ -1458,7 +1464,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="profile-info">
                     <h2>
                         ${escapeHTML(user.name)}
-                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ''}
+                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
                     <p class="user-me">${escapeHTML(user.me || '')}</p>
@@ -2815,6 +2821,11 @@ async function openEditPostModal(postId) {
         const menu = document.createElement('div');
         menu.id = 'admin-profile-menu';
         menu.className = 'post-menu is-visible'; // 既存のスタイルを流用
+
+        const verifyBtn = document.createElement('button');
+        // ユーザーの現在の認証状態に応じてテキストを切り替え
+        verifyBtn.textContent = targetUser.verify ? '認証を取り消す' : 'このユーザーを認証';
+        verifyBtn.onclick = () => adminToggleVerify(targetUser);
         
         const sendNoticeBtn = document.createElement('button');
         sendNoticeBtn.textContent = '通知を送信';
@@ -2825,6 +2836,7 @@ async function openEditPostModal(postId) {
         freezeBtn.className = 'delete-btn';
         freezeBtn.onclick = () => adminFreezeAccount(targetUser.id);
 
+        menu.appendChild(verifyBtn);
         menu.appendChild(sendNoticeBtn);
         menu.appendChild(freezeBtn);
 
@@ -2841,6 +2853,25 @@ async function openEditPostModal(postId) {
         }, 0);
     }
 
+    async function adminToggleVerify(targetUser) {
+        const newVerifyStatus = !targetUser.verify;
+        const actionText = newVerifyStatus ? '認証' : '認証の取り消し';
+        
+        if (confirm(`本当にこのユーザーの${actionText}を行いますか？`)) {
+            const { error } = await supabase
+                .from('user')
+                .update({ verify: newVerifyStatus })
+                .eq('id', targetUser.id);
+
+            if (error) {
+                alert(`${actionText}に失敗しました: ${error.message}`);
+            } else {
+                alert(`ユーザーの${actionText}が完了しました。ページをリロードします。`);
+                window.location.reload();
+            }
+        }
+    }
+    
     async function adminSendNotice(targetUserId) {
         const message = prompt("送信する通知メッセージを入力してください:");
         if (message && message.trim()) {
