@@ -2280,6 +2280,10 @@ async function openEditPostModal(postId) {
         showLoading(true);
 
         try {
+
+            // 退出したことをシステムメッセージとして記録（これはメンバー権限で実行可能）
+            await sendSystemDmMessage(dmId, `@${currentUser.id}さんが退出しました`);
+            
             // 新しいDB関数を呼び出す
             const { error } = await supabase.rpc('leave_dm', {
                 dm_id_to_leave: dmId,
@@ -2287,9 +2291,6 @@ async function openEditPostModal(postId) {
             });
 
             if (error) throw error;
-            
-            // 退出したことをシステムメッセージとして記録（これはメンバー権限で実行可能）
-            await sendSystemDmMessage(dmId, `@${currentUser.id}さんが退出しました`);
             
             alert('DMから退出しました。');
             DOM.dmManageModal.classList.add('hidden');
