@@ -520,10 +520,11 @@ input, textarea {
     color: var(--secondary-text-color);
 }
 
-.admin-badge {
+.admin-badge,
+.verify-badge {
     width: 30px;
     height: 30px;
-    vertical-align: text-bottom; /* テキストのベースラインに合わせる */
+    vertical-align: text-bottom;
 }
 
 .post-content {
