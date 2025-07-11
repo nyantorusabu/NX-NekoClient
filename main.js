@@ -1739,7 +1739,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('id, userid, content, attachments, "like", star, reply_id, time, user(id, name, scid, icon_data), reply_to:reply_id(id, user(id, name))');
+            let query = supabase.from('post').select('id, userid, content, attachments, "like", star, reply_id, time, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, user(id, name))');
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
