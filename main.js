@@ -102,7 +102,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function getUserIconUrl(user) {
         if (!user) return 'favicon.png';
-        return user.icon_data ? user.icon_data : `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+        
+        // icon_dataが存在するかチェック
+        if (user.icon_data) {
+            // Data URL形式か、それともファイルID(UUID)かを判別
+            if (user.icon_data.startsWith('data:image')) {
+                // 古い形式（Data URL）の場合はそのまま返す
+                return user.icon_data;
+            } else {
+                // 新しい形式（ファイルID）の場合は、Supabase Storageの公開URLを生成して返す
+                const { data } = supabase.storage.from('nyax').getPublicUrl(user.icon_data);
+                return data.publicUrl;
+            }
+        }
+        
+        // icon_dataがなければ、デフォルトのScratchアバターURLを返す
+        return `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
     }
 
     function renderDmMessage(msg) {
@@ -1634,7 +1649,7 @@ window.addEventListener('DOMContentLoaded', () => {
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    const MAX_DIMENSION = 128;
+                    const MAX_DIMENSION = 300;
                     let { width, height } = img;
 
                     // リサイズが必要か判定
@@ -1883,35 +1898,68 @@ window.addEventListener('DOMContentLoaded', () => {
     async function handleUpdateSettings(event) {
         event.preventDefault();
         if (!currentUser) return;
-        const form = event.target;
-        const updatedData = {
-            name: form.querySelector('#setting-username').value.trim(),
-            me: form.querySelector('#setting-me').value.trim(),
-            settings: {
-                show_like: form.querySelector('#setting-show-like').checked,
-                show_follow: form.querySelector('#setting-show-follow').checked,
-                show_follower: form.querySelector('#setting-show-follower').checked, // この行を追加
-                show_star: form.querySelector('#setting-show-star').checked,
-                show_scid: form.querySelector('#setting-show-scid').checked,
-            },
-        };
         
-        if (resetIconToDefault) {
-            updatedData.icon_data = null;
-        } else if (newIconDataUrl) {
-            updatedData.icon_data = newIconDataUrl;
-        }
+        const form = event.target;
+        const button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        showLoading(true);
 
-        if (!updatedData.name) return alert('ユーザー名は必須です。');
-        const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
-        if (error) {
-            alert('設定の更新に失敗しました。');
-        } else {
+        try {
+            const updatedData = {
+                name: form.querySelector('#setting-username').value.trim(),
+                me: form.querySelector('#setting-me').value.trim(),
+                settings: {
+                    show_like: form.querySelector('#setting-show-like').checked,
+                    show_follow: form.querySelector('#setting-show-follow').checked,
+                    show_follower: form.querySelector('#setting-show-follower').checked,
+                    show_star: form.querySelector('#setting-show-star').checked,
+                    show_scid: form.querySelector('#setting-show-scid').checked,
+                },
+            };
+
+            if (!updatedData.name) throw new Error('ユーザー名は必須です。');
+
+            // --- アイコンの更新・移行処理 ---
+            if (resetIconToDefault) {
+                // デフォルトに戻す場合、古いStorageのアイコンがあれば削除
+                if (currentUser.icon_data && !currentUser.icon_data.startsWith('data:image')) {
+                    await deleteFilesViaEdgeFunction([currentUser.icon_data]);
+                }
+                updatedData.icon_data = null;
+            } else if (newIconDataUrl) {
+                // 新しいアイコンが選択された場合
+                // 古いStorageのアイコンがあれば削除
+                if (currentUser.icon_data && !currentUser.icon_data.startsWith('data:image')) {
+                    await deleteFilesViaEdgeFunction([currentUser.icon_data]);
+                }
+                // Data URLをBlobに変換してアップロード
+                const blob = await (await fetch(newIconDataUrl)).blob();
+                const fileId = await uploadFileViaEdgeFunction(new File([blob], 'icon.png', { type: blob.type }));
+                updatedData.icon_data = fileId;
+            } else if (currentUser.icon_data && currentUser.icon_data.startsWith('data:image')) {
+                // ★自動移行処理★: 古いData URL形式のアイコンが設定されており、新しいアイコンが選択されていない場合
+                // Data URLをBlobに変換してアップロード
+                const blob = await (await fetch(currentUser.icon_data)).blob();
+                const fileId = await uploadFileViaEdgeFunction(new File([blob], 'icon.png', { type: blob.type }));
+                updatedData.icon_data = fileId;
+            }
+            // --- ここまで ---
+            
+            const { data, error } = await supabase.from('user').update(updatedData).eq('id', currentUser.id).select().single();
+            if (error) throw error;
+            
             alert('設定を更新しました。');
-            currentUser = data; // メモリ上のcurrentUserを更新
-            newIconDataUrl = null; // リセット
-            resetIconToDefault = false; // リセット
+            currentUser = data;
+            newIconDataUrl = null;
+            resetIconToDefault = false;
             window.location.hash = '';
+
+        } catch(e) {
+            console.error('設定の更新に失敗:', e);
+            alert(`設定の更新に失敗しました: ${e.message}`);
+        } finally {
+            button.disabled = false;
+            showLoading(false);
         }
     }
 
