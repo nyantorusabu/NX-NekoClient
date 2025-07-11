@@ -413,15 +413,13 @@ window.addEventListener('DOMContentLoaded', () => {
         if (session) {
             try {
                 const authUserId = session.user.id; // これはUUID
-
-                // ▼▼▼ ここが最重要修正点 ▼▼▼
+                
                 // 取得した認証UUIDを使って、'uuid'カラムを検索する
                 const { data, error } = await supabase
                     .from('user')
-                    .select('id, name, scid, me, icon_data, frieze, post, like, star, follow, notice, notice_count, settings')
+                    .select('*')
                     .eq('uuid', authUserId) // 'id'ではなく'uuid'と比較する
                     .single();
-                // ▲▲▲ 修正完了 ▲▲▲
 
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 
@@ -726,12 +724,20 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.textContent = escapeHTML(author.name || '不明');
         postHeader.appendChild(authorLink);
 
+        if (author.admin) {
+            const adminBadge = document.createElement('img');
+            adminBadge.src = 'icons/admin.png';
+            adminBadge.className = 'admin-badge';
+            adminBadge.title = 'NyaXTeam';
+            authorLink.appendChild(adminBadge);
+        }
+
         const postTime = document.createElement('span');
         postTime.className = 'post-time';
         postTime.textContent = `#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
         postHeader.appendChild(postTime);
 
-        if (currentUser?.id === post.userid) {
+        if (currentUser && (currentUser.id === post.userid || currentUser.admin)) {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
@@ -1415,7 +1421,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('profile-content').innerHTML = '';
 
         try {
-            const { data: user, error } = await supabase.from('user').select('id, name, scid, me, icon_data, frieze, settings, follow, post, like, star').eq('id', userId).single();
+            const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
             if (error || !user) {
                  profileHeader.innerHTML = '<h2>ユーザーが見つかりません</h2>';
                 showLoading(false);
@@ -1450,7 +1456,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div id="profile-actions" class="profile-actions"></div>
                 </div>
                 <div class="profile-info">
-                    <h2>${escapeHTML(user.name)}</h2>
+                    <h2>
+                        ${escapeHTML(user.name)}
+                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ''}
+                    </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
                     <p class="user-me">${escapeHTML(user.me || '')}</p>
                     <div class="user-stats">
@@ -1477,6 +1486,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     followButton.classList.add('profile-follow-button');
                     followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                     actionsContainer.appendChild(followButton);
+
+                    // 管理者のみに表示されるメニュー
+                    if (currentUser.admin) {
+                        const adminMenuButton = document.createElement('button');
+                        adminMenuButton.className = 'dm-button'; // スタイルを流用
+                        adminMenuButton.innerHTML = '…';
+                        adminMenuButton.onclick = (e) => {
+                            e.stopPropagation();
+                            openAdminProfileMenu(e.currentTarget, user);
+                        };
+                        actionsContainer.appendChild(adminMenuButton);
+                    }
                 }
             }
             
@@ -2784,6 +2805,64 @@ async function openEditPostModal(postId) {
             input.disabled = false;
             sendButton.disabled = false;
             input.focus();
+        }
+    }
+
+    function openAdminProfileMenu(button, targetUser) {
+        // 既存のメニューを閉じる
+        document.getElementById('admin-profile-menu')?.remove();
+
+        const menu = document.createElement('div');
+        menu.id = 'admin-profile-menu';
+        menu.className = 'post-menu is-visible'; // 既存のスタイルを流用
+        
+        const sendNoticeBtn = document.createElement('button');
+        sendNoticeBtn.textContent = '通知を送信';
+        sendNoticeBtn.onclick = () => adminSendNotice(targetUser.id);
+        
+        const freezeBtn = document.createElement('button');
+        freezeBtn.textContent = 'アカウントを凍結';
+        freezeBtn.className = 'delete-btn';
+        freezeBtn.onclick = () => adminFreezeAccount(targetUser.id);
+
+        menu.appendChild(sendNoticeBtn);
+        menu.appendChild(freezeBtn);
+
+        // ボタンの相対位置にメニューを表示
+        document.body.appendChild(menu);
+        const btnRect = button.getBoundingClientRect();
+        menu.style.position = 'absolute';
+        menu.style.top = `${window.scrollY + btnRect.bottom}px`;
+        menu.style.left = `${window.scrollX + btnRect.left}px`;
+        
+        // メニュー外クリックで閉じる
+        setTimeout(() => {
+            document.addEventListener('click', () => menu.remove(), { once: true });
+        }, 0);
+    }
+
+    async function adminSendNotice(targetUserId) {
+        const message = prompt("送信する通知メッセージを入力してください:");
+        if (message && message.trim()) {
+            await sendNotification(targetUserId, `${message.trim()} - NyaXTeam`);
+            alert('通知を送信しました。');
+        }
+    }
+
+    async function adminFreezeAccount(targetUserId) {
+        const reason = prompt("アカウントの凍結理由を入力してください (必須):");
+        if (reason && reason.trim()) {
+            if (confirm(`本当にこのユーザーを凍結しますか？\n理由: ${reason}`)) {
+                const { error } = await supabase.from('user').update({ frieze: reason.trim() }).eq('id', targetUserId);
+                if (error) {
+                    alert(`凍結に失敗しました: ${error.message}`);
+                } else {
+                    alert('アカウントを凍結しました。ページをリロードします。');
+                    window.location.reload();
+                }
+            }
+        } else {
+            alert('凍結理由の入力は必須です。');
         }
     }
     
