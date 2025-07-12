@@ -1746,7 +1746,9 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('id, userid, content, attachments, "like", star, reply_id, time, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, user(id, name))');
+            // ▼▼▼ この行を修正 ▼▼▼
+            let query = supabase.from('post').select('*, user(*), reply_to:reply_id(id, user(id, name))');
+            // ▲▲▲ 修正ここまで ▲▲▲
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
@@ -1784,7 +1786,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         const adPostEl = createAdPostHTML();
                         trigger.before(adPostEl);
                     }
-                    
+
                     const postIds = posts.map(p => p.id);
 
                     const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: postIds });
@@ -1803,11 +1805,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
                     if (newIdsToFetch.length > 0) {
                         const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
-                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
+                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                     }
                     const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
+                        // ▼▼▼ この行を修正 ▼▼▼
+                        // ポストの投稿者情報をキャッシュに保存する
+                        if (post.user && !allUsersCache.has(post.user.id)) {
+                            allUsersCache.set(post.user.id, post.user);
+                        }
+                        // ▲▲▲ 修正ここまで ▲▲▲
                         const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender });
                         if (postEl) trigger.before(postEl);
                     }
@@ -1834,10 +1842,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 loadMore();
             }
         }, { rootMargin: '200px' });
-
+        
         postLoadObserver.observe(trigger);
     }
-
+    
     async function loadUsersWithPagination(container, type, options = {}) {
         currentPagination = { page: 0, hasMore: true, type, options };
 
