@@ -1257,11 +1257,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         } else {
             // --- リスト画面の表示 ---
-            DOM.pageHeader.innerHTML = `
-                <div class="header-with-back-button">
-                    <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
-                    <h2 id="page-title">メッセージ</h2>
-                </div>`;
+            DOM.pageHeader.innerHTML = `<h2 id="page-title">メッセージ</h2>`;
             
             // ▼▼▼ このブロックを修正 ▼▼▼
             // 先にコンテナの枠組みだけを作成
@@ -1335,7 +1331,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // ヘッダーを生成
             DOM.pageHeader.innerHTML = `
                 <div class="header-with-back-button">
-                    <button class="header-back-btn" onclick="window.location.hash = '#dm'">${ICONS.back}</button>
+                    <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
                     <div style="flex-grow:1;">
                         <h2 id="page-title" style="font-size: 1.1rem; margin-bottom: 0;">${escapeHTML(dm.title)}</h2>
                         <small style="color: var(--secondary-text-color);">${dm.member.length}人のメンバー</small>
