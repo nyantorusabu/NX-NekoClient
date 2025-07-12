@@ -1182,7 +1182,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 for (const reply of repliesToRender) {
                     const postForRender = { ...reply, like: reply.like, star: reply.star };
-                    const authorForRender = { id: reply.author_id, name: reply.author_name, scid: reply.author_scid, icon_data: reply.author_icon_data };
+                    const authorForRender = { 
+                        id: reply.author_id, 
+                        name: reply.author_name, 
+                        scid: reply.author_scid, 
+                        icon_data: reply.author_icon_data,
+                        admin: reply.author_admin,
+                        verify: reply.author_verify
+                    };
                     
                     // 「@{user}さんに返信」の表示は、引き続きすべての孫以降の返信で行う
                     if (reply.reply_id !== postId && reply.reply_to_user_id && reply.reply_to_user_name) {
