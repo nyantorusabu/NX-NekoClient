@@ -1114,7 +1114,7 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
             
@@ -1802,7 +1802,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
                     if (newIdsToFetch.length > 0) {
-                        const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                        const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                         if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
                     }
                     const userCacheForRender = allUsersCache;
@@ -2769,7 +2769,7 @@ async function openEditPostModal(postId) {
             
             const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name').in('id', newIdsToFetch);
+                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
             // ▲▲▲ 追加ここまで ▲▲▲
