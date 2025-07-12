@@ -1346,7 +1346,7 @@ input, textarea {
     display: flex;
     gap: 0.8rem;
     margin-bottom: 1rem;
-    max-width: 80%;
+    max-width: 90%;
 }
 .dm-message-container.sent {
     flex-direction: row-reverse;
@@ -1399,10 +1399,6 @@ input, textarea {
     flex-shrink: 0;
     align-self: flex-end; /* アイコンは常に下端に配置 */
 }
-.dm-message-wrapper {
-    position: relative; /* メニューボタンとメニューの位置基準 */
-    min-width: 0;
-}
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end;
 }
@@ -1415,8 +1411,6 @@ input, textarea {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    /* ▼▼▼ このコンテナから最大幅の指定を削除 ▼▼▼ */
-    /* max-width: 75%; */ 
 }
 .dm-message-meta {
     font-size: 0.8rem;
@@ -1434,7 +1428,6 @@ input, textarea {
     white-space: pre-wrap;
     font-weight: 400;
     line-height: 1.4;
-    max-width: 90%;
     overflow-wrap: break-word;
     word-break: break-word;
     font-size: 0.85rem;
