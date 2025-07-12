@@ -1273,21 +1273,16 @@ input, textarea {
     background-color: #fef0f4; /* like-colorのさらに薄い版 */
 }
 
-/* DM画面のスタイル */
-#dm-content {
-    display: flex;
-    height: calc(100vh - 57px); /* ヘッダー分を引く */
-}
 #dm-list-container {
-    width: 40%;
-    border-right: 1px solid var(--border-color);
+    width: 100%; /* 幅を100%に */
+    border-right: none; /* 右の境界線を削除 */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
 .dm-new-message-btn {
-    -webkit-appearance: none; /* デフォルトスタイルリセット */
-    appearance: none; /* デフォルトスタイルリセット */
+    -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     padding: 1rem;
     font-weight: bold;
@@ -1317,8 +1312,8 @@ input, textarea {
 .dm-list-item-title {
     font-weight: bold;
     flex-grow: 1;
-    white-space: normal; /* 折り返しを許可 */
-    word-break: break-word; /* 長い単語でも折り返す */
+    white-space: normal;
+    word-break: break-word;
 }
 .dm-manage-btn {
     background: none;
@@ -1332,9 +1327,9 @@ input, textarea {
     background-color: #e0e0e0;
 }
 #dm-conversation-container {
-    width: 60%;
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 57px); /* ヘッダー分を引く */
 }
 
 /* ★★★ DMメッセージのレイアウト問題を解決 ★★★ */
