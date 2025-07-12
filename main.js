@@ -1251,8 +1251,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (dmId) {
             // --- 会話画面の表示 ---
-            DOM.pageHeader.innerHTML = ''; // ヘッダーは会話画面で設定
-            contentDiv.innerHTML = '<div id="dm-conversation-container"></div>'; // 会話用コンテナを用意
+            DOM.pageHeader.innerHTML = ''; 
+            contentDiv.innerHTML = '<div id="dm-conversation-container"></div>'; 
             await showDmConversation(dmId);
 
         } else {
@@ -1262,8 +1262,16 @@ window.addEventListener('DOMContentLoaded', () => {
                     <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
                     <h2 id="page-title">メッセージ</h2>
                 </div>`;
-            contentDiv.innerHTML = '<div id="dm-list-container" class="spinner"></div>';
-            const listContainer = document.getElementById('dm-list-container');
+            
+            // ▼▼▼ このブロックを修正 ▼▼▼
+            // 先にコンテナの枠組みだけを作成
+            contentDiv.innerHTML = `
+                <div id="dm-list-container">
+                    <button class="dm-new-message-btn" onclick="window.openCreateDmModal()">新しいメッセージ</button>
+                    <div id="dm-list-items-wrapper" class="spinner"></div>
+                </div>
+            `;
+            const listItemsWrapper = document.getElementById('dm-list-items-wrapper');
             
             try {
                 const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
@@ -1277,28 +1285,34 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                 }
 
-                let dmListHTML = dms.map(dm => `
-                    <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
-                        <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
-                        <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
-                    </div>
-                `).join('');
+                // URLが会話画面のままなら、一覧画面のURLに書き換える
+                if (window.location.hash.startsWith('#dm/')) {
+                    window.history.replaceState({ path: '#dm' }, '', '#dm');
+                }
+
+                if (dms.length === 0) {
+                    listItemsWrapper.innerHTML = '<p style="text-align:center; padding: 2rem; color: var(--secondary-text-color);">まだメッセージはありません。</p>';
+                } else {
+                    listItemsWrapper.innerHTML = dms.map(dm => `
+                        <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
+                            <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
+                            <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
+                        </div>
+                    `).join('');
+                }
                 
-                listContainer.className = ''; // スピナーを消す
-                listContainer.innerHTML = `
-                    <button class="dm-new-message-btn" onclick="window.openCreateDmModal()">新しいメッセージ</button>
-                    ${dmListHTML}
-                `;
+                listItemsWrapper.classList.remove('spinner'); // 成功したらスピナーを消す
 
             } catch(e) {
                 console.error("DMリストの読み込みに失敗:", e);
-                listContainer.innerHTML = '<p class="error-message">メッセージの読み込みに失敗しました。</p>';
+                listItemsWrapper.innerHTML = '<p class="error-message">メッセージの読み込みに失敗しました。</p>';
+                listItemsWrapper.classList.remove('spinner'); // 失敗時もスピナーを消す
             } finally {
                 showLoading(false);
             }
+            // ▲▲▲ 修正ここまで ▲▲▲
         }
     }
-
         async function showDmConversation(dmId) {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
