@@ -1320,7 +1320,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (error || !dm || !dm.member.includes(currentUser.id)) {
                 DOM.pageHeader.innerHTML = `
                     <div class="header-with-back-button">
-                        <button class="header-back-btn" onclick="window.location.hash = '#dm'">${ICONS.back}</button>
+                        <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
                         <h2 id="page-title">エラー</h2>
                     </div>`;
                 container.innerHTML = '<p class="error-message" style="margin:2rem;">DMが見つからないか、アクセス権がありません。</p>';
@@ -1328,7 +1328,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ヘッダーを生成
             DOM.pageHeader.innerHTML = `
                 <div class="header-with-back-button">
                     <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
@@ -1340,18 +1339,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // ユーザー情報をキャッシュ
-            const memberIds = dm.member;
-            const newIdsToFetch = memberIds.filter(id => !allUsersCache.has(id));
+            // ▼▼▼ このブロックで、表示に必要な全ユーザー情報を先に取得する ▼▼▼
+            const allUserIdsInDm = new Set(dm.member);
+            const mentionRegex = /@(\d+)/g;
+
+            (dm.post || []).forEach(msg => {
+                if (msg.userid) allUserIdsInDm.add(msg.userid);
+                if (msg.content) {
+                    let match;
+                    while ((match = mentionRegex.exec(msg.content)) !== null) {
+                        allUserIdsInDm.add(parseInt(match[1]));
+                    }
+                }
+            });
+
+            const newIdsToFetch = [...allUserIdsInDm].filter(id => id && !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const {data: users} = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
-                if (users) users.forEach(u => allUsersCache.set(u.id, u));
+                const { data: users } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                if (users) {
+                    users.forEach(u => allUsersCache.set(u.id, u));
+                }
             }
+            // ▲▲▲ 修正ここまで ▲▲▲
             
             const posts = dm.post || [];
+            // キャッシュが完全な状態でメッセージを描画
             const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
             
-            // 会話とフォームを描画
             container.innerHTML = `
                 <div class="dm-conversation-view">${messagesHTML}</div>
                 <div class="dm-message-form">
@@ -1367,7 +1381,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // イベントリスナーを設定
+            // イベントリスナーとリアルタイム更新のロジックは変更なし
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
             const previewContainer = container.querySelector('.file-preview-container');
@@ -1433,7 +1447,6 @@ window.addEventListener('DOMContentLoaded', () => {
             });
             document.getElementById('send-dm-btn').onclick = sendMessageAction;
 
-            // リアルタイム更新の購読
             lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
 
             if (currentDmChannel) supabase.removeChannel(currentDmChannel);
