@@ -1459,13 +1459,16 @@ input, textarea {
 }
 .dm-message-form {
     position: sticky;
-    bottom: 0;
     border-top: 1px solid var(--border-color);
     padding: 0.5rem 1rem;
     display: flex;
     align-items: flex-end;
     gap: 0.5rem;
+    background-color: white;
+    bottom: 0;
 }
+
+.dm-message-form {}
 
 .dm-form-content {
     flex-grow: 1;
@@ -1752,6 +1755,9 @@ input, textarea {
     }
     .nav-item-post, #nav-menu-bottom {
         display: none;
+    }
+    .dm-message-form {
+        bottom: 4em;
     }
     #main-content {
         border: none;
