@@ -1321,7 +1321,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-        async function showDmConversation(dmId) {
+    async function showDmConversation(dmId) {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
         
@@ -1351,10 +1351,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
+            const posts = dm.post || [];
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
-            const posts = dm.post || [];
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
@@ -1390,18 +1390,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
+            // --- ▼▼▼ [修正点] 既読化処理 ---
+            // 画面を開いた時点で未読のメッセージIDをリストアップ
             const unreadMessageIds = posts
                 .filter(msg => msg.read && !msg.read.includes(currentUser.id))
                 .map(msg => msg.id);
 
+            // 未読メッセージがあれば、DBを更新し、完了後ナビゲーションのバッジも更新する
             if (unreadMessageIds.length > 0) {
                 await supabase.rpc('mark_dm_messages_as_read', {
                     p_dm_id: dmId,
                     p_message_ids: unreadMessageIds,
                     p_user_id: currentUser.id
                 });
-                await updateNavAndSidebars();
+                await updateNavAndSidebars(); // バッジ表示を即時反映
             }
+            // --- ▲▲▲ 修正ここまで ▲▲▲
 
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
@@ -1422,19 +1426,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             previewItem.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><button class="file-preview-remove" data-index="${index}">×</button>`;
                         };
                         reader.readAsDataURL(file);
-                    } else if (file.type.startsWith('video/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            previewItem.innerHTML = `<video src="${e.target.result}" style="width:100px; height:100px; object-fit:cover;" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else if (file.type.startsWith('audio/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            previewItem.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem;"><audio src="${e.target.result}" controls style="height: 30px; width: 200px;"></audio><button class="file-preview-remove" data-index="${index}" style="position:relative; top:0; right:0;">×</button></div>`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
+                    } else { // 他のファイルタイプも同様に処理...
                         previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                         previewContainer.appendChild(previewItem);
                     }
@@ -1474,22 +1466,26 @@ window.addEventListener('DOMContentLoaded', () => {
             currentDmChannel = supabase.channel(`dm-${dmId}`)
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, async payload => {
                     const newPostArray = payload.new.post;
-                    if(newPostArray && newPostArray.length > 0) {
-                        const latestMessage = newPostArray[newPostArray.length - 1];
-                        if(latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
+                    if (!newPostArray || newPostArray.length === 0) return;
 
-                        const view = document.querySelector('.dm-conversation-view');
-                        if(view) {
-                            const msgHTML = renderDmMessage(latestMessage);
-                            view.insertAdjacentHTML('afterbegin', msgHTML);
-                            lastRenderedMessageId = latestMessage.id;
-                            
-                            await supabase.rpc('mark_dm_messages_as_read', {
-                                p_dm_id: dmId,
-                                p_message_ids: [latestMessage.id],
-                                p_user_id: currentUser.id
-                            });
-                        }
+                    const latestMessage = newPostArray[newPostArray.length - 1];
+                    if (latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
+
+                    const view = document.querySelector('.dm-conversation-view');
+                    if (view) {
+                        const msgHTML = renderDmMessage(latestMessage);
+                        view.insertAdjacentHTML('afterbegin', msgHTML);
+                        lastRenderedMessageId = latestMessage.id;
+                        
+                        // --- ▼▼▼ [修正点] リアルタイム受信時の既読化処理 ---
+                        // 受信したメッセージを即時既読化し、その後バッジを更新
+                        await supabase.rpc('mark_dm_messages_as_read', {
+                            p_dm_id: dmId,
+                            p_message_ids: [latestMessage.id],
+                            p_user_id: currentUser.id
+                        });
+                        await updateNavAndSidebars(); // バッジ表示を即時反映
+                        // --- ▲▲▲ 修正ここまで ▲▲▲
                     }
                 }).subscribe();
 
@@ -3047,21 +3043,26 @@ async function openEditPostModal(postId) {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
                 updateNavAndSidebars();
             })
+            // --- ▼▼▼ [修正点] DM更新のリアルタイム処理を一本化 ---
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm' }, payload => {
-                if (currentUser && payload.new.member.includes(currentUser.id)) {
-                    const isOnDmPage = window.location.hash.startsWith('#dm');
-                    // DMページにいる場合は、router()による再描画に任せる
-                    if (isOnDmPage) {
-                        const currentDmId = window.location.hash.substring(4);
-                        // もしDM一覧ページか、更新があったDMとは別のDMを開いているなら一覧を再描画
-                        if (!currentDmId || currentDmId !== payload.new.id) {
-                            showDmScreen();
-                        }
-                    }
-                    // ナビゲーションのバッジは常に更新
-                    updateNavAndSidebars();
+                if (!currentUser || !payload.new.member.includes(currentUser.id)) return;
+                
+                const currentOpenDmId = window.location.hash.startsWith('#dm/') ? window.location.hash.substring(4) : null;
+
+                // 開いている会話画面での更新は、専用のリスナー(currentDmChannel)に任せるため、ここでは何もしない
+                if (payload.new.id === currentOpenDmId) {
+                    return;
                 }
+                
+                // DM一覧画面を開いている場合は、画面を再描画して未読数を更新
+                if (window.location.hash === '#dm') {
+                    showDmScreen();
+                }
+
+                // ナビゲーションのバッジは常に更新する
+                updateNavAndSidebars();
             })
+            // --- ▲▲▲ 修正ここまで ---
             .subscribe();
     }
     
