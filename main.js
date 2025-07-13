@@ -1278,7 +1278,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
                 if (error) throw error;
                 
-                const unreadCountsMap = new Map(currentUser.unreadDmCountsData || []);
+                const { data: unreadCountsData, error: unreadError } = await supabase.rpc('get_all_unread_dm_counts', { p_user_id: currentUser.id });
+                if (unreadError) throw unreadError;
+                const unreadCountsMap = new Map(unreadCountsData.map(item => [item.dm_id, item.unread_count]));
 
                 const allMemberIds = new Set(dms.flatMap(dm => dm.member));
                 const newIdsToFetch = [...allMemberIds].filter(id => !allUsersCache.has(id));
@@ -1296,7 +1298,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     listItemsWrapper.innerHTML = dms.map(dm => {
                         const unreadCount = unreadCountsMap.get(dm.id) || 0;
-                        const titlePrefix = unreadCount > 0 ? `<span class="dm-list-unread-count">(${unreadCount})</span> ` : '';
+                        const titlePrefix = unreadCount > 0 ? `(${unreadCount}) ` : '';
                         const title = escapeHTML(dm.title) || dm.member.map(id => allUsersCache.get(id)?.name || id).join(', ');
                         
                         return `
@@ -1352,7 +1354,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
-            (dm.post || []).forEach(msg => {
+            const posts = dm.post || [];
+            posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
                     let match;
@@ -1370,7 +1373,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            const posts = dm.post || [];
             const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
             
             container.innerHTML = `
@@ -1398,7 +1400,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     p_message_ids: unreadMessageIds,
                     p_user_id: currentUser.id
                 });
-                updateNavAndSidebars();
+                await updateNavAndSidebars();
             }
 
             const messageInput = document.getElementById('dm-message-input');
@@ -3018,7 +3020,6 @@ async function openEditPostModal(postId) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
                 
-                // ▼▼▼ [修正点1, 2] ボタンの挿入位置を変更 ▼▼▼
                 if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
@@ -3032,13 +3033,11 @@ async function openEditPostModal(postId) {
                     };
                     indicator.appendChild(button);
                     
-                    // ポストフォームコンテナの前に挿入する
                     const postFormStickyContainer = mainScreenEl.querySelector('.post-form-sticky-container');
                     if (postFormStickyContainer) {
                         mainScreenEl.insertBefore(indicator, postFormStickyContainer);
                     }
                 } else if (!document.getElementById('post-detail-screen').classList.contains('hidden')) {
-                // ▲▲▲ [修正点1, 2] ここまで ▼▼▼
                     const currentPostId = window.location.hash.substring(6);
                     if (payload.new.reply_id === currentPostId) {
                         router();
@@ -3047,6 +3046,21 @@ async function openEditPostModal(postId) {
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
                 updateNavAndSidebars();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm' }, payload => {
+                if (currentUser && payload.new.member.includes(currentUser.id)) {
+                    const isOnDmPage = window.location.hash.startsWith('#dm');
+                    // DMページにいる場合は、router()による再描画に任せる
+                    if (isOnDmPage) {
+                        const currentDmId = window.location.hash.substring(4);
+                        // もしDM一覧ページか、更新があったDMとは別のDMを開いているなら一覧を再描画
+                        if (!currentDmId || currentDmId !== payload.new.id) {
+                            showDmScreen();
+                        }
+                    }
+                    // ナビゲーションのバッジは常に更新
+                    updateNavAndSidebars();
+                }
             })
             .subscribe();
     }
@@ -3058,17 +3072,17 @@ async function openEditPostModal(postId) {
         const target = e.target;
 
         // --- 1. メニューの開閉トリガー処理 ---
-const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
-if (menuButton) {
-    e.stopPropagation();
+        const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
     
-    let menuToToggle;
-    // ▼▼▼ この if-else ブロックを修正 ▼▼▼
-    if (menuButton.classList.contains('dm-message-menu-btn')) {
-        menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
-    } else {
-        menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
-    }
+            let menuToToggle;
+            // ▼▼▼ この if-else ブロックを修正 ▼▼▼
+            if (menuButton.classList.contains('dm-message-menu-btn')) {
+                menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+            } else {
+                menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
+            }
 
     if (menuToToggle) {
         const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
