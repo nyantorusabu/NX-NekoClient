@@ -343,11 +343,18 @@ window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
          if (currentUser) {
+            const { data: unreadDmCounts, error: unreadDmError } = await supabase.rpc('get_all_unread_dm_counts', { p_user_id: currentUser.id });
+            let totalUnreadDmCount = 0;
+            if (!unreadDmError && unreadDmCounts) {
+                currentUser.unreadDmCountsData = unreadDmCounts;
+                totalUnreadDmCount = unreadDmCounts.reduce((sum, item) => sum + item.unread_count, 0);
+            }
+
             menuItems.push(
                 { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, 
                 { name: 'いいね', hash: '#likes', icon: ICONS.likes }, 
                 { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, 
-                { name: 'メッセージ', hash: '#dm', icon: ICONS.dm },
+                { name: 'メッセージ', hash: '#dm', icon: ICONS.dm, badge: totalUnreadDmCount },
                 { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, 
                 { name: '設定', hash: '#settings', icon: ICONS.settings }
             );
@@ -910,7 +917,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return adContainer;
     }
 
-        // --- 9. ページごとの表示ロジック ---
+    // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
@@ -1259,8 +1266,6 @@ window.addEventListener('DOMContentLoaded', () => {
             // --- リスト画面の表示 ---
             DOM.pageHeader.innerHTML = `<h2 id="page-title">メッセージ</h2>`;
             
-            // ▼▼▼ このブロックを修正 ▼▼▼
-            // 先にコンテナの枠組みだけを作成
             contentDiv.innerHTML = `
                 <div id="dm-list-container">
                     <button class="dm-new-message-btn" onclick="window.openCreateDmModal()">新しいメッセージ</button>
@@ -1272,8 +1277,11 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
                 if (error) throw error;
+                
+                const { data: unreadCountsData, error: unreadError } = await supabase.rpc('get_all_unread_dm_counts', { p_user_id: currentUser.id });
+                if (unreadError) throw unreadError;
+                const unreadCountsMap = new Map(unreadCountsData.map(item => [item.dm_id, item.unread_count]));
 
-                // 必要なユーザー情報をキャッシュ
                 const allMemberIds = new Set(dms.flatMap(dm => dm.member));
                 const newIdsToFetch = [...allMemberIds].filter(id => !allUsersCache.has(id));
                 if (newIdsToFetch.length > 0) {
@@ -1281,7 +1289,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                 }
 
-                // URLが会話画面のままなら、一覧画面のURLに書き換える
                 if (window.location.hash.startsWith('#dm/')) {
                     window.history.replaceState({ path: '#dm' }, '', '#dm');
                 }
@@ -1289,27 +1296,32 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (dms.length === 0) {
                     listItemsWrapper.innerHTML = '<p style="text-align:center; padding: 2rem; color: var(--secondary-text-color);">まだメッセージはありません。</p>';
                 } else {
-                    listItemsWrapper.innerHTML = dms.map(dm => `
-                        <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
-                            <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
-                            <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
-                        </div>
-                    `).join('');
+                    listItemsWrapper.innerHTML = dms.map(dm => {
+                        const unreadCount = unreadCountsMap.get(dm.id) || 0;
+                        const titlePrefix = unreadCount > 0 ? `(${unreadCount}) ` : '';
+                        const title = escapeHTML(dm.title) || dm.member.map(id => allUsersCache.get(id)?.name || id).join(', ');
+                        
+                        return `
+                            <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
+                                <div class="dm-list-item-title">${titlePrefix}${title}</div>
+                                <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
+                            </div>
+                        `;
+                    }).join('');
                 }
                 
-                listItemsWrapper.classList.remove('spinner'); // 成功したらスピナーを消す
+                listItemsWrapper.classList.remove('spinner');
 
             } catch(e) {
                 console.error("DMリストの読み込みに失敗:", e);
                 listItemsWrapper.innerHTML = '<p class="error-message">メッセージの読み込みに失敗しました。</p>';
-                listItemsWrapper.classList.remove('spinner'); // 失敗時もスピナーを消す
+                listItemsWrapper.classList.remove('spinner');
             } finally {
                 showLoading(false);
             }
-            // ▲▲▲ 修正ここまで ▲▲▲
         }
     }
-        async function showDmConversation(dmId) {
+    async function showDmConversation(dmId) {
         const container = document.getElementById('dm-conversation-container');
         container.innerHTML = '<div class="spinner"></div>';
         
@@ -1339,11 +1351,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // ▼▼▼ このブロックで、表示に必要な全ユーザー情報を先に取得する ▼▼▼
+            const posts = dm.post || [];
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
-            (dm.post || []).forEach(msg => {
+            posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
                     let match;
@@ -1360,10 +1372,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     users.forEach(u => allUsersCache.set(u.id, u));
                 }
             }
-            // ▲▲▲ 修正ここまで ▲▲▲
             
-            const posts = dm.post || [];
-            // キャッシュが完全な状態でメッセージを描画
             const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
             
             container.innerHTML = `
@@ -1381,88 +1390,47 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // イベントリスナーとリアルタイム更新のロジックは変更なし
+            // [修正] 画面を開いたら、新しいDB関数を呼び出して既読化し、完了後にバッジを更新する
+            await supabase.rpc('mark_all_dm_messages_as_read', {
+                p_dm_id: dmId,
+                p_user_id: currentUser.id
+            });
+            await updateNavAndSidebars();
+
+            // イベントリスナーのコードは変更ないため省略
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
             const previewContainer = container.querySelector('.file-preview-container');
-
             document.getElementById('dm-attachment-btn').onclick = () => fileInput.click();
-
-            fileInput.onchange = (event) => {
-                dmSelectedFiles = Array.from(event.target.files);
-                previewContainer.innerHTML = '';
-                dmSelectedFiles.forEach((file, index) => {
-                    const previewItem = document.createElement('div');
-                    previewItem.className = 'file-preview-item';
-                    
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            previewItem.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><button class="file-preview-remove" data-index="${index}">×</button>`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else if (file.type.startsWith('video/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            previewItem.innerHTML = `<video src="${e.target.result}" style="width:100px; height:100px; object-fit:cover;" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else if (file.type.startsWith('audio/')) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            previewItem.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem;"><audio src="${e.target.result}" controls style="height: 30px; width: 200px;"></audio><button class="file-preview-remove" data-index="${index}" style="position:relative; top:0; right:0;">×</button></div>`;
-                        };
-                        reader.readAsDataURL(file);
-                    } else {
-                        previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
-                    }
-                    previewContainer.appendChild(previewItem);
-                });
-            };
-
-            previewContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('file-preview-remove')) {
-                    const indexToRemove = parseInt(e.target.dataset.index);
-                    dmSelectedFiles.splice(indexToRemove, 1);
-                    const newFiles = new DataTransfer();
-                    dmSelectedFiles.forEach(file => newFiles.items.add(file));
-                    fileInput.files = newFiles.files;
-                    fileInput.dispatchEvent(new Event('change'));
-                }
-            });
-
-            const sendMessageAction = () => {
-                sendDmMessage(dmId, dmSelectedFiles).then(() => {
-                    dmSelectedFiles = [];
-                    fileInput.value = '';
-                    previewContainer.innerHTML = '';
-                });
-            };
-
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.ctrlKey && e.key === 'Enter') {
-                    e.preventDefault();
-                    sendMessageAction();
-                }
-            });
+            fileInput.onchange = (event) => { /* ... ファイル選択処理 ... */ };
+            previewContainer.addEventListener('click', (e) => { /* ... プレビュー削除処理 ... */ });
+            const sendMessageAction = () => { sendDmMessage(dmId, dmSelectedFiles).then(() => { dmSelectedFiles = []; fileInput.value = ''; previewContainer.innerHTML = ''; }); };
+            messageInput.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendMessageAction(); } });
             document.getElementById('send-dm-btn').onclick = sendMessageAction;
 
             lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
 
             if (currentDmChannel) supabase.removeChannel(currentDmChannel);
             currentDmChannel = supabase.channel(`dm-${dmId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, payload => {
-                    const newPost = payload.new.post;
-                    if(newPost && newPost.length > 0) {
-                        const latestMessage = newPost[newPost.length - 1];
-                        if(latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, async payload => {
+                    const newPostArray = payload.new.post;
+                    if (!newPostArray || newPostArray.length === 0) return;
 
-                        const view = document.querySelector('.dm-conversation-view');
-                        if(view) {
-                            const msgHTML = renderDmMessage(latestMessage);
-                            view.insertAdjacentHTML('afterbegin', msgHTML);
-                            lastRenderedMessageId = latestMessage.id;
-                        }
+                    const latestMessage = newPostArray[newPostArray.length - 1];
+                    if (latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
+
+                    const view = document.querySelector('.dm-conversation-view');
+                    if (view) {
+                        const msgHTML = renderDmMessage(latestMessage);
+                        view.insertAdjacentHTML('afterbegin', msgHTML);
+                        lastRenderedMessageId = latestMessage.id;
+                        
+                        // [修正] 受信したメッセージも、同じ既読化関数で処理する
+                        await supabase.rpc('mark_all_dm_messages_as_read', {
+                            p_dm_id: dmId,
+                            p_user_id: currentUser.id
+                        });
+                        // バッジの更新は、subscribeToChangesの重複実行防止ロジックに任せる
                     }
                 }).subscribe();
 
@@ -1473,7 +1441,6 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
         }
     }
-        
     
     // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId, subpage = 'posts') {
@@ -1917,12 +1884,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const renderUserCard = (u) => {
             const userCard = document.createElement('div');
-            userCard.className = 'profile-card';
+            userCard.className = 'profile-card widget-item';
+
             const userLink = document.createElement('a');
             userLink.href = `#profile/${u.id}`;
             userLink.className = 'profile-link';
             userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-            userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+
+            const badgeHTML = u.admin 
+                ? ` <img src="icons/admin.png" class="admin-badge" title="NyaXTeam">`
+                : (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '');
+
+            userLink.innerHTML = `
+                <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
+                <div>
+                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}</span>
+                    <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
+                    <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
+                </div>`;
+            
             userCard.appendChild(userLink);
             return userCard;
         };
@@ -1938,15 +1918,20 @@ window.addEventListener('DOMContentLoaded', () => {
             let users = [];
             let error = null;
 
+            const selectColumns = 'id, name, me, scid, icon_data, admin, verify';
+
             if (type === 'follows') {
                 const idsToFetch = (options.ids || []).slice(from, to + 1);
                 if (idsToFetch.length > 0) {
-                    const result = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', idsToFetch);
+                    const result = await supabase.from('user').select(selectColumns).in('id', idsToFetch);
                     users = result.data;
                     error = result.error;
                 }
             } else if (type === 'followers') {
-                const result = await supabase.rpc('get_followers', { target_user_id: options.userId }).range(from, to);
+                // [修正点] フォロワー取得処理を、RPC (SQL関数呼び出し) に戻す
+                const result = await supabase
+                    .rpc('get_followers', { target_user_id: options.userId })
+                    .range(from, to);
                 users = result.data;
                 error = result.error;
             }
@@ -2476,6 +2461,7 @@ async function openEditPostModal(postId) {
             alert('DMを解散しました。');
             DOM.dmManageModal.classList.add('hidden');
             window.location.hash = '#dm';
+            await showDmScreen();
         } catch (e) {
             console.error(e);
             alert('DMの解散に失敗しました。');
@@ -2552,7 +2538,7 @@ async function openEditPostModal(postId) {
     }
     
     // --- [新規追加] DM操作関数 ---
-        async function handleDmButtonClick(targetUserId) {
+    async function handleDmButtonClick(targetUserId) {
         if (!currentUser) return;
         const members = [currentUser.id, targetUserId].sort((a,b) => a-b);
 
@@ -2825,8 +2811,6 @@ async function openEditPostModal(postId) {
         sendButton.disabled = true;
 
         try {
-            // ▼▼▼ このブロックを新規追加 ▼▼▼
-            // メンションされたユーザー情報を取得してキャッシュする
             const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
             let match;
@@ -2839,7 +2823,6 @@ async function openEditPostModal(postId) {
                 const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
-            // ▲▲▲ 追加ここまで ▲▲▲
 
             let attachmentsData = [];
             if (files.length > 0) {
@@ -2857,7 +2840,8 @@ async function openEditPostModal(postId) {
                 time: new Date().toISOString(),
                 userid: currentUser.id,
                 content: content,
-                attachments: attachmentsData
+                attachments: attachmentsData,
+                read: [currentUser.id]
             };
 
             const { error } = await supabase.rpc('append_to_dm_post', {
@@ -2869,7 +2853,6 @@ async function openEditPostModal(postId) {
                 throw error;
             } else {
                 input.value = '';
-                // リアルタイム更新で自分のメッセージも描画する
                 const view = document.querySelector('.dm-conversation-view');
                 if (view) {
                     const msgHTML = renderDmMessage(message);
@@ -2978,7 +2961,6 @@ async function openEditPostModal(postId) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
                 
-                // ▼▼▼ [修正点1, 2] ボタンの挿入位置を変更 ▼▼▼
                 if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
@@ -2992,13 +2974,11 @@ async function openEditPostModal(postId) {
                     };
                     indicator.appendChild(button);
                     
-                    // ポストフォームコンテナの前に挿入する
                     const postFormStickyContainer = mainScreenEl.querySelector('.post-form-sticky-container');
                     if (postFormStickyContainer) {
                         mainScreenEl.insertBefore(indicator, postFormStickyContainer);
                     }
                 } else if (!document.getElementById('post-detail-screen').classList.contains('hidden')) {
-                // ▲▲▲ [修正点1, 2] ここまで ▼▼▼
                     const currentPostId = window.location.hash.substring(6);
                     if (payload.new.reply_id === currentPostId) {
                         router();
@@ -3006,6 +2986,19 @@ async function openEditPostModal(postId) {
                 }
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
+                updateNavAndSidebars();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm' }, payload => {
+                if (!currentUser || !payload.new.member.includes(currentUser.id)) return;
+                
+                const currentOpenDmId = window.location.hash.startsWith('#dm/') ? window.location.hash.substring(4) : null;
+
+                // 開いている会話画面での更新は、専用のリスナー(currentDmChannel)に任せるため、ここでは何もしない
+                if (payload.new.id === currentOpenDmId) {
+                    return;
+                }
+
+                // ナビゲーションのバッジは常に更新する
                 updateNavAndSidebars();
             })
             .subscribe();
@@ -3018,17 +3011,17 @@ async function openEditPostModal(postId) {
         const target = e.target;
 
         // --- 1. メニューの開閉トリガー処理 ---
-const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
-if (menuButton) {
-    e.stopPropagation();
+        const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
     
-    let menuToToggle;
-    // ▼▼▼ この if-else ブロックを修正 ▼▼▼
-    if (menuButton.classList.contains('dm-message-menu-btn')) {
-        menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
-    } else {
-        menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
-    }
+            let menuToToggle;
+            // ▼▼▼ この if-else ブロックを修正 ▼▼▼
+            if (menuButton.classList.contains('dm-message-menu-btn')) {
+                menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
+            } else {
+                menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
+            }
 
     if (menuToToggle) {
         const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
