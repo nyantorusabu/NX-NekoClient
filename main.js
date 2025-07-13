@@ -993,13 +993,64 @@ window.addEventListener('DOMContentLoaded', () => {
             showLoading(false);
             return;
         }
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">通知</h2>`;
+
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-action-button">
+                <h2 id="page-title">通知</h2>
+                <button id="mark-all-read-btn" class="header-action-btn">すべて既読</button>
+            </div>`;
+        
         showScreen('notifications-screen');
         const contentDiv = DOM.notificationsContent;
         contentDiv.innerHTML = '<div class="spinner"></div>';
+
+        document.getElementById('mark-all-read-btn').addEventListener('click', async () => {
+            if (!confirm('すべての通知を既読にしますか？')) return;
+            
+            showLoading(true);
+            try {
+                const { error } = await supabase.rpc('mark_all_notifications_as_read', {
+                    p_user_id: currentUser.id
+                });
+                if (error) throw error;
+                
+                if(currentUser.notice) {
+                    currentUser.notice.forEach(n => n.click = true);
+                }
+                currentUser.notice_count = 0;
+                await showNotificationsScreen();
+                await updateNavAndSidebars();
+
+            } catch (e) {
+                console.error("すべて既読処理でエラー:", e);
+                alert('処理中にエラーが発生しました。');
+            } finally {
+                showLoading(false);
+            }
+        });
         
         try {
-            // メンションされたユーザー情報を取得
+            // [修正点] バックグラウンドでの未読数クリア処理を復活
+            if (currentUser.notice_count > 0) {
+                const previousCount = currentUser.notice_count;
+                currentUser.notice_count = 0; // UIを即時更新
+                updateNavAndSidebars();
+
+                // DBへの更新はバックグラウンドで実行
+                supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id)
+                    .then(({ error }) => {
+                        if (error) {
+                            // 失敗した場合はUIを元に戻す
+                            console.error("Failed to reset notice_count:", error);
+                            currentUser.notice_count = previousCount;
+                            updateNavAndSidebars();
+                        } else {
+                            // 成功したらローカルストレージも更新
+                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                        }
+                    });
+            }
+
             const allMentionedIds = new Set();
             (currentUser.notice || []).forEach(n => {
                 const message = typeof n === 'object' ? n.message : n;
@@ -1015,23 +1066,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
 
-            // バックグラウンドでDBの未読数を0に更新
-            if (currentUser.notice_count > 0) {
-                supabase.from('user').update({ notice_count: 0 }).eq('id', currentUser.id)
-                    .then(({ error: resetError }) => {
-                        if (!resetError) {
-                            currentUser.notice_count = 0;
-                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                            updateNavAndSidebars();
-                        }
-                    });
-            }
-            
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
+                const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
+                if (error) throw error;
+                currentUser.notice = latestUser.notice;
+
                 currentUser.notice.forEach(n_obj => {
                     const isObject = typeof n_obj === 'object' && n_obj !== null;
-                    
                     const notification = isObject ? n_obj : { id: crypto.randomUUID(), message: n_obj, open: '', click: true };
                     
                     const noticeEl = document.createElement('div');
