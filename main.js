@@ -1390,24 +1390,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // [修正] 画面を開いたら、無条件で既読化関数を実行し、完了後にバッジを更新する
+            // [修正] 画面を開いたら、新しいDB関数を呼び出して既読化し、完了後にバッジを更新する
             await supabase.rpc('mark_all_dm_messages_as_read', {
                 p_dm_id: dmId,
                 p_user_id: currentUser.id
             });
-            await updateNavAndSidebars();
 
-            // (イベントリスナーのコードは変更ないため省略)
+            // イベントリスナーのコードは変更ないため省略
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
             const previewContainer = container.querySelector('.file-preview-container');
             document.getElementById('dm-attachment-btn').onclick = () => fileInput.click();
             fileInput.onchange = (event) => { /* ... ファイル選択処理 ... */ };
             previewContainer.addEventListener('click', (e) => { /* ... プレビュー削除処理 ... */ });
-            const sendMessageAction = () => { /* ... メッセージ送信処理 ... */ };
+            const sendMessageAction = () => { sendDmMessage(dmId, dmSelectedFiles).then(() => { dmSelectedFiles = []; fileInput.value = ''; previewContainer.innerHTML = ''; }); };
             messageInput.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendMessageAction(); } });
             document.getElementById('send-dm-btn').onclick = sendMessageAction;
-
 
             lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
 
