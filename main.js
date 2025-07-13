@@ -2461,6 +2461,7 @@ async function openEditPostModal(postId) {
             alert('DMを解散しました。');
             DOM.dmManageModal.classList.add('hidden');
             window.location.hash = '#dm';
+            await showDmScreen();
         } catch (e) {
             console.error(e);
             alert('DMの解散に失敗しました。');
@@ -2996,10 +2997,6 @@ async function openEditPostModal(postId) {
                 if (payload.new.id === currentOpenDmId) {
                     return;
                 }
-                
-                 if (window.location.hash === '#dm') {
-                     showDmScreen(); 
-                 }
 
                 // ナビゲーションのバッジは常に更新する
                 updateNavAndSidebars();
