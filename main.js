@@ -343,11 +343,18 @@ window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
         }
          if (currentUser) {
+            const { data: unreadDmCounts, error: unreadDmError } = await supabase.rpc('get_all_unread_dm_counts', { p_user_id: currentUser.id });
+            let totalUnreadDmCount = 0;
+            if (!unreadDmError && unreadDmCounts) {
+                currentUser.unreadDmCountsData = unreadDmCounts;
+                totalUnreadDmCount = unreadDmCounts.reduce((sum, item) => sum + item.unread_count, 0);
+            }
+
             menuItems.push(
                 { name: '通知', hash: '#notifications', icon: ICONS.notifications, badge: currentUser.notice_count }, 
                 { name: 'いいね', hash: '#likes', icon: ICONS.likes }, 
                 { name: 'お気に入り', hash: '#stars', icon: ICONS.stars }, 
-                { name: 'メッセージ', hash: '#dm', icon: ICONS.dm },
+                { name: 'メッセージ', hash: '#dm', icon: ICONS.dm, badge: totalUnreadDmCount },
                 { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, 
                 { name: '設定', hash: '#settings', icon: ICONS.settings }
             );
@@ -910,7 +917,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return adContainer;
     }
 
-        // --- 9. ページごとの表示ロジック ---
+    // --- 9. ページごとの表示ロジック ---
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
@@ -1259,8 +1266,6 @@ window.addEventListener('DOMContentLoaded', () => {
             // --- リスト画面の表示 ---
             DOM.pageHeader.innerHTML = `<h2 id="page-title">メッセージ</h2>`;
             
-            // ▼▼▼ このブロックを修正 ▼▼▼
-            // 先にコンテナの枠組みだけを作成
             contentDiv.innerHTML = `
                 <div id="dm-list-container">
                     <button class="dm-new-message-btn" onclick="window.openCreateDmModal()">新しいメッセージ</button>
@@ -1272,8 +1277,9 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 const { data: dms, error } = await supabase.from('dm').select('id, title, member, time').contains('member', [currentUser.id]).order('time', { ascending: false });
                 if (error) throw error;
+                
+                const unreadCountsMap = new Map(currentUser.unreadDmCountsData || []);
 
-                // 必要なユーザー情報をキャッシュ
                 const allMemberIds = new Set(dms.flatMap(dm => dm.member));
                 const newIdsToFetch = [...allMemberIds].filter(id => !allUsersCache.has(id));
                 if (newIdsToFetch.length > 0) {
@@ -1281,7 +1287,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                 }
 
-                // URLが会話画面のままなら、一覧画面のURLに書き換える
                 if (window.location.hash.startsWith('#dm/')) {
                     window.history.replaceState({ path: '#dm' }, '', '#dm');
                 }
@@ -1289,24 +1294,29 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (dms.length === 0) {
                     listItemsWrapper.innerHTML = '<p style="text-align:center; padding: 2rem; color: var(--secondary-text-color);">まだメッセージはありません。</p>';
                 } else {
-                    listItemsWrapper.innerHTML = dms.map(dm => `
-                        <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
-                            <div class="dm-list-item-title">${escapeHTML(dm.title) || dm.member.join(', ')}</div>
-                            <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
-                        </div>
-                    `).join('');
+                    listItemsWrapper.innerHTML = dms.map(dm => {
+                        const unreadCount = unreadCountsMap.get(dm.id) || 0;
+                        const titlePrefix = unreadCount > 0 ? `<span class="dm-list-unread-count">(${unreadCount})</span> ` : '';
+                        const title = escapeHTML(dm.title) || dm.member.map(id => allUsersCache.get(id)?.name || id).join(', ');
+                        
+                        return `
+                            <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
+                                <div class="dm-list-item-title">${titlePrefix}${title}</div>
+                                <button class="dm-manage-btn" onclick="event.stopPropagation(); window.openDmManageModal('${dm.id}')">…</button>
+                            </div>
+                        `;
+                    }).join('');
                 }
                 
-                listItemsWrapper.classList.remove('spinner'); // 成功したらスピナーを消す
+                listItemsWrapper.classList.remove('spinner');
 
             } catch(e) {
                 console.error("DMリストの読み込みに失敗:", e);
                 listItemsWrapper.innerHTML = '<p class="error-message">メッセージの読み込みに失敗しました。</p>';
-                listItemsWrapper.classList.remove('spinner'); // 失敗時もスピナーを消す
+                listItemsWrapper.classList.remove('spinner');
             } finally {
                 showLoading(false);
             }
-            // ▲▲▲ 修正ここまで ▲▲▲
         }
     }
         async function showDmConversation(dmId) {
@@ -1339,7 +1349,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // ▼▼▼ このブロックで、表示に必要な全ユーザー情報を先に取得する ▼▼▼
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
@@ -1360,10 +1369,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     users.forEach(u => allUsersCache.set(u.id, u));
                 }
             }
-            // ▲▲▲ 修正ここまで ▲▲▲
             
             const posts = dm.post || [];
-            // キャッシュが完全な状態でメッセージを描画
             const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
             
             container.innerHTML = `
@@ -1381,7 +1388,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // イベントリスナーとリアルタイム更新のロジックは変更なし
+            const unreadMessageIds = posts
+                .filter(msg => msg.read && !msg.read.includes(currentUser.id))
+                .map(msg => msg.id);
+
+            if (unreadMessageIds.length > 0) {
+                await supabase.rpc('mark_dm_messages_as_read', {
+                    p_dm_id: dmId,
+                    p_message_ids: unreadMessageIds,
+                    p_user_id: currentUser.id
+                });
+                updateNavAndSidebars();
+            }
+
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
             const previewContainer = container.querySelector('.file-preview-container');
@@ -1415,8 +1434,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         reader.readAsDataURL(file);
                     } else {
                         previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                        previewContainer.appendChild(previewItem);
                     }
-                    previewContainer.appendChild(previewItem);
                 });
             };
 
@@ -1451,10 +1470,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
             if (currentDmChannel) supabase.removeChannel(currentDmChannel);
             currentDmChannel = supabase.channel(`dm-${dmId}`)
-                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, payload => {
-                    const newPost = payload.new.post;
-                    if(newPost && newPost.length > 0) {
-                        const latestMessage = newPost[newPost.length - 1];
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm', filter: `id=eq.${dmId}` }, async payload => {
+                    const newPostArray = payload.new.post;
+                    if(newPostArray && newPostArray.length > 0) {
+                        const latestMessage = newPostArray[newPostArray.length - 1];
                         if(latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
 
                         const view = document.querySelector('.dm-conversation-view');
@@ -1462,6 +1481,12 @@ window.addEventListener('DOMContentLoaded', () => {
                             const msgHTML = renderDmMessage(latestMessage);
                             view.insertAdjacentHTML('afterbegin', msgHTML);
                             lastRenderedMessageId = latestMessage.id;
+                            
+                            await supabase.rpc('mark_dm_messages_as_read', {
+                                p_dm_id: dmId,
+                                p_message_ids: [latestMessage.id],
+                                p_user_id: currentUser.id
+                            });
                         }
                     }
                 }).subscribe();
@@ -2552,7 +2577,7 @@ async function openEditPostModal(postId) {
     }
     
     // --- [新規追加] DM操作関数 ---
-        async function handleDmButtonClick(targetUserId) {
+    async function handleDmButtonClick(targetUserId) {
         if (!currentUser) return;
         const members = [currentUser.id, targetUserId].sort((a,b) => a-b);
 
@@ -2825,8 +2850,6 @@ async function openEditPostModal(postId) {
         sendButton.disabled = true;
 
         try {
-            // ▼▼▼ このブロックを新規追加 ▼▼▼
-            // メンションされたユーザー情報を取得してキャッシュする
             const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
             let match;
@@ -2839,7 +2862,6 @@ async function openEditPostModal(postId) {
                 const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
-            // ▲▲▲ 追加ここまで ▲▲▲
 
             let attachmentsData = [];
             if (files.length > 0) {
@@ -2857,7 +2879,8 @@ async function openEditPostModal(postId) {
                 time: new Date().toISOString(),
                 userid: currentUser.id,
                 content: content,
-                attachments: attachmentsData
+                attachments: attachmentsData,
+                read: [currentUser.id]
             };
 
             const { error } = await supabase.rpc('append_to_dm_post', {
@@ -2869,7 +2892,6 @@ async function openEditPostModal(postId) {
                 throw error;
             } else {
                 input.value = '';
-                // リアルタイム更新で自分のメッセージも描画する
                 const view = document.querySelector('.dm-conversation-view');
                 if (view) {
                     const msgHTML = renderDmMessage(message);
