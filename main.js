@@ -217,23 +217,28 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function formatPostContent(text, userCache = new Map()) { // ★★★ デフォルト値を追加
+    function formatPostContent(text, userCache = new Map()) {
         let formattedText = escapeHTML(text);
         
-        // [修正点] URLを検出する正規表現を、より堅牢なものに変更
+        // 1. URLをリンクに置換 (この正規表現は前回のものでOK)
         const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
-        
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
         
-        const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
-        formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
+        // 2. [修正点] ハッシュタグの正規表現と置換処理を修正
+        // 行頭(^)または空白文字(\s)の直後にある#のみをハッシュタグとして認識する
+        const hashtagRegex = /(^|\s)#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
+        // p1 には空白文字や行頭が、 p2 にはハッシュタグ本体が格納される
+        formattedText = formattedText.replace(hashtagRegex, (match, p1, p2) => {
+            return `${p1}<a href="#search/${encodeURIComponent(p2)}" onclick="event.stopPropagation()">#${p2}</a>`;
+        });
         
+        // 3. メンションをリンクに置換
         const mentionRegex = /@(\d+)/g;
         formattedText = formattedText.replace(mentionRegex, (match, userId) => {
             const numericId = parseInt(userId);
             if (userCache.has(numericId)) {
-                const user = userCache.get(numericId); // ユーザーオブジェクトを取得
-                const userName = user ? user.name : null; // nameプロパティを取得
+                const user = userCache.get(numericId);
+                const userName = user ? user.name : null;
                 if (userName) {
                     return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
                 }
