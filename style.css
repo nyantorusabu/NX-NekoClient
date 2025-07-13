@@ -723,6 +723,7 @@ input, textarea {
 }
 
 .attachment-item img, .attachment-item video, .attachment-item audio {
+    max-height: 15em;
     max-width: 100%;
     display: block;
     cursor: pointer;
