@@ -220,13 +220,13 @@ window.addEventListener('DOMContentLoaded', () => {
     function formatPostContent(text, userCache = new Map()) {
         let formattedText = escapeHTML(text);
         
-        // 1. URLをリンクに置換 (この正規表現は前回のものでOK)
+        // 1. URLをリンクに置換
         const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
         
         // 2. [修正点] ハッシュタグの正規表現と置換処理を修正
-        // 行頭(^)または空白文字(\s)の直後にある#のみをハッシュタグとして認識する
-        const hashtagRegex = /(^|\s)#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
+        // 行頭または空白の直後に#があり、そのハッシュタグの終わりが空白または行末であることを確認する
+        const hashtagRegex = /(^|\s)#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)(?=\s|$)/g;
         // p1 には空白文字や行頭が、 p2 にはハッシュタグ本体が格納される
         formattedText = formattedText.replace(hashtagRegex, (match, p1, p2) => {
             return `${p1}<a href="#search/${encodeURIComponent(p2)}" onclick="event.stopPropagation()">#${p2}</a>`;
