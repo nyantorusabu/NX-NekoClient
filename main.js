@@ -1395,6 +1395,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 p_dm_id: dmId,
                 p_user_id: currentUser.id
             });
+            await updateNavAndSidebars();
 
             // イベントリスナーのコードは変更ないため省略
             const messageInput = document.getElementById('dm-message-input');
