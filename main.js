@@ -219,8 +219,12 @@ window.addEventListener('DOMContentLoaded', () => {
     
     function formatPostContent(text, userCache = new Map()) { // ★★★ デフォルト値を追加
         let formattedText = escapeHTML(text);
-        const urlRegex = /(https?:\/\/[^\s<>"'’]+)/g;
+        
+        // [修正点] URLを検出する正規表現を、より堅牢なものに変更
+        const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
+        
         formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
+        
         const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)/g;
         formattedText = formattedText.replace(hashtagRegex, (match, tagName) => `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">${match}</a>`);
         
