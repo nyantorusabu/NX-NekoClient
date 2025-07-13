@@ -280,6 +280,30 @@ input, textarea {
     outline: none;
     font-size: 1rem;
 }
+/* ヘッダー内のタイトルとボタンを両端揃えにするためのコンテナ */
+.header-with-action-button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+/* ヘッダー右上のアクションボタンのスタイル */
+.header-action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid var(--text-color); /* 黒い枠線 */
+    background: white;
+    color: var(--text-color); /* 黒い文字 */
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex-shrink: 0; /* ボタンが縮まないようにする */
+}
+
+.header-action-btn:hover {
+    background-color: var(--bg-color); /* ホバー時に薄いグレーに */
+}
 
 /* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
