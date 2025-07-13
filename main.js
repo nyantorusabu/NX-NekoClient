@@ -1928,9 +1928,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     error = result.error;
                 }
             } else if (type === 'followers') {
-                const result = await supabase.from('user')
-                    .select(selectColumns)
-                    .contains('follow', [options.userId])
+                // [修正点] フォロワー取得処理を、RPC (SQL関数呼び出し) に戻す
+                const result = await supabase
+                    .rpc('get_followers', { target_user_id: options.userId })
                     .range(from, to);
                 users = result.data;
                 error = result.error;
