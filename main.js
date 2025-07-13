@@ -1942,12 +1942,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const renderUserCard = (u) => {
             const userCard = document.createElement('div');
-            userCard.className = 'profile-card';
+            userCard.className = 'profile-card widget-item';
+
             const userLink = document.createElement('a');
             userLink.href = `#profile/${u.id}`;
             userLink.className = 'profile-link';
             userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-            userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+
+            const badgeHTML = u.admin 
+                ? ` <img src="icons/admin.png" class="admin-badge" title="NyaXTeam">`
+                : (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '');
+
+            userLink.innerHTML = `
+                <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
+                <div>
+                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}</span>
+                    <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
+                    <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
+                </div>`;
+            
             userCard.appendChild(userLink);
             return userCard;
         };
@@ -1963,15 +1976,20 @@ window.addEventListener('DOMContentLoaded', () => {
             let users = [];
             let error = null;
 
+            const selectColumns = 'id, name, me, scid, icon_data, admin, verify';
+
             if (type === 'follows') {
                 const idsToFetch = (options.ids || []).slice(from, to + 1);
                 if (idsToFetch.length > 0) {
-                    const result = await supabase.from('user').select('id, name, me, scid, icon_data').in('id', idsToFetch);
+                    const result = await supabase.from('user').select(selectColumns).in('id', idsToFetch);
                     users = result.data;
                     error = result.error;
                 }
             } else if (type === 'followers') {
-                const result = await supabase.rpc('get_followers', { target_user_id: options.userId }).range(from, to);
+                const result = await supabase.from('user')
+                    .select(selectColumns)
+                    .contains('follow', [options.userId])
+                    .range(from, to);
                 users = result.data;
                 error = result.error;
             }
