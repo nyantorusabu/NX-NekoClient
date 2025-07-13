@@ -2997,10 +2997,9 @@ async function openEditPostModal(postId) {
                     return;
                 }
                 
-                // [修正] DM一覧画面を開いている場合、画面の再描画は行わない
-                // if (window.location.hash === '#dm') {
-                //     showDmScreen(); 
-                // }
+                 if (window.location.hash === '#dm') {
+                     showDmScreen(); 
+                 }
 
                 // ナビゲーションのバッジは常に更新する
                 updateNavAndSidebars();
