@@ -2993,17 +2993,17 @@ async function openEditPostModal(postId) {
                 
                 const currentOpenDmId = window.location.hash.startsWith('#dm/') ? window.location.hash.substring(4) : null;
 
-                // [修正] 開いている会話画面での更新は、専用のリスナー(currentDmChannel)に任せるため、ここでは何もしない
+                // 開いている会話画面での更新は、専用のリスナー(currentDmChannel)に任せるため、ここでは何もしない
                 if (payload.new.id === currentOpenDmId) {
                     return;
                 }
                 
-                // [修正] DM一覧画面を開いている場合は、画面を再描画して未読数を更新
-                if (window.location.hash === '#dm') {
-                    showDmScreen(); // これにより一覧の (未読数) 表示が更新される
-                }
+                // [修正] DM一覧画面を開いている場合、画面の再描画は行わない
+                // if (window.location.hash === '#dm') {
+                //     showDmScreen(); 
+                // }
 
-                // [修正] ナビゲーションのバッジは、会話画面を開いていない場合に限り、ここで更新する
+                // ナビゲーションのバッジは常に更新する
                 updateNavAndSidebars();
             })
             .subscribe();
