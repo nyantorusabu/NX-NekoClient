@@ -218,35 +218,73 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     function formatPostContent(text, userCache = new Map()) {
-        let formattedText = escapeHTML(text);
-        
-        // 1. URLをリンクに置換
-        const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
-        formattedText = formattedText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">$1</a>');
-        
-        // 2. [修正点] ハッシュタグの正規表現と置換処理を修正
-        // 行頭または空白の直後に#があり、そのハッシュタグの終わりが空白または行末であることを確認する
-        const hashtagRegex = /(^|\s)#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠]+)(?=\s|$)/g;
-        // p1 には空白文字や行頭が、 p2 にはハッシュタグ本体が格納される
-        formattedText = formattedText.replace(hashtagRegex, (match, p1, p2) => {
-            return `${p1}<a href="#search/${encodeURIComponent(p2)}" onclick="event.stopPropagation()">#${p2}</a>`;
-        });
-        
-        // 3. メンションをリンクに置換
-        const mentionRegex = /@(\d+)/g;
-        formattedText = formattedText.replace(mentionRegex, (match, userId) => {
-            const numericId = parseInt(userId);
-            if (userCache.has(numericId)) {
-                const user = userCache.get(numericId);
-                const userName = user ? user.name : null;
-                if (userName) {
+
+        // 通常のテキスト処理ヘルパー関数（変更なし）
+        const processStandardText = (standardText) => {
+            let processed = escapeHTML(standardText);
+            const urls = [];
+            const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
+            processed = processed.replace(urlRegex, (url) => {
+                const placeholder = `%%URL_${urls.length}%%`;
+                urls.push(url);
+                return placeholder;
+            });
+            const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠\/\(\)]+)(?=\s|$)/g;
+            processed = processed.replace(hashtagRegex, (match, tagName) => {
+                return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
+            });
+            const mentionRegex = /@(\d+)/g;
+            processed = processed.replace(mentionRegex, (match, userId) => {
+                const numericId = parseInt(userId);
+                if (userCache.has(numericId)) {
+                    const user = userCache.get(numericId);
+                    const userName = user ? user.name : `user${numericId}`;
                     return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
                 }
-            }
-            return match;
-        });
+                return match;
+            });
+            urls.forEach((url, i) => {
+                const placeholder = `%%URL_${i}%%`;
+                const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
+                processed = processed.replace(placeholder, link);
+            });
+            return processed.replace(/\n/g, '<br>');
+        };
 
-        return formattedText;
+        // --- メインの処理 ---
+        const lines = text.split(/\r?\n/);
+        const firstLine = lines[0].trim();
+
+        if (firstLine === '!markdown') {
+            const markdownContent = lines.slice(1).join('\n');
+            const trimmedContent = markdownContent.trim();
+
+            const rawHtml = marked.parse(trimmedContent, {
+                breaks: true,
+                gfm: true
+            });
+
+            let finalHtml = DOMPurify.sanitize(rawHtml);
+            
+            // 1. ブロック要素である見出しタグを、スタイル付きのインライン要素(span)に置換
+            finalHtml = finalHtml.replace(/<h1[^>]*>/g, '<span style="font-weight: bold; font-size: 2em; line-height: 1.2;">').replace(/<\/h1>/g, '</span>');
+            finalHtml = finalHtml.replace(/<h2[^>]*>/g, '<span style="font-weight: bold; font-size: 1.5em; line-height: 1.2;">').replace(/<\/h2>/g, '</span>');
+            finalHtml = finalHtml.replace(/<h3[^>]*>/g, '<span style="font-weight: bold; font-size: 1.17em; line-height: 1.2;">').replace(/<\/h3>/g, '</span>');
+            // h4,h5,h6も必要に応じて追加
+
+            // 2. [修正点] 不要になった段落タグを、改行にせず、完全に消去する
+            finalHtml = finalHtml.replace(/<\/?p[^>]*>/g, '');
+
+            // 3. 末尾に余分な<br>が生成される場合があるので、それを取り除く
+            if (finalHtml.endsWith('<br>')) {
+                finalHtml = finalHtml.slice(0, -4);
+            }
+            
+            return finalHtml;
+
+        } else {
+            return processStandardText(text);
+        }
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -1441,22 +1479,77 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             
-            // [修正] 画面を開いたら、新しいDB関数を呼び出して既読化し、完了後にバッジを更新する
             await supabase.rpc('mark_all_dm_messages_as_read', {
                 p_dm_id: dmId,
                 p_user_id: currentUser.id
             });
             await updateNavAndSidebars();
 
-            // イベントリスナーのコードは変更ないため省略
             const messageInput = document.getElementById('dm-message-input');
             const fileInput = document.getElementById('dm-file-input');
             const previewContainer = container.querySelector('.file-preview-container');
+
             document.getElementById('dm-attachment-btn').onclick = () => fileInput.click();
-            fileInput.onchange = (event) => { /* ... ファイル選択処理 ... */ };
-            previewContainer.addEventListener('click', (e) => { /* ... プレビュー削除処理 ... */ });
-            const sendMessageAction = () => { sendDmMessage(dmId, dmSelectedFiles).then(() => { dmSelectedFiles = []; fileInput.value = ''; previewContainer.innerHTML = ''; }); };
-            messageInput.addEventListener('keydown', (e) => { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendMessageAction(); } });
+
+            fileInput.onchange = (event) => {
+                dmSelectedFiles = Array.from(event.target.files);
+                previewContainer.innerHTML = '';
+                dmSelectedFiles.forEach((file, index) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'file-preview-item';
+                    
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            previewItem.innerHTML = `<img src="${e.target.result}" alt="${file.name}"><button class="file-preview-remove" data-index="${index}">×</button>`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else if (file.type.startsWith('video/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            previewItem.innerHTML = `<video src="${e.target.result}" style="width:100px; height:100px; object-fit:cover;" controls></video><button class="file-preview-remove" data-index="${index}">×</button>`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else if (file.type.startsWith('audio/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            previewItem.innerHTML = `<div style="display:flex; align-items:center; gap:0.5rem;"><audio src="${e.target.result}" controls style="height: 30px; width: 200px;"></audio><button class="file-preview-remove" data-index="${index}" style="position:relative; top:0; right:0;">×</button></div>`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                    }
+                    
+                    // [修正点] どのファイルタイプでも必ずプレビュー要素を追加する
+                    previewContainer.appendChild(previewItem);
+                });
+            };
+
+            previewContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('file-preview-remove')) {
+                    const indexToRemove = parseInt(e.target.dataset.index);
+                    dmSelectedFiles.splice(indexToRemove, 1);
+                    const newFiles = new DataTransfer();
+                    dmSelectedFiles.forEach(file => newFiles.items.add(file));
+                    fileInput.files = newFiles.files;
+                    fileInput.dispatchEvent(new Event('change'));
+                }
+            });
+
+            const sendMessageAction = () => {
+                sendDmMessage(dmId, dmSelectedFiles).then(() => {
+                    dmSelectedFiles = [];
+                    fileInput.value = '';
+                    previewContainer.innerHTML = '';
+                });
+            };
+
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    sendMessageAction();
+                }
+            });
             document.getElementById('send-dm-btn').onclick = sendMessageAction;
 
             lastRenderedMessageId = posts.length > 0 ? posts[posts.length - 1].id : null;
@@ -1476,12 +1569,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         view.insertAdjacentHTML('afterbegin', msgHTML);
                         lastRenderedMessageId = latestMessage.id;
                         
-                        // [修正] 受信したメッセージも、同じ既読化関数で処理する
                         await supabase.rpc('mark_all_dm_messages_as_read', {
                             p_dm_id: dmId,
                             p_user_id: currentUser.id
                         });
-                        // バッジの更新は、subscribeToChangesの重複実行防止ロジックに任せる
                     }
                 }).subscribe();
 
@@ -2479,7 +2570,9 @@ async function openEditPostModal(postId) {
             
             alert('DMから退出しました。');
             DOM.dmManageModal.classList.add('hidden');
+
             window.location.hash = '#dm';
+            await showDmScreen();
 
         } catch (e) {
             console.error('DMからの退出に失敗しました:', e);
@@ -3039,19 +3132,24 @@ async function openEditPostModal(postId) {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
                 updateNavAndSidebars();
             })
+            // --- ▼▼▼ [修正点] DM更新のリアルタイム処理をシンプル化 ---
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm' }, payload => {
+                // 自分に関係ないDMの更新は無視
                 if (!currentUser || !payload.new.member.includes(currentUser.id)) return;
                 
                 const currentOpenDmId = window.location.hash.startsWith('#dm/') ? window.location.hash.substring(4) : null;
 
-                // 開いている会話画面での更新は、専用のリスナー(currentDmChannel)に任せるため、ここでは何もしない
+                // 開いている会話画面での更新は、その画面専用のリスナーに任せる
                 if (payload.new.id === currentOpenDmId) {
                     return;
                 }
-
-                // ナビゲーションのバッジは常に更新する
+                
+                // それ以外の場合（DM一覧画面を開いている、または全く別のページを開いている場合）は、
+                // ナビゲーションのバッジ表示を更新するだけにとどめる。
+                // これにより、意図しない既読化や画面の再描画を防ぐ。
                 updateNavAndSidebars();
             })
+            // --- ▲▲▲ 修正ここまで ▲▲▲
             .subscribe();
     }
     
