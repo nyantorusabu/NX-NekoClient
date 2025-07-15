@@ -35,7 +35,8 @@ window.addEventListener('DOMContentLoaded', () => {
         settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
-        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`
+        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
+        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`
     };
 
     // --- 3. DOM要素の取得 ---
@@ -219,7 +220,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     function formatPostContent(text, userCache = new Map()) {
 
-        // 通常のテキスト処理ヘルパー関数（変更なし）
+        // 通常のテキスト処理ヘルパー関数（この中の改行処理はMarkdown以外でのみ使われる）
         const processStandardText = (standardText) => {
             let processed = escapeHTML(standardText);
             const urls = [];
@@ -257,30 +258,43 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (firstLine === '!markdown') {
             const markdownContent = lines.slice(1).join('\n');
-            const trimmedContent = markdownContent.trim();
-
-            const rawHtml = marked.parse(trimmedContent, {
-                breaks: true,
+            
+            const rawHtml = marked.parse(markdownContent, {
+                breaks: true, // marked.jsには改行を<br>にするよう指示
                 gfm: true
             });
 
-            let finalHtml = DOMPurify.sanitize(rawHtml);
-            
-            // 1. ブロック要素である見出しタグを、スタイル付きのインライン要素(span)に置換
-            finalHtml = finalHtml.replace(/<h1[^>]*>/g, '<span style="font-weight: bold; font-size: 2em; line-height: 1.2;">').replace(/<\/h1>/g, '</span>');
-            finalHtml = finalHtml.replace(/<h2[^>]*>/g, '<span style="font-weight: bold; font-size: 1.5em; line-height: 1.2;">').replace(/<\/h2>/g, '</span>');
-            finalHtml = finalHtml.replace(/<h3[^>]*>/g, '<span style="font-weight: bold; font-size: 1.17em; line-height: 1.2;">').replace(/<\/h3>/g, '</span>');
-            // h4,h5,h6も必要に応じて追加
+            // [修正点] アコーディオン内の改行問題を解決するため、DOMPurifyの設定を変更
+            const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
+                ADD_TAGS: ['details', 'summary'],
+                // 改行を維持するための設定は、ここでは不要。CSSと後処理で対応
+            });
 
-            // 2. [修正点] 不要になった段落タグを、改行にせず、完全に消去する
-            finalHtml = finalHtml.replace(/<\/?p[^>]*>/g, '');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = sanitizedHtml;
 
-            // 3. 末尾に余分な<br>が生成される場合があるので、それを取り除く
-            if (finalHtml.endsWith('<br>')) {
-                finalHtml = finalHtml.slice(0, -4);
-            }
-            
-            return finalHtml;
+            // コピーボタンの追加処理（変更なし）
+            tempDiv.querySelectorAll('pre').forEach(preElement => {
+                preElement.style.position = 'relative';
+                const button = document.createElement('button');
+                button.className = 'copy-btn markdown-copy-btn';
+                button.innerHTML = ICONS.copy;
+                button.title = 'Copy code';
+                preElement.appendChild(button);
+            });
+            tempDiv.querySelectorAll('code:not(pre > code)').forEach(codeElement => {
+                const wrapper = document.createElement('span');
+                wrapper.className = 'inline-code-wrapper';
+                const button = document.createElement('button');
+                button.className = 'copy-btn markdown-copy-btn-inline';
+                button.innerHTML = ICONS.copy;
+                button.title = 'Copy code';
+                codeElement.parentNode.insertBefore(wrapper, codeElement);
+                wrapper.appendChild(codeElement);
+                wrapper.appendChild(button);
+            });
+
+            return tempDiv.innerHTML;
 
         } else {
             return processStandardText(text);
@@ -3158,6 +3172,41 @@ async function openEditPostModal(postId) {
     // アプリケーション全体のクリックイベントを処理する単一のハンドラ
     document.addEventListener('click', (e) => {
         const target = e.target;
+
+        // --- [新規追加] Markdown用コピーボタンの処理 ---
+        const copyButton = target.closest('.copy-btn');
+        if (copyButton) {
+            e.stopPropagation();
+            const parentPre = copyButton.closest('pre');
+            const parentInlineWrapper = copyButton.closest('.inline-code-wrapper');
+            let textToCopy = '';
+
+            if (parentPre) {
+                // コードブロックの場合
+                textToCopy = parentPre.querySelector('code')?.textContent || '';
+            } else if (parentInlineWrapper) {
+                // インラインコードの場合
+                textToCopy = parentInlineWrapper.querySelector('code')?.textContent || '';
+            }
+
+            if (textToCopy) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalContent = copyButton.innerHTML;
+                    copyButton.innerHTML = 'Copied!';
+                    copyButton.style.minWidth = '50px';
+                    copyButton.style.textAlign = 'center';
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalContent;
+                        copyButton.style.minWidth = '';
+                        copyButton.style.textAlign = '';
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Copy failed', err);
+                    copyButton.innerHTML = 'Copy failed';
+                });
+            }
+            return; // コピーボタン処理はここで終了
+        }
 
         // --- 1. メニューの開閉トリガー処理 ---
         const menuButton = target.closest('.post-menu-btn, .dm-message-menu-btn');
