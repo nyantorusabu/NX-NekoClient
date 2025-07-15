@@ -1688,6 +1688,157 @@ input, textarea {
     animation: spin 1s ease infinite;
 }
 
+.post-content, .dm-message {
+    line-height: 1.5;
+    white-space: normal;
+}
+
+/*
+ * [重要] 垂直マージンの相殺問題を解決する
+ * すべての要素で、上のマージンを0にし、下のマージンのみで要素間を制御する
+ */
+.post-content > *:first-child, .dm-message > *:first-child {
+    margin-top: 0 !important;
+}
+.post-content > *, .dm-message > * {
+    margin-bottom: 0 !important;
+}
+.post-content p, .dm-message p {
+    margin-top: 0.8em; /* pタグの上にだけマージンを設定 */
+}
+/* 連続するpタグはマージンを詰める */
+.post-content p + p, .dm-message p + p {
+    margin-top: 0.2em;
+}
+
+/* 見出し (h1-h6): 上下のマージンをリセットし、必要な間隔を再設定 */
+.post-content h1, .dm-message h1,
+.post-content h2, .dm-message h2,
+.post-content h3, .dm-message h3,
+.post-content h4, .dm-message h4,
+.post-content h5, .dm-message h5,
+.post-content h6, .dm-message h6 {
+    margin-top: 0.8em;
+    margin-bottom: 0.4em;
+    font-weight: bold;
+    line-height: 1.2;
+}
+.post-content h1, .dm-message h1 { font-size: 2em; }
+.post-content h2, .dm-message h2 { font-size: 1.5em; }
+.post-content h3, .dm-message h3 { font-size: 1.17em; }
+.post-content h4, .dm-message h4 { font-size: 1em; }
+.post-content h5, .dm-message h5 { font-size: 0.83em; }
+.post-content h6, .dm-message h6 { font-size: 0.67em; }
+
+
+/* 引用 */
+.post-content blockquote, .dm-message blockquote {
+    margin-top: 0.8em;
+    border-left: 4px solid rgba(29, 155, 240, 0.5);
+    padding: 0.5em 1em;
+    background-color: var(--bg-color);
+    color: var(--secondary-text-color);
+    border-radius: 0 8px 8px 0;
+}
+.post-content blockquote > *:first-child, .dm-message blockquote > *:first-child {
+    margin-top: 0 !important;
+}
+
+/* コードブロック */
+.post-content pre, .dm-message pre {
+    margin-top: 0.8em;
+    position: relative;
+    background-color: #2d2d2d;
+    color: #f8f8f2;
+    padding: 1em;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre-wrap; /* コードブロック内でも折り返すように */
+    word-break: break-all;
+}
+.post-content pre code, .dm-message pre code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+    white-space: pre-wrap; /* コード内の折り返しを強制 */
+}
+
+/* インラインコード */
+.inline-code-wrapper {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    padding: 0.1em 0.2em 0.1em 0.4em;
+    line-height: 1; /* 親要素の行間の影響を減らす */
+}
+.post-content .inline-code-wrapper code, .dm-message .inline-code-wrapper code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85em;
+    padding: 0;
+    background: none;
+}
+
+/* コピーボタン */
+.copy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.8em; /* テキスト表示用に調整 */
+}
+.copy-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+.copy-btn svg {
+    width: 1em;
+    height: 1em;
+}
+.markdown-copy-btn {
+    position: absolute;
+    top: 0.5em;
+    right: 0.5em;
+    padding: 0.3em 0.5em;
+}
+.markdown-copy-btn-inline {
+    padding: 0.1em 0.3em;
+    margin-left: 0.4em;
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+.markdown-copy-btn-inline:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* アコーディオン */
+.post-content details, .dm-message details {
+    margin-top: 0.8em;
+    padding: 0.5em 1em;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    white-space: pre-wrap; /* [修正点] details内の改行を有効にする */
+}
+.post-content details > *, .dm-message details > * {
+    white-space: pre-wrap; /* 中の要素にも適用 */
+}
+.post-content summary, .dm-message summary {
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 0.5em;
+}
+
+/* リスト */
+.post-content ul, .dm-message ul,
+.post-content ol, .dm-message ol {
+    margin-top: 0.8em;
+    padding-left: 2em;
+}
+
 @keyframes spin {
     0% {
         transform: rotate(0deg);
