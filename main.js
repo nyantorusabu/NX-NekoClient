@@ -20,7 +20,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
-    const POSTS_PER_PAGE = 10;
+    const POSTS_PER_PAGE = 15;
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -1598,30 +1598,24 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // --- 10. プロフィールと設定 ---
     async function showProfileScreen(userId, subpage = 'posts') {
+        // [修正点] ヘッダーの初期表示を、ちらつきが発生しない静的なものに戻す
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
-                <h2 id="page-title">プロフィール</h2>
+                <h2 id="page-title">
+                    <div id="page-title-main">プロフィール</div>
+                    <small id="page-title-sub"></small>
+                </h2>
             </div>`;
         showScreen('profile-screen');
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
-        const existingFriezeNotice = DOM.mainContent.querySelector('.frieze-notice');
-        if (existingFriezeNotice) existingFriezeNotice.remove();
+        document.getElementById('profile-content').innerHTML = '';
         
-        // サブタブコンテナも初期化
-        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
-        if (!subTabsContainer) {
-            profileTabs.insertAdjacentHTML('afterend', '<div id="profile-sub-tabs-container"></div>');
-        }
-
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
-        document.getElementById('profile-sub-tabs-container').innerHTML = ''; // サブタブもクリア
-        document.getElementById('profile-content').innerHTML = '';
 
         try {
             const { data: user, error } = await supabase.from('user').select('*').eq('id', userId).single();
@@ -1631,27 +1625,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // ★★★ 最初に凍結状態をチェック ★★★
+            // [修正点] メディア数を取得し、userオブジェクトに格納しておく
+            const { data: mediaCount, error: mediaCountError } = await supabase.rpc('get_user_media_count', { p_user_id: userId });
+            user.mediaCount = mediaCountError ? 0 : mediaCount;
+
+            // [修正点] ここでのタイトル更新ロジックを完全に削除
+            
             if (user.frieze) {
-                profileHeader.innerHTML = `
-                    <div class="header-top">
-                        <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
-                    </div>
-                    <div class="profile-info">
-                        <h2>${escapeHTML(user.name)}</h2>
-                        <div class="user-id">#${user.id}</div>
-                    </div>`;
-                const friezeNotice = document.createElement('div');
-                friezeNotice.className = 'frieze-notice';
-                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
-                profileHeader.insertAdjacentElement('afterend', friezeNotice);
+                document.getElementById('page-title-main').textContent = user.name;
+                profileHeader.innerHTML = `...`; // 凍結表示
                 showLoading(false);
-                return; // 凍結されている場合はここで描画を終了
+                return;
             }
 
-            // --- 凍結されていない場合の通常の描画処理 ---
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
+            const userMeHtml = escapeHTML(user.me || '').replace(/\n/g, '<br>');
 
             profileHeader.innerHTML = `
                 <div class="header-top">
@@ -1664,10 +1653,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
-                    <p class="user-me">${escapeHTML(user.me || '')}</p>
+                    <p class="user-me">${userMeHtml}</p>
                     <div class="user-stats">
-                        <span><strong>${user.follow?.length || 0}</strong> フォロー中</span>
-                        <span id="follower-count"><strong>${followerCount}</strong> フォロワー</span>
+                        <a href="#profile/${user.id}/following"><strong>${user.follow?.length || 0}</strong> フォロー中</a>
+                        <a href="#profile/${user.id}/followers" id="follower-count"><strong>${followerCount}</strong> フォロワー</a>
                     </div>
                 </div>`;
             
@@ -1704,39 +1693,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // メインのタブを定義
             const mainTabs = [
-                { key: 'posts', name: 'ポスト' },
-                { key: 'likes', name: 'いいね' },
+                { key: 'posts', name: 'ポスト' }, 
+                { key: 'replies', name: '返信', className: 'mobile-hidden' }, 
+                { key: 'media', name: 'メディア' },
+                { key: 'likes', name: 'いいね' }, 
                 { key: 'stars', name: 'お気に入り' },
-                { key: 'follows', name: 'フォロー' } // 「フォロー中」と「フォロワー」を統合
             ];
 
-            // 現在アクティブにすべきメインタブを決定
-            const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
-
+            // [修正点] ボタン生成時にクラスを付与するよう変更
             profileTabs.innerHTML = mainTabs.map(tab => 
-                `<button class="tab-button ${tab.key === activeMainTabKey ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
+                `<button class="tab-button ${tab.className || ''} ${tab.key === subpage ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
             ).join('');
 
-            // メインタブのクリックイベントを設定
-            profileTabs.querySelectorAll('.tab-button').forEach(button => {
-                button.onclick = (e) => {
-                    e.stopPropagation();
-                    const tabKey = button.dataset.tab;
-                    let newSubpage;
-                    // ▼▼▼ このif-elseブロックを修正 ▼▼▼
-                    if (tabKey === 'posts') {
-                        newSubpage = ''; // ポストタブの場合はサブページなし
-                    } else if (tabKey === 'follows') {
-                        newSubpage = 'following'; // フォロータブの場合は'following'をデフォルトに
-                    } else {
-                        newSubpage = tabKey;
-                    }
-                    loadProfileTabContent(user, newSubpage || 'posts'); // newSubpageが空なら'posts'として扱う
-                    // ▲▲▲ 修正ここまで ▲▲▲
-                };
-            });
+            profileTabs.querySelectorAll('.tab-button').forEach(button => { button.onclick = (e) => { e.stopPropagation(); loadProfileTabContent(user, button.dataset.tab); }; });
 
             await loadProfileTabContent(user, subpage);
 
@@ -1749,51 +1719,65 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadProfileTabContent(user, subpage) {
-        // メインのタブのアクティブ状態を更新
-        const activeMainTabKey = (subpage === 'following' || subpage === 'followers') ? 'follows' : subpage;
-        document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeMainTabKey));
-        
-        const subTabsContainer = document.getElementById('profile-sub-tabs-container');
+        const profileHeader = document.getElementById('profile-header');
+        const profileTabs = document.getElementById('profile-tabs');
         const contentDiv = document.getElementById('profile-content');
         
-        subTabsContainer.innerHTML = ''; // サブメニューをリセット
         isLoadingMore = false;
         if (postLoadObserver) postLoadObserver.disconnect();
         contentDiv.innerHTML = '';
 
-        let newUrl;
-        if (subpage === 'posts') {
-            newUrl = `#profile/${user.id}`; // ポストタブはサブページなし
+        const isFollowListActive = subpage === 'following' || subpage === 'followers';
+        
+        profileHeader.classList.toggle('hidden', isFollowListActive);
+        profileTabs.classList.toggle('hidden', isFollowListActive);
+        
+        // [修正点] サブタイトルの更新ロジックを修正
+        const pageTitleMain = document.getElementById('page-title-main');
+        const pageTitleSub = document.getElementById('page-title-sub');
+        pageTitleMain.textContent = user.name;
+        if (isFollowListActive) {
+            pageTitleSub.textContent = `#${user.id}`;
+        } else if (subpage === 'media') {
+            pageTitleSub.textContent = `${user.mediaCount || 0} 件の画像と動画`;
         } else {
-            newUrl = `#profile/${user.id}/${subpage}`;
+            pageTitleSub.textContent = `${user.post?.length || 0} 件のポスト`;
         }
         
-        if (window.location.hash !== newUrl) {
-            window.history.pushState({ path: newUrl }, '', newUrl);
-        }
+        const existingSubTabs = document.getElementById('profile-sub-tabs-container');
+        if (existingSubTabs) existingSubTabs.remove();
 
-        if (activeMainTabKey === 'follows') {
+        if (isFollowListActive) {
+            const subTabsContainer = document.createElement('div');
+            subTabsContainer.id = 'profile-sub-tabs-container';
             subTabsContainer.innerHTML = `
                 <div class="profile-sub-tabs">
                     <button class="tab-button ${subpage === 'following' ? 'active' : ''}" data-sub-tab="following">フォロー中</button>
                     <button class="tab-button ${subpage === 'followers' ? 'active' : ''}" data-sub-tab="followers">フォロワー</button>
                 </div>`;
             
-            // ▼▼▼ このブロックを修正 ▼▼▼
-            subTabsContainer.querySelectorAll('.tab-button').forEach(button => {
-                button.onclick = (e) => {
-                    e.stopPropagation();
-                    // hashを変更せずにコンテンツをロード
-                    loadProfileTabContent(user, button.dataset.subTab);
-                };
-            });
-            // ▲▲▲ 修正ここまで ▲▲▲
+            // [修正点] ヘッダーの後に挿入し、JSでtop位置を動的に設定
+            DOM.pageHeader.parentNode.insertBefore(subTabsContainer, DOM.pageHeader.nextSibling);
+            const headerHeight = DOM.pageHeader.offsetHeight;
+            subTabsContainer.style.top = `${headerHeight}px`;
+
+            subTabsContainer.querySelectorAll('.tab-button').forEach(button => { button.onclick = (e) => { e.stopPropagation(); loadProfileTabContent(user, button.dataset.subTab); }; });
+        } else {
+            document.querySelectorAll('#profile-tabs .tab-button').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === subpage));
         }
-        
+
+        let newUrl = (subpage === 'posts') ? `#profile/${user.id}` : `#profile/${user.id}/${subpage}`;
+        if (window.location.hash !== newUrl) {
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        }
+
         try {
             switch(subpage) {
                 case 'posts':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [] });
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [], subType: 'posts_only' });
+                    break;
+                case 'replies':
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [], subType: 'replies_only' });
                     break;
                 case 'likes': 
                     if (!user.settings.show_like && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのいいねは非公開です。</p>'; break; }
@@ -1805,15 +1789,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     break;
                 case 'following':
                     if (!user.settings.show_follow && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォローリストは非公開です。</p>'; break; }
-                    // ▼▼▼ このブロックを修正 ▼▼▼
                     await loadUsersWithPagination(contentDiv, 'follows', { ids: user.follow || [] });
-                    // ▲▲▲ 修正ここまで ▲▲▲
                     break;
                 case 'followers':
                     if (!user.settings.show_follower && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのフォロワーリストは非公開です。</p>'; break; }
-                    // ▼▼▼ このブロックを修正 ▼▼▼
                     await loadUsersWithPagination(contentDiv, 'followers', { userId: user.id });
-                    // ▲▲▲ 修正ここまで ▲▲▲
+                    break;
+                case 'media':
+                    await loadMediaGrid(contentDiv, { userId: user.id });
                     break;
             }
         } catch(err) {
@@ -1821,7 +1804,6 @@ window.addEventListener('DOMContentLoaded', () => {
             console.error("loadProfileTabContent error:", err);
         }
     }
-
 
     async function showSettingsScreen() {
         if (!currentUser) return router();
@@ -1946,17 +1928,31 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else if (type === 'search') {
                 query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars' || type === 'profile_posts') {
+            } else if (type === 'likes' || type === 'stars') {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
+            } else if (type === 'profile_posts') {
+                if (!options.ids || options.ids.length === 0) {
+                    currentPagination.hasMore = false;
+                } else {
+                    query = query.in('id', options.ids);
+                    // [修正点] サブタイプに応じてフィルタリングを追加
+                    if (options.subType === 'posts_only') {
+                        query = query.is('reply_id', null);
+                    } else if (options.subType === 'replies_only') {
+                        query = query.not('reply_id', 'is', null);
+                    }
+                }
             }
             
             query = query.order('time', { ascending: false });
 
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。' };
+            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。' };
+            const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
+
             if (!currentPagination.hasMore) {
                 const existingPosts = container.querySelectorAll('.post').length;
-                trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
+                trigger.innerHTML = existingPosts === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
                 isLoadingMore = false;
                 if(postLoadObserver) postLoadObserver.unobserve(trigger);
                 return;
@@ -2123,6 +2119,80 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         }, { rootMargin: '200px' });
         
+        postLoadObserver.observe(trigger);
+    }
+
+    async function loadMediaGrid(container, options = {}) {
+        currentPagination = { page: 0, hasMore: true, type: 'media', options };
+        
+        // グリッド用のコンテナを作成
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'media-grid-container';
+        container.appendChild(gridContainer);
+        
+        let trigger = container.querySelector('.load-more-trigger');
+        if (trigger) trigger.remove();
+        
+        trigger = document.createElement('div');
+        trigger.className = 'load-more-trigger';
+        container.appendChild(trigger);
+        
+        const MEDIA_PER_PAGE = 15; // メディアタブ専用の表示数
+
+        const loadMore = async () => {
+            if (isLoadingMore || !currentPagination.hasMore) return;
+            isLoadingMore = true;
+            trigger.innerHTML = '<div class="spinner"></div>';
+
+            const from = currentPagination.page * MEDIA_PER_PAGE;
+            const to = from + MEDIA_PER_PAGE - 1;
+            
+            const { data: mediaItems, error } = await supabase
+                .rpc('get_user_media', { p_user_id: options.userId })
+                .range(from, to);
+
+            if (error) {
+                console.error("メディアの読み込みに失敗:", error);
+                trigger.innerHTML = '読み込みに失敗しました。';
+            } else {
+                if (mediaItems && mediaItems.length > 0) {
+                    for (const item of mediaItems) {
+                        const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(item.file_id);
+                        
+                        const itemLink = document.createElement('a');
+                        itemLink.href = `#post/${item.post_id}`;
+                        itemLink.className = 'media-grid-item';
+
+                        if (item.file_type === 'image') {
+                            itemLink.innerHTML = `<img src="${publicUrlData.publicUrl}" loading="lazy" alt="投稿メディア">`;
+                        } else if (item.file_type === 'video') {
+                            itemLink.innerHTML = `<video src="${publicUrlData.publicUrl}" muted playsinline loading="lazy"></video>`;
+                        }
+                        gridContainer.appendChild(itemLink);
+                    }
+    
+                    currentPagination.page++;
+                    if (mediaItems.length < MEDIA_PER_PAGE) { currentPagination.hasMore = false; }
+                } else {
+                    currentPagination.hasMore = false;
+                }
+
+                if (!currentPagination.hasMore) {
+                    trigger.innerHTML = gridContainer.hasChildNodes() ? '' : 'メディアはありません。';
+                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
+                } else {
+                    trigger.innerHTML = '';
+                }
+            }
+            isLoadingMore = false;
+        };
+        
+        postLoadObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore) {
+                loadMore();
+            }
+        }, { rootMargin: '200px' });
+
         postLoadObserver.observe(trigger);
     }
     
