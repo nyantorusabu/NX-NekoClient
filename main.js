@@ -224,16 +224,20 @@ window.addEventListener('DOMContentLoaded', () => {
         const processStandardText = (standardText) => {
             let processed = escapeHTML(standardText);
             const urls = [];
+
             const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
             processed = processed.replace(urlRegex, (url) => {
                 const placeholder = `%%URL_${urls.length}%%`;
                 urls.push(url);
                 return placeholder;
             });
-            const hashtagRegex = /#([a-zA-Z0-9_ぁ-んァ-ヶー一-龠\/\(\)]+)(?=\s|$)/g;
+
+            // [修正点] 句読点を除外するロジックを削除し、マッチした文字列全体をタグとして扱う
+            const hashtagRegex = /#(\S+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
             });
+
             const mentionRegex = /@(\d+)/g;
             processed = processed.replace(mentionRegex, (match, userId) => {
                 const numericId = parseInt(userId);
@@ -244,11 +248,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 return match;
             });
+
             urls.forEach((url, i) => {
                 const placeholder = `%%URL_${i}%%`;
                 const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
                 processed = processed.replace(placeholder, link);
             });
+            
             return processed.replace(/\n/g, '<br>');
         };
 
