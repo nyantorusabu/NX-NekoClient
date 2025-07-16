@@ -1604,7 +1604,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     async function showProfileScreen(userId, subpage = 'posts') {
-        // [修正点] ヘッダーの初期表示を、ちらつきが発生しない静的なものに戻す
         DOM.pageHeader.innerHTML = `
             <div class="header-with-back-button">
                 <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
@@ -1630,19 +1629,32 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // [修正点] メディア数を取得し、userオブジェクトに格納しておく
-            const { data: mediaCount, error: mediaCountError } = await supabase.rpc('get_user_media_count', { p_user_id: userId });
-            user.mediaCount = mediaCountError ? 0 : mediaCount;
-
-            // [修正点] ここでのタイトル更新ロジックを完全に削除
-            
+            // [修正点] 凍結ユーザーのプロフィール表示ロジックを修正
             if (user.frieze) {
                 document.getElementById('page-title-main').textContent = user.name;
-                profileHeader.innerHTML = `...`; // 凍結表示
+                document.getElementById('page-title-sub').textContent = `#${user.id}`;
+                profileHeader.innerHTML = `
+                    <div class="header-top">
+                        <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
+                    </div>
+                    <div class="profile-info">
+                        <h2>${escapeHTML(user.name)}</h2>
+                        <div class="user-id">#${user.id}</div>
+                    </div>`;
+                const friezeNotice = document.createElement('div');
+                friezeNotice.className = 'frieze-notice';
+                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                // プロフィールタブを非表示にし、代わりに凍結通知を表示
+                profileTabs.innerHTML = '';
+                profileTabs.insertAdjacentElement('afterend', friezeNotice);
+                
                 showLoading(false);
-                return;
+                return; // 凍結されている場合はここで描画を終了
             }
 
+            const { data: mediaCount, error: mediaCountError } = await supabase.rpc('get_user_media_count', { p_user_id: userId });
+            user.mediaCount = mediaCountError ? 0 : mediaCount;
+            
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
             const userMeHtml = escapeHTML(user.me || '').replace(/\n/g, '<br>');
@@ -3191,10 +3203,12 @@ async function openEditPostModal(postId) {
     function subscribeToChanges() {
         if (realtimeChannel) return;
         realtimeChannel = supabase.channel('nyax-feed')
+            // [修正点] INSERTイベントのみを監視する
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
                 
-                if (mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
+                // 返信ではない(reply_idがnull) && ホーム画面を開いている場合のみ通知する
+                if (payload.new.reply_id === null && mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
                     const indicator = document.createElement('div');
@@ -3211,7 +3225,9 @@ async function openEditPostModal(postId) {
                     if (postFormStickyContainer) {
                         mainScreenEl.insertBefore(indicator, postFormStickyContainer);
                     }
-                } else if (!document.getElementById('post-detail-screen').classList.contains('hidden')) {
+                } 
+                // ポスト詳細画面で、そのポストに対する直接の返信があった場合はリロード
+                else if (!document.getElementById('post-detail-screen').classList.contains('hidden')) {
                     const currentPostId = window.location.hash.substring(6);
                     if (payload.new.reply_id === currentPostId) {
                         router();
@@ -3221,24 +3237,15 @@ async function openEditPostModal(postId) {
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'user', filter: `id=eq.${currentUser?.id}` }, payload => {
                 updateNavAndSidebars();
             })
-            // --- ▼▼▼ [修正点] DM更新のリアルタイム処理をシンプル化 ---
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dm' }, payload => {
-                // 自分に関係ないDMの更新は無視
                 if (!currentUser || !payload.new.member.includes(currentUser.id)) return;
                 
                 const currentOpenDmId = window.location.hash.startsWith('#dm/') ? window.location.hash.substring(4) : null;
-
-                // 開いている会話画面での更新は、その画面専用のリスナーに任せる
                 if (payload.new.id === currentOpenDmId) {
                     return;
                 }
-                
-                // それ以外の場合（DM一覧画面を開いている、または全く別のページを開いている場合）は、
-                // ナビゲーションのバッジ表示を更新するだけにとどめる。
-                // これにより、意図しない既読化や画面の再描画を防ぐ。
                 updateNavAndSidebars();
             })
-            // --- ▲▲▲ 修正ここまで ▲▲▲
             .subscribe();
     }
     
