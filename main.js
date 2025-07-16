@@ -1616,6 +1616,9 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
+        // [修正点] 関数が呼び出された際に、まず既存の凍結通知を削除する
+        document.querySelector('.frieze-notice')?.remove();
+
         document.getElementById('profile-content').innerHTML = '';
         
         profileHeader.innerHTML = '<div class="spinner"></div>';
@@ -1629,7 +1632,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // [修正点] 凍結ユーザーのプロフィール表示ロジックを修正
             if (user.frieze) {
                 document.getElementById('page-title-main').textContent = user.name;
                 document.getElementById('page-title-sub').textContent = `#${user.id}`;
@@ -1644,12 +1646,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 const friezeNotice = document.createElement('div');
                 friezeNotice.className = 'frieze-notice';
                 friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
-                // プロフィールタブを非表示にし、代わりに凍結通知を表示
                 profileTabs.innerHTML = '';
                 profileTabs.insertAdjacentElement('afterend', friezeNotice);
                 
                 showLoading(false);
-                return; // 凍結されている場合はここで描画を終了
+                return;
             }
 
             const { data: mediaCount, error: mediaCountError } = await supabase.rpc('get_user_media_count', { p_user_id: userId });
