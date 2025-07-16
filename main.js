@@ -304,7 +304,13 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 5. ルーティングと画面管理 ---
     async function router() {
         showLoading(true);
-        isLoadingMore = false; // ページ遷移時に読み込み状態をリセット
+        isLoadingMore = false;
+
+        // [修正点] 画面遷移時に、まずフォロー/フォロワー用のサブメニューが残っていたら削除する
+        const existingSubTabs = document.getElementById('profile-sub-tabs-container');
+        if (existingSubTabs) {
+            existingSubTabs.remove();
+        }
 
         await updateNavAndSidebars();
         const hash = window.location.hash || '#';
@@ -317,19 +323,17 @@ window.addEventListener('DOMContentLoaded', () => {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
             else if (hash.startsWith('#profile/')) {
                 const path = hash.substring(9);
-                const userId = parseInt(path, 10); // パスの先頭がユーザーID
+                const userId = parseInt(path, 10);
                 
                 if (isNaN(userId)) {
                     window.location.hash = '#'; return;
                 }
 
-                // URLからサブページ名を取得
                 const subpageMatch = path.match(/\/(.+)/);
-                const subpage = subpageMatch ? subpageMatch[1] : 'posts'; // サブページがなければ'posts'
+                const subpage = subpageMatch ? subpageMatch[1] : 'posts';
                 
                 await showProfileScreen(userId, subpage);
             }
-            // ▲▲▲ 修正ここまで ▲▲▲
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
             else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
             else if (hash === '#dm') await showDmScreen();
@@ -344,13 +348,8 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
             showScreen('main-screen');
             DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
-            showLoading(false); // エラー発生時はローディングを止める
+            showLoading(false);
         }
-        // ▼▼▼ [修正点1] finallyブロックのshowLoading(false)を削除し、各描画関数の最後に移動 ▼▼▼
-        // finally {
-        //     showLoading(false);
-        // }
-        // ▲▲▲ [修正点1] ここまで ▼▼▼
     }
     
     // --- 6. ナビゲーションとサイドバー ---
