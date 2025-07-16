@@ -204,28 +204,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser || !recipientId || !message || recipientId === currentUser.id) return;
         
         try {
-            // 1. 既存のDB内通知を送信
-            const { error: dbError } = await supabase.rpc('send_notification_with_timestamp', {
+            const { error } = await supabase.rpc('send_notification_with_timestamp', {
                 recipient_id: recipientId,
                 message_text: message,
                 open_hash: openHash
             });
-            if (dbError) console.error('DB通知の送信に失敗しました:', dbError);
 
-            // 2. プッシュ通知を送信
-            const pushPayload = {
-                title: 'NyaX',
-                body: message,
-                url: `${window.location.origin}${openHash}` // クリック時の遷移先
-            };
-
-            await supabase.functions.invoke('send-push-notification', {
-                body: {
-                    recipient_id: recipientId,
-                    payload: pushPayload
-                }
-            });
-
+            if (error) {
+                console.error('通知の送信に失敗しました:', error);
+            }
         } catch (e) {
             console.error('通知送信中にエラー発生:', e);
         }
@@ -498,8 +485,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (session) {
             try {
-                const authUserId = session.user.id;
-                const { data, error } = await supabase.from('user').select('*').eq('uuid', authUserId).single();
+                const authUserId = session.user.id; // これはUUID
+                
+                // 取得した認証UUIDを使って、'uuid'カラムを検索する
+                const { data, error } = await supabase
+                    .from('user')
+                    .select('*')
+                    .eq('uuid', authUserId) // 'id'ではなく'uuid'と比較する
+                    .single();
+
                 if (error || !data) throw new Error('ユーザーデータの取得に失敗しました。');
                 
                 currentUser = data;
@@ -509,9 +503,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     DOM.friezeOverlay.classList.remove('hidden');
                     return;
                 }
-                
-                // [修正点] プッシュ通知の初期化処理を呼び出す
-                await initializePushNotifications(supabase, currentUser);
 
                 subscribeToChanges();
                 router();
@@ -523,7 +514,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             currentUser = null;
-            await initializePushNotifications(supabase, null); // ログアウト時もService Workerは登録
             router();
         }
     }
