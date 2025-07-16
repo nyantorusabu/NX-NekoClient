@@ -1983,7 +1983,9 @@ input, textarea {
     .nav-item-post, #nav-menu-bottom {
         display: none;
     }
-    
+    #profile-tabs .tab-button.mobile-hidden {
+        display: none;
+    }
     .dm-message-form {
         bottom: 4em;
     }
