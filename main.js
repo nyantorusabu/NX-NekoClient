@@ -10,6 +10,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     let currentUser = null; let realtimeChannel = null; let currentTimelineTab = 'foryou';
     let replyingTo = null;
+    let quotingPost = null;
     let newIconDataUrl = null;
     let resetIconToDefault = false;
     let openedMenuPostId = null;
@@ -36,7 +37,8 @@ window.addEventListener('DOMContentLoaded', () => {
         attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
         reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
-        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`
+        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+        repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`
     };
 
     // --- 3. DOM要素の取得 ---
@@ -523,7 +525,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return goToLoginPage();
         DOM.postModal.classList.remove('hidden');
         const modalContainer = DOM.postModal.querySelector('.post-form-container-modal');
-        modalContainer.innerHTML = createPostFormHTML();
+        // [修正点] 引用ポストのプレビューコンテナを追加
+        modalContainer.innerHTML = createPostFormHTML() + `<div id="quoting-preview-container"></div>`;
         attachPostFormListeners(modalContainer);
 
         if (replyInfo) {
@@ -532,12 +535,24 @@ window.addEventListener('DOMContentLoaded', () => {
             replyInfoDiv.innerHTML = `<span>@${replyInfo.name}に返信中</span>`;
             replyInfoDiv.classList.remove('hidden');
         }
+
+        // [修正点] 引用ポストの処理を追加
+        if (quotingPost) {
+            const previewContainer = modalContainer.querySelector('#quoting-preview-container');
+            const nestedPost = document.createElement('div');
+            nestedPost.className = 'nested-repost-container';
+            // 簡易的なプレビューを表示
+            nestedPost.innerHTML = `<div class="post-header"><img src="${getUserIconUrl(quotingPost.user)}" class="user-icon" style="width:24px;height:24px;"> <span class="post-author">${escapeHTML(quotingPost.user.name)}</span></div><div class="post-content">${escapeHTML(quotingPost.content)}</div>`;
+            previewContainer.appendChild(nestedPost);
+        }
+
         DOM.postModal.querySelector('.modal-close-btn').onclick = closePostModal;
         modalContainer.querySelector('textarea').focus();
     }
     function closePostModal() {
         DOM.postModal.classList.add('hidden');
         replyingTo = null;
+        quotingPost = null; // ★★★ この行を追加 ★★★
         selectedFiles = [];
     }
     const handleCtrlEnter = (e) => {
@@ -545,6 +560,63 @@ window.addEventListener('DOMContentLoaded', () => {
             e.target.closest('.post-form').querySelector('button[id^="post-submit-button"]').click();
         }
     };
+
+    function openRepostModal(post) {
+        closePostModal();
+        
+        const modalId = `repost-menu-${post.id}`;
+        if (document.getElementById(modalId)) return;
+
+        const menu = document.createElement('div');
+        menu.id = modalId;
+        menu.className = 'post-menu is-visible';
+
+        const simpleRepostBtn = document.createElement('button');
+        simpleRepostBtn.textContent = 'リポスト';
+        simpleRepostBtn.onclick = (e) => { e.stopPropagation(); handleSimpleRepost(post.id); menu.remove(); };
+
+        const quotePostBtn = document.createElement('button');
+        quotePostBtn.textContent = '引用ポスト';
+        quotePostBtn.onclick = (e) => { e.stopPropagation(); quotingPost = post; openPostModal(); menu.remove(); };
+        
+        menu.appendChild(simpleRepostBtn);
+        menu.appendChild(quotePostBtn);
+
+        const button = document.querySelector(`.post[data-post-id="${post.id}"] .repost-button`);
+        if(button) {
+            document.body.appendChild(menu);
+            const btnRect = button.getBoundingClientRect();
+            menu.style.position = 'absolute';
+            menu.style.top = `${window.scrollY + btnRect.top - menu.offsetHeight}px`;
+            menu.style.left = `${window.scrollX + btnRect.left}px`;
+            // [修正点] CSSの right: 0 を無効化する
+            menu.style.right = 'auto';
+        }
+
+        setTimeout(() => {
+            document.addEventListener('click', () => menu.remove(), { once: true });
+        }, 0);
+    }
+
+    async function handleSimpleRepost(postId) {
+        if (!currentUser) return alert("ログインが必要です。");
+        showLoading(true);
+        try {
+            const { error } = await supabase.from('post').insert({
+                userid: currentUser.id,
+                repost_to: postId,
+                content: null // 本文なしがリポストの印
+            });
+            if (error) throw error;
+            // 必要であれば、UIを更新する処理（例：リポスト数の即時反映）
+            router(); // 簡単な方法として画面を再読み込み
+        } catch(e) {
+            console.error(e);
+            alert('リポストに失敗しました。');
+        } finally {
+            showLoading(false);
+        }
+    }
     
     function createPostFormHTML() {
         return `
@@ -621,7 +693,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return alert("ログインが必要です。");
         const contentEl = container.querySelector('textarea');
         const content = contentEl.value.trim();
-        if (!content && selectedFiles.length === 0) return alert('内容を入力するか、ファイルを添付してください。');
+        // [修正点] 引用ポストの場合は本文が空でもOK
+        if (!content && selectedFiles.length === 0 && !quotingPost) return alert('内容を入力するか、ファイルを添付してください。');
         
         const button = container.querySelector('#post-submit-button');
         button.disabled = true; button.textContent = '投稿中...';
@@ -637,7 +710,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            const postData = { userid: currentUser.id, content, reply_id: replyingTo?.id || null, attachments: attachmentsData.length > 0 ? attachmentsData : null };
+            // [修正点] 引用ポストIDをpostDataに追加
+            const postData = { 
+                userid: currentUser.id, 
+                content, 
+                reply_id: replyingTo?.id || null, 
+                attachments: attachmentsData.length > 0 ? attachmentsData : null,
+                repost_to: quotingPost?.id || null // ★★★ この行を追加 ★★★
+            };
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
             if(postError) throw postError;
 
@@ -748,17 +828,78 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-        if (!post || !author) return null;
-        const { prepend = false, replyCountsMap = new Map(), userCache = new Map(), } = options; // mainPostId を追加
+        // [修正点] isNestedオプションを追加
+        const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
+
+        // [修正点] ポストが存在しない、またはリポスト元も存在しない場合はnullを返す
+        if (!post) return null;
+        if (post.repost_to && !post.content && !post.reposted_post) {
+            const authorOfRepost = author || { id: post.userid, name: '不明' };
+            const deletedPostEl = document.createElement('div');
+            deletedPostEl.className = 'post';
+            deletedPostEl.innerHTML = `
+                <div class="repost-indicator">
+                    ${ICONS.repost}
+                    <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
+                </div>
+                <div class="deleted-post-container">このポストは削除されました。</div>`;
+            return deletedPostEl;
+        }
+
+        // ケース1: シンプルリポスト (本文なし)
+        if (post.repost_to && !post.content) {
+            const authorOfRepost = author || { id: post.userid, name: '不明' };
+            const originalPost = post.reposted_post;
+
+            if (!originalPost) {
+                const deletedPostWrapper = document.createElement('div');
+                deletedPostWrapper.className = 'post';
+                deletedPostWrapper.dataset.postId = post.id;
+                deletedPostWrapper.innerHTML = `
+                    <div class="repost-indicator-wrapper">
+                        <div class="repost-indicator">
+                            ${ICONS.repost}
+                            <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
+                        </div>
+                    </div>
+                    <div class="deleted-post-container">このポストは削除されました。</div>`;
+                return deletedPostWrapper;
+            }
+
+            // 元のポストを再帰的に描画
+            const originalPostEl = await renderPost(originalPost, originalPost.user, options);
+            if (!originalPostEl) return null;
+
+            // リポスト投稿自身のpostIdをセットし、削除可能にする
+            originalPostEl.dataset.postId = post.id;
+            
+            // インジケーターを作成
+            const repostIndicator = document.createElement('div');
+            repostIndicator.className = 'repost-indicator';
+            repostIndicator.innerHTML = `
+                ${ICONS.repost}
+                <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
+            `;
+            
+            // 描画された元のポストの .post-main の先頭に挿入
+            originalPostEl.querySelector('.post-main')?.prepend(repostIndicator);
+            
+            return originalPostEl;
+        }
+        
+        // ケース2: 通常ポスト、引用ポスト、返信
+        if (!author) return null;
 
         const postEl = document.createElement('div');
-        postEl.className = 'post';
+        // [修正点] シンプルリポストでない場合にのみ、postクラスを追加（ラッパーが既に追加しているため）
+        if (!(post.repost_to && !post.content)) {
+            postEl.className = 'post';
+        }
         postEl.dataset.postId = post.id;
         
         const userIconLink = document.createElement('a');
         userIconLink.href = `#profile/${author.id}`;
         userIconLink.className = 'user-icon-link';
-
         const userIcon = document.createElement('img');
         userIcon.src = getUserIconUrl(author);
         userIcon.className = 'user-icon';
@@ -784,7 +925,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const postHeader = document.createElement('div');
         postHeader.className = 'post-header';
-        
         const authorLink = document.createElement('a');
         authorLink.href = `#profile/${author.id}`;
         authorLink.className = 'post-author';
@@ -810,40 +950,38 @@ window.addEventListener('DOMContentLoaded', () => {
         postTime.textContent = `#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
         postHeader.appendChild(postTime);
 
-        if (currentUser && (currentUser.id === post.userid || currentUser.admin)) {
+        if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
-            postHeader.appendChild(menuBtn);
 
             const menu = document.createElement('div');
-            // ▼▼▼ この行を削除 ▼▼▼
-            // menu.id = `menu-${post.id}`; 
-            // ▲▲▲ 削除ここまで ▲▲▲
             menu.className = 'post-menu';
-
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-btn';
-            editBtn.textContent = '編集';
-            menu.appendChild(editBtn);
+            
+            // リポストでない場合のみ「編集」を表示
+            if (!post.repost_to || post.content) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.textContent = '編集';
+                menu.appendChild(editBtn);
+            }
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'delete-btn';
             deleteBtn.textContent = '削除';
             menu.appendChild(deleteBtn);
             
+            postHeader.appendChild(menuBtn);
             postHeader.appendChild(menu);
         }
-        
         postMain.appendChild(postHeader);
         
-        const postContent = document.createElement('div');
-        postContent.className = 'post-content';
-        const contentP = document.createElement('p');
-        // ★★★ 不要な await を削除 ★★★
-        contentP.innerHTML = formatPostContent(post.content, userCache);
-        postContent.appendChild(contentP);
-        postMain.appendChild(postContent);
+        if (post.content) {
+            const postContent = document.createElement('div');
+            postContent.className = 'post-content';
+            postContent.innerHTML = formatPostContent(post.content, userCache);
+            postMain.appendChild(postContent);
+        }
 
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
@@ -887,46 +1025,59 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(attachmentsContainer);
         }
 
-        if (currentUser) {
+        // [修正点] 引用ポストの入れ子コンテナを生成
+        if (post.repost_to && post.reposted_post) {
+            const nestedContainer = document.createElement('div');
+            nestedContainer.className = 'nested-repost-container';
+            const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.user, { ...options, isNested: true });
+            if (nestedPostEl) {
+                nestedContainer.appendChild(nestedPostEl);
+                postMain.appendChild(nestedContainer);
+            }
+        } else if (post.repost_to && !post.reposted_post) {
+            const deletedContainer = document.createElement('div');
+            deletedContainer.className = 'nested-repost-container';
+            deletedContainer.innerHTML = `<div class="deleted-post-container">このポストは削除されました。</div>`;
+            postMain.appendChild(deletedContainer);
+        }
+
+        // [修正点] isNestedでない場合のみアクションボタンを表示
+        if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
 
             const replyCount = replyCountsMap.get(post.id) || 0;
-
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
             replyBtn.title = '返信';
-            // ▼▼▼ この行を修正 ▼▼▼
-            // SVGをラップしていた <span class="icon"> を削除
             replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
-            // ▲▲▲ 修正ここまで ▲▲▲
             replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
 
             const likeBtn = document.createElement('button');
             const isLiked = currentUser.like?.includes(post.id);
             likeBtn.className = `like-button ${isLiked ? 'liked' : ''}`;
-            likeBtn.innerHTML = `<span class="icon">${ICONS.likes}</span> <span>${post.like}</span>`;
+            likeBtn.innerHTML = `${ICONS.likes} <span>${post.like || 0}</span>`;
             actionsDiv.appendChild(likeBtn);
-            // ▲▲▲ 修正ここまで ▲▲▲
-
-            // ▼▼▼ お気に入りボタンのHTMLを修正 ▼▼▼
+            
             const starBtn = document.createElement('button');
             const isStarred = currentUser.star?.includes(post.id);
             starBtn.className = `star-button ${isStarred ? 'starred' : ''}`;
-            starBtn.innerHTML = `<span class="icon">${ICONS.stars}</span> <span>${post.star}</span>`;
+            starBtn.innerHTML = `${ICONS.stars} <span>${post.star || 0}</span>`;
             actionsDiv.appendChild(starBtn);
-            // ▲▲▲ 修正ここまで ▲▲▲
+            
+            // [修正点] リポストボタンを追加
+            const repostBtn = document.createElement('button');
+            repostBtn.className = 'repost-button';
+            repostBtn.title = 'リポスト';
+            repostBtn.innerHTML = `${ICONS.repost} <span>${post.repost_count || 0}</span>`;
+            actionsDiv.appendChild(repostBtn);
             
             postMain.appendChild(actionsDiv);
         }
         
-        // ツリー表示用のコンテナを追加
-        // const subRepliesContainer = document.createElement('div');
-        // subRepliesContainer.className = 'sub-replies-container';
-        // postMain.appendChild(subRepliesContainer);
-
-        postEl.appendChild(postMain);
+        postEl.appendChild(userIconLink); // アイコンを先頭に
+        postEl.appendChild(postMain); // メインコンテンツをその後ろに
         return postEl;
     }
 
@@ -1194,9 +1345,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. メインポストと親ポストを取得
+            const userSelect = `user(id, name, scid, icon_data, admin, verify)`;
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
-                .select('id, content, attachments, time, userid, reply_id, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, content, attachments, time, userid, user(id, name, scid, icon_data, admin, verify))')
+                .select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect}), reply_to:reply_id(*, ${userSelect})`)
                 .eq('id', postId)
                 .single();
     
@@ -1955,7 +2107,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('id, userid, content, attachments, reply_id, time, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, user(id, name))');
+            const userSelect = `user(id, name, scid, icon_data, admin, verify)`;
+            let query = supabase.from('post').select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect})`);
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
@@ -2010,22 +2163,33 @@ window.addEventListener('DOMContentLoaded', () => {
                         trigger.before(adPostEl);
                     }
                     
-                    const postIds = posts.map(p => p.id);
-
-                    // [修正点] 新しいSQL関数で各種カウントを一括取得
+                    const postIds = posts.map(p => p.repost_to || p.id).filter(id => id);
+                    
                     const [
-                        { data: replyCountsData },
-                        { data: likeCountsData },
-                        { data: starCountsData }
+                        { data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }
                     ] = await Promise.all([
                         supabase.rpc('get_reply_counts', { post_ids: postIds }),
                         supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIds }),
-                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIds })
+                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIds }),
+                        supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIds })
                     ]);
 
                     const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
                     const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
                     const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
+                    const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
+
+                    const userCacheForRender = allUsersCache;
+
+                    for (const post of posts) {
+                        const targetPost = post.reposted_post || post;
+                        targetPost.like = likeCountsMap.get(targetPost.id) || 0;
+                        targetPost.star = starCountsMap.get(targetPost.id) || 0;
+                        targetPost.repost_count = repostCountsMap.get(targetPost.id) || 0;
+                        
+                        const postEl = await renderPost(post, post.user, { replyCountsMap, userCache: userCacheForRender });
+                        if (postEl) trigger.before(postEl);
+                    }
 
                     const mentionRegex = /@(\d+)/g;
                     const allMentionedIds = new Set();
@@ -2042,7 +2206,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
                         if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
                     }
-                    const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
                         // [修正点] 取得したカウントをpostオブジェクトにマージ
@@ -3148,15 +3311,13 @@ async function openEditPostModal(postId) {
     }
 
     function openAdminProfileMenu(button, targetUser) {
-        // 既存のメニューを閉じる
         document.getElementById('admin-profile-menu')?.remove();
 
         const menu = document.createElement('div');
         menu.id = 'admin-profile-menu';
-        menu.className = 'post-menu is-visible'; // 既存のスタイルを流用
+        menu.className = 'post-menu is-visible';
 
         const verifyBtn = document.createElement('button');
-        // ユーザーの現在の認証状態に応じてテキストを切り替え
         verifyBtn.textContent = targetUser.verify ? '認証を取り消す' : 'このユーザーを認証';
         verifyBtn.onclick = () => adminToggleVerify(targetUser);
         
@@ -3173,14 +3334,14 @@ async function openEditPostModal(postId) {
         menu.appendChild(sendNoticeBtn);
         menu.appendChild(freezeBtn);
 
-        // ボタンの相対位置にメニューを表示
         document.body.appendChild(menu);
         const btnRect = button.getBoundingClientRect();
         menu.style.position = 'absolute';
         menu.style.top = `${window.scrollY + btnRect.bottom}px`;
         menu.style.left = `${window.scrollX + btnRect.left}px`;
+        // [修正点] CSSの right: 0 を無効化する
+        menu.style.right = 'auto';
         
-        // メニュー外クリックで閉じる
         setTimeout(() => {
             document.addEventListener('click', () => menu.remove(), { once: true });
         }, 0);
@@ -3388,6 +3549,7 @@ async function openEditPostModal(postId) {
             const replyButton = target.closest('.reply-button');
             const likeButton = target.closest('.like-button');
             const starButton = target.closest('.star-button');
+            const repostButton = target.closest('.repost-button');
             const imageAttachment = target.closest('.attachment-item img');
             const downloadLink = target.closest('.attachment-download-link');
 
@@ -3396,7 +3558,14 @@ async function openEditPostModal(postId) {
             if (starButton) { window.handleStar(starButton, postElement.dataset.postId); return; }
             if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
             if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-            
+            if (repostButton) {
+                // ポストIDから完全なポストオブジェクトを探すのは大変なので、
+                // クリックされた時点のポスト情報を取得し直す
+                supabase.from('post').select('*, user(*)').eq('id', postElement.dataset.postId).single().then(({data}) => {
+                    if(data) openRepostModal(data);
+                });
+                return;
+            }
             if (!target.closest('a')) {
                 window.location.hash = `#post/${postElement.dataset.postId}`;
                 return;
