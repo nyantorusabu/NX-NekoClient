@@ -641,10 +641,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
             if(postError) throw postError;
 
-            // [修正点] userテーブルのpost配列を更新するロジックを完全に削除
-
-            // --- 通知送信ロジック ---
-            let repliedUserId = null; // 返信通知を送った相手を記録
+            // --- 通知送信ロジック (変更なし) ---
+            let repliedUserId = null;
             if (replyingTo) {
                 const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
                 if (parentPost && parentPost.userid !== currentUser.id) {
@@ -652,19 +650,15 @@ window.addEventListener('DOMContentLoaded', () => {
                     sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
                 }
             }
-
-            // メンション通知
             const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
             let match;
             while ((match = mentionRegex.exec(content)) !== null) {
                 const mentionedId = parseInt(match[1]);
-                // 自分自身と、すでに返信通知を送った相手は除外する
                 if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
                     mentionedIds.add(mentionedId);
                 }
             }
-            
             if (mentionedIds.size > 0) {
                 mentionedIds.forEach(id => {
                     sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
@@ -680,6 +674,12 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 clearReply();
             }
+
+            // [修正点] ホーム画面を開いている場合のみ、タイムラインを再読み込みする
+            if (window.location.hash === '#' || window.location.hash === '') {
+                await router();
+            }
+
         } catch(e) { console.error(e); alert(e.message); }
         finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
     }
@@ -3234,12 +3234,11 @@ async function openEditPostModal(postId) {
     function subscribeToChanges() {
         if (realtimeChannel) return;
         realtimeChannel = supabase.channel('nyax-feed')
-            // [修正点] INSERTイベントのみを監視する
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
                 
-                // 返信ではない(reply_idがnull) && ホーム画面を開いている場合のみ通知する
-                if (payload.new.reply_id === null && mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
+                // [修正点] 投稿者が自分でない、返信でない、かつホーム画面を開いている場合のみ通知する
+                if (currentUser && payload.new.reply_id === null && payload.new.userid !== currentUser.id && mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
                     const indicator = document.createElement('div');
