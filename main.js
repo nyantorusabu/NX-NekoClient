@@ -851,40 +851,47 @@ window.addEventListener('DOMContentLoaded', () => {
             const authorOfRepost = author || { id: post.userid, name: '不明' };
             const originalPost = post.reposted_post;
 
-            if (!originalPost) {
-                const deletedPostWrapper = document.createElement('div');
-                deletedPostWrapper.className = 'post';
-                deletedPostWrapper.dataset.postId = post.id;
-                deletedPostWrapper.innerHTML = `
-                    <div class="repost-indicator-wrapper">
-                        <div class="repost-indicator">
-                            ${ICONS.repost}
-                            <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
-                        </div>
-                    </div>
-                    <div class="deleted-post-container">このポストは削除されました。</div>`;
-                return deletedPostWrapper;
-            }
+            const repostWrapperEl = document.createElement('div');
+            repostWrapperEl.className = 'post';
+            repostWrapperEl.dataset.postId = post.id; // ラッパーはリポスト自身のIDを持つ
 
-            // 元のポストを再帰的に描画
-            const originalPostEl = await renderPost(originalPost, originalPost.user, options);
-            if (!originalPostEl) return null;
-
-            // リポスト投稿自身のpostIdをセットし、削除可能にする
-            originalPostEl.dataset.postId = post.id;
-            
-            // インジケーターを作成
             const repostIndicator = document.createElement('div');
             repostIndicator.className = 'repost-indicator';
             repostIndicator.innerHTML = `
-                ${ICONS.repost}
+                <div class="repost-indicator-icon">${ICONS.repost}</div>
                 <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
             `;
+            repostWrapperEl.appendChild(repostIndicator);
             
-            // 描画された元のポストの .post-main の先頭に挿入
-            originalPostEl.querySelector('.post-main')?.prepend(repostIndicator);
-            
-            return originalPostEl;
+            // シンプルリポストもメニューから削除できるようにする
+            if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
+                const menuBtn = document.createElement('button');
+                menuBtn.className = 'post-menu-btn';
+                menuBtn.innerHTML = '…';
+                const menu = document.createElement('div');
+                menu.className = 'post-menu';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'リポストを削除';
+                menu.appendChild(deleteBtn);
+                repostIndicator.appendChild(menuBtn); // インジケーターの右に配置
+                repostIndicator.appendChild(menu);
+            }
+
+            if (!originalPost) {
+                const deletedPostContainer = document.createElement('div');
+                deletedPostContainer.className = 'deleted-post-container';
+                deletedPostContainer.textContent = 'このポストは削除されました。';
+                repostWrapperEl.appendChild(deletedPostContainer);
+            } else {
+                const originalPostEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: true });
+                if (originalPostEl) {
+                    // [修正点] 中身のポストに目印となるクラスを追加
+                    originalPostEl.classList.add('reposted-content-wrapper');
+                    repostWrapperEl.appendChild(originalPostEl);
+                }
+            }
+            return repostWrapperEl;
         }
         
         // ケース2: 通常ポスト、引用ポスト、返信
@@ -3546,28 +3553,61 @@ async function openEditPostModal(postId) {
         // --- 4. ポストのアクションや本体のクリック処理 ---
         const postElement = target.closest('.post');
         if (postElement) {
-            const replyButton = target.closest('.reply-button');
-            const likeButton = target.closest('.like-button');
-            const starButton = target.closest('.star-button');
-            const repostButton = target.closest('.repost-button');
-            const imageAttachment = target.closest('.attachment-item img');
-            const downloadLink = target.closest('.attachment-download-link');
+            const editButton = target.closest('.edit-btn');
+            if (editButton) {
+                openEditPostModal(postElement.dataset.postId);
+                return;
+            }
+            const deleteButton = target.closest('.delete-btn');
+            if (deleteButton) {
+                window.deletePost(postElement.dataset.postId);
+                return;
+            }
 
-            if (replyButton) { window.handleReplyClick(postElement.dataset.postId, replyButton.dataset.username); return; }
-            if (likeButton) { window.handleLike(likeButton, postElement.dataset.postId); return; }
-            if (starButton) { window.handleStar(starButton, postElement.dataset.postId); return; }
-            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
-            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+            // [修正点] アクションと画面遷移の対象となる「真のポスト」とそのIDを特定する
+            let actionTargetPost = postElement;
+            const repostedContentWrapper = postElement.querySelector('.reposted-content-wrapper');
+            if (repostedContentWrapper) {
+                // これはリポストのラッパーなので、アクション対象は中身のポスト
+                actionTargetPost = repostedContentWrapper;
+            }
+            const actionTargetPostId = actionTargetPost.dataset.postId;
+
+
+            const replyButton = target.closest('.reply-button');
+            if (replyButton) {
+                // 返信は常に表示されているポストに対して行う
+                window.handleReplyClick(actionTargetPostId, replyButton.dataset.username);
+                return;
+            }
+            const likeButton = target.closest('.like-button');
+            if (likeButton) {
+                window.handleLike(likeButton, actionTargetPostId);
+                return;
+            }
+            const starButton = target.closest('.star-button');
+            if (starButton) {
+                window.handleStar(starButton, actionTargetPostId);
+                return;
+            }
+            const repostButton = target.closest('.repost-button');
             if (repostButton) {
-                // ポストIDから完全なポストオブジェクトを探すのは大変なので、
-                // クリックされた時点のポスト情報を取得し直す
-                supabase.from('post').select('*, user(*)').eq('id', postElement.dataset.postId).single().then(({data}) => {
+                supabase.from('post').select('*, user(*)').eq('id', actionTargetPostId).single().then(({data}) => {
                     if(data) openRepostModal(data);
                 });
                 return;
             }
-            if (!target.closest('a')) {
-                window.location.hash = `#post/${postElement.dataset.postId}`;
+
+            const imageAttachment = target.closest('.attachment-item img');
+            if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
+            
+            const downloadLink = target.closest('.attachment-download-link');
+            if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+            
+            // 画面遷移のロジック
+            if (!target.closest('a') && !target.closest('.post-menu-btn')) {
+                // [修正点] 遷移先も「真のポストID」を使用する
+                window.location.hash = `#post/${actionTargetPostId}`;
                 return;
             }
         }
