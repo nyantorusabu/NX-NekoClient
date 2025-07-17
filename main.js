@@ -2052,25 +2052,29 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     async function loadPostsWithPagination(container, type, options = {}) {
+        // [修正点] postLoadObserverを関数の外で宣言しないようにする
+        let localPostLoadObserver;
         currentPagination = { page: 0, hasMore: true, type, options };
         
-        let trigger = container.querySelector('.load-more-trigger');
-        if (trigger) trigger.remove();
-        
-        trigger = document.createElement('div');
+        const trigger = document.createElement('div');
         trigger.className = 'load-more-trigger';
         container.appendChild(trigger);
         
         const loadMore = async () => {
             if (isLoadingMore || !currentPagination.hasMore) return;
+            
+            // [修正点] 処理の開始時に、トリガーがDOMに存在するかを必ず確認する
+            const currentTrigger = container.querySelector('.load-more-trigger');
+            if (!currentTrigger) return; // コンテナがクリアされた場合は処理を中断
+
             isLoadingMore = true;
-            trigger.innerHTML = '<div class="spinner"></div>';
+            currentTrigger.innerHTML = '<div class="spinner"></div>';
 
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
             const userSelect = `user(id, name, scid, icon_data, admin, verify)`;
-            let query = supabase.from('post').select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect})`);
+            let query = supabase.from('post').select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect}), reply_to:reply_id(*, ${userSelect})`);
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
@@ -2113,6 +2117,9 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             
             const { data: posts, error } = await query.range(from, to);
+            
+            // [修正点] awaitの後にも、トリガーがDOMに存在するかを再度確認する
+            if (!container.querySelector('.load-more-trigger')) return;
 
             if (error) {
                 console.error("ポストの読み込みに失敗:", error);
@@ -2141,67 +2148,40 @@ window.addEventListener('DOMContentLoaded', () => {
                     const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
                     const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
 
-                    const userCacheForRender = allUsersCache;
-
                     for (const post of posts) {
                         const targetPost = post.reposted_post || post;
                         targetPost.like = likeCountsMap.get(targetPost.id) || 0;
                         targetPost.star = starCountsMap.get(targetPost.id) || 0;
                         targetPost.repost_count = repostCountsMap.get(targetPost.id) || 0;
                         
-                        const postEl = await renderPost(post, post.user, { replyCountsMap, userCache: userCacheForRender });
-                        if (postEl) trigger.before(postEl);
-                    }
-
-                    const mentionRegex = /@(\d+)/g;
-                    const allMentionedIds = new Set();
-                    posts.forEach(p => {
-                        if(!p.content) return;
-                        const matches = p.content.matchAll(mentionRegex);
-                        for (const match of matches) {
-                            allMentionedIds.add(parseInt(match[1]));
-                        }
-                    });
-                    
-                    const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
-                    if (newIdsToFetch.length > 0) {
-                        const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
-                        if(newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u)); // ★★★ タイプミスを修正 ★★★
-                    }
-
-                    for (const post of posts) {
-                        // [修正点] 取得したカウントをpostオブジェクトにマージ
-                        post.like = likeCountsMap.get(post.id) || 0;
-                        post.star = starCountsMap.get(post.id) || 0;
-                        
-                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: allUsersCache });
-                        if (postEl) trigger.before(postEl);
+                        const postEl = await renderPost(post, post.user, { replyCountsMap, userCache: allUsersCache });
+                        if (postEl) currentTrigger.before(postEl);
                     }
     
                     currentPagination.page++;
                     if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
+
                 } else {
                     currentPagination.hasMore = false;
                 }
 
                 if (!currentPagination.hasMore) {
-                    const existingPosts = container.querySelectorAll('.post').length;
-                    trigger.innerHTML = existingPosts === 0 ? emptyMessages[type] || '' : 'すべてのポストを読み込みました';
-                    if (postLoadObserver) postLoadObserver.unobserve(trigger);
+                    currentTrigger.innerHTML = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
+                    if (localPostLoadObserver) localPostLoadObserver.disconnect();
                 } else {
-                    trigger.innerHTML = '';
+                    currentTrigger.innerHTML = '';
                 }
             }
             isLoadingMore = false;
         };
         
-        postLoadObserver = new IntersectionObserver((entries) => {
+        localPostLoadObserver = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && !isLoadingMore) {
                 loadMore();
             }
         }, { rootMargin: '200px' });
-
-        postLoadObserver.observe(trigger);
+        
+        localPostLoadObserver.observe(trigger);
     }
 
     async function loadUsersWithPagination(container, type, options = {}) {
