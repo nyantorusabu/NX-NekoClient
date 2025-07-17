@@ -641,13 +641,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
             if(postError) throw postError;
 
-            const currentPostIds = currentUser.post || [];
-            const updatedPostIds = [newPost.id, ...currentPostIds];
-            const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPostIds }).eq('id', currentUser.id);
-            if (userUpdateError) throw new Error('ユーザー情報の更新に失敗しました。');
-            
-            currentUser.post = updatedPostIds;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            // [修正点] userテーブルのpost配列を更新するロジックを完全に削除
 
             // --- 通知送信ロジック ---
             let repliedUserId = null; // 返信通知を送った相手を記録
@@ -1202,7 +1196,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 1. メインポストと親ポストを取得
             const { data: mainPost, error: postError } = await supabase
                 .from('post')
-                .select('id, content, attachments, "like", star, time, userid, reply_id, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, content, attachments, "like", star, time, userid, user(id, name, scid, icon_data, admin, verify))')
+                .select('id, content, attachments, time, userid, reply_id, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, content, attachments, "like", star, time, userid, user(id, name, scid, icon_data, admin, verify))')
                 .eq('id', postId)
                 .single();
     
@@ -1213,7 +1207,24 @@ window.addEventListener('DOMContentLoaded', () => {
             if (repliesError) throw repliesError;
 
             // 3. 必要なユーザー情報と返信数を一括で取得
+            // [修正点] 新しいSQL関数で各種カウントを一括取得
             const allPostIdsOnPage = new Set([mainPost.id, ...allRepliesRaw.map(r => r.id)]);
+            if(mainPost.reply_to) allPostIdsOnPage.add(mainPost.reply_to.id);
+            
+            const postIdsArray = Array.from(allPostIdsOnPage);
+            const [
+                { data: replyCountsData },
+                { data: likeCountsData },
+                { data: starCountsData }
+            ] = await Promise.all([
+                supabase.rpc('get_reply_counts', { post_ids: postIdsArray }),
+                supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIdsArray }),
+                supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIdsArray })
+            ]);
+
+            const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
+            const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
+            const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
             if(mainPost.reply_to) allPostIdsOnPage.add(mainPost.reply_to.id);
 
             const allMentionedIds = new Set();
@@ -1240,6 +1251,9 @@ window.addEventListener('DOMContentLoaded', () => {
             contentDiv.innerHTML = '';
     
             if (mainPost.reply_to) {
+                // [修正点] カウントをマージ
+                mainPost.reply_to.like = likeCountsMap.get(mainPost.reply_to.id) || 0;
+                mainPost.reply_to.star = starCountsMap.get(mainPost.reply_to.id) || 0;
                 const parentPostContainer = document.createElement('div');
                 parentPostContainer.className = 'parent-post-container';
                 const parentPostEl = await renderPost(mainPost.reply_to, mainPost.reply_to.user, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
@@ -1247,7 +1261,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 contentDiv.appendChild(parentPostContainer);
             }
     
-            const mainPostEl = await renderPost(mainPost, mainPost.user, { userCache: allUsersCache, replyCountsMap: replyCountsMapForDetail });
+            // [修正点] カウントをマージ
+            mainPost.like = likeCountsMap.get(mainPost.id) || 0;
+            mainPost.star = starCountsMap.get(mainPost.id) || 0;
+            const mainPostEl = await renderPost(mainPost, mainPost.user, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
     
             const repliesHeader = document.createElement('h3');
@@ -1296,7 +1313,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repliesToRender = flatReplyList.slice(from, to);
 
                 for (const reply of repliesToRender) {
-                    const postForRender = { ...reply, like: reply.like, star: reply.star };
+                    const postForRender = { ...reply, like: likeCountsMap.get(reply.id) || 0, star: starCountsMap.get(reply.id) || 0 };
                     const authorForRender = { 
                         id: reply.author_id, 
                         name: reply.author_name, 
@@ -1616,11 +1633,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
-        // [修正点] 関数が呼び出された際に、まず既存の凍結通知を削除する
         document.querySelector('.frieze-notice')?.remove();
-
         document.getElementById('profile-content').innerHTML = '';
-        
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
 
@@ -1653,6 +1667,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const { data: postCount, error: postCountError } = await supabase.rpc('get_user_post_count', { p_user_id: userId });
+            user.postCount = postCountError ? 0 : postCount;
+            
             const { data: mediaCount, error: mediaCountError } = await supabase.rpc('get_user_media_count', { p_user_id: userId });
             user.mediaCount = mediaCountError ? 0 : mediaCount;
             
@@ -1759,7 +1776,7 @@ window.addEventListener('DOMContentLoaded', () => {
         } else if (subpage === 'media') {
             pageTitleSub.textContent = `${user.mediaCount || 0} 件の画像と動画`;
         } else {
-            pageTitleSub.textContent = `${user.post?.length || 0} 件のポスト`;
+            pageTitleSub.textContent = `${user.postCount || 0} 件のポスト`;
         }
         
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
@@ -1792,10 +1809,12 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [], subType: 'posts_only' });
+                    // [修正点] optionsにidsではなくuserIdを渡す
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' });
                     break;
                 case 'replies':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { ids: user.post || [], subType: 'replies_only' });
+                    // [修正点] optionsにidsではなくuserIdを渡す
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'replies_only' });
                     break;
                 case 'likes': 
                     if (!user.settings.show_like && (!currentUser || user.id !== currentUser.id)) { contentDiv.innerHTML = '<p style="padding: 2rem; text-align:center;">🔒 このユーザーのいいねは非公開です。</p>'; break; }
@@ -1936,7 +1955,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            let query = supabase.from('post').select('id, userid, content, attachments, "like", star, reply_id, time, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, user(id, name))');
+            let query = supabase.from('post').select('id, userid, content, attachments, reply_id, time, user(id, name, scid, icon_data, admin, verify), reply_to:reply_id(id, user(id, name))');
 
             if (type === 'timeline') {
                 query = query.is('reply_id', null);
@@ -1950,11 +1969,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
                 else { query = query.in('id', options.ids); }
             } else if (type === 'profile_posts') {
-                if (!options.ids || options.ids.length === 0) {
+                if (!options.userId) { // ユーザーIDがなければ終了
                     currentPagination.hasMore = false;
                 } else {
-                    query = query.in('id', options.ids);
-                    // [修正点] サブタイプに応じてフィルタリングを追加
+                    query = query.eq('userid', options.userId); // user_idでポストを検索
+                    
                     if (options.subType === 'posts_only') {
                         query = query.is('reply_id', null);
                     } else if (options.subType === 'replies_only') {
@@ -1962,6 +1981,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+            
+            query = query.order('time', { ascending: false });
             
             query = query.order('time', { ascending: false });
 
@@ -1991,8 +2012,20 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     const postIds = posts.map(p => p.id);
 
-                    const { data: counts, error: countError } = await supabase.rpc('get_reply_counts', { post_ids: postIds });
-                    const replyCountsMap = countError ? new Map() : new Map(counts.map(c => [c.post_id, c.reply_count]));
+                    // [修正点] 新しいSQL関数で各種カウントを一括取得
+                    const [
+                        { data: replyCountsData },
+                        { data: likeCountsData },
+                        { data: starCountsData }
+                    ] = await Promise.all([
+                        supabase.rpc('get_reply_counts', { post_ids: postIds }),
+                        supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIds }),
+                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIds })
+                    ]);
+
+                    const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
+                    const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
+                    const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
 
                     const mentionRegex = /@(\d+)/g;
                     const allMentionedIds = new Set();
@@ -2012,7 +2045,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     const userCacheForRender = allUsersCache;
 
                     for (const post of posts) {
-                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: userCacheForRender });
+                        // [修正点] 取得したカウントをpostオブジェクトにマージ
+                        post.like = likeCountsMap.get(post.id) || 0;
+                        post.star = starCountsMap.get(post.id) || 0;
+                        
+                        const postEl = await renderPost(post, post.user || {}, { replyCountsMap, userCache: allUsersCache });
                         if (postEl) trigger.before(postEl);
                     }
     
@@ -2296,25 +2333,24 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 11. ユーザーアクション (変更なし) ---
     window.deletePost = async (postId) => {
         if (!confirm('このポストを削除しますか？')) return;
-    showLoading(true);
-    try {
-        const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
-        if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
-        if (postData.attachments && postData.attachments.length > 0) {
-            const fileIds = postData.attachments.map(file => file.id);
-            await deleteFilesViaEdgeFunction(fileIds);
-        }
-        const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
-        if (deleteError) throw deleteError;
-        if (currentUser && currentUser.post?.includes(postId)) {
-            const updatedPosts = currentUser.post.filter(id => id !== postId);
-            const { error: userUpdateError } = await supabase.from('user').update({ post: updatedPosts }).eq('id', currentUser.id);
-            if (userUpdateError) { console.error("ユーザーのポストリスト更新に失敗:", userUpdateError); } 
-            else { currentUser.post = updatedPosts; localStorage.setItem('currentUser', JSON.stringify(currentUser)); }
-        }
-        router();
-    } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
-    finally { showLoading(false); }
+        showLoading(true);
+        try {
+            const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
+            if (fetchError) throw new Error(`ポスト情報の取得に失敗: ${fetchError.message}`);
+            
+            if (postData.attachments && postData.attachments.length > 0) {
+                const fileIds = postData.attachments.map(file => file.id);
+                await deleteFilesViaEdgeFunction(fileIds);
+            }
+            
+            const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
+            if (deleteError) throw deleteError;
+            
+            // [修正点] userテーブルのpost配列を更新するロジックを完全に削除
+
+            router();
+        } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
+        finally { showLoading(false); }
     };
     window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
     window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
@@ -2322,76 +2358,70 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
         
-        // ▼▼▼ この行を修正 ▼▼▼
         const countSpan = button.querySelector('span:not(.icon)');
-        // ▲▲▲ 修正ここまで ▲▲▲
         const isLiked = currentUser.like?.includes(postId);
         const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
-        const incrementValue = isLiked ? -1 : 1;
         
+        // [修正点] userテーブルの更新のみを行う
         const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
+
         if (userError) {
             alert('いいねの更新に失敗しました。');
             button.disabled = false;
             return;
         }
 
-        const { error: postError } = await supabase.rpc('handle_like', { post_id: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ like: currentUser.like }).eq('id', currentUser.id); // ロールバック
-            alert('いいね数の更新に失敗しました。');
-        } else {
-            currentUser.like = updatedLikes;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('liked', !isLiked);
+        // [修正点] postテーブルの数値を更新するRPC呼び出しを削除
+        
+        // UIの即時反映
+        const currentCount = parseInt(countSpan.textContent);
+        countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
+        button.classList.toggle('liked', !isLiked);
+        
+        currentUser.like = updatedLikes;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
             
         if (!isLiked) {
             const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
             if (postData?.userid && postData.userid !== currentUser.id) {
-                // ▼▼▼ この行を修正 ▼▼▼
                 sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストにいいねしました。`, `#post/${postData.id}`);
             }
         }
-    }
         button.disabled = false;
     };
-        window.handleStar = async (button, postId) => {
+    window.handleStar = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
         
-        // ▼▼▼ この行を修正 ▼▼▼
         const countSpan = button.querySelector('span:not(.icon)');
-        // ▲▲▲ 修正ここまで ▲▲▲
         const isStarred = currentUser.star?.includes(postId);
         const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-        const incrementValue = isStarred ? -1 : 1;
         
+        // [修正点] userテーブルの更新のみを行う
         const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
+        
         if (userError) {
             alert('お気に入りの更新に失敗しました。');
             button.disabled = false;
             return;
         }
 
-        const { error: postError } = await supabase.rpc('increment_star', { post_id_in: postId, increment_val: incrementValue });
-        if (postError) {
-            await supabase.from('user').update({ star: currentUser.star }).eq('id', currentUser.id); // ロールバック
-            alert('お気に入り数の更新に失敗しました。');
-        } else {
-            currentUser.star = updatedStars;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            countSpan.textContent = parseInt(countSpan.textContent) + incrementValue;
-            button.classList.toggle('starred', !isStarred);
+        // [修正点] postテーブルの数値を更新するRPC呼び出しを削除
 
-            if (!isStarred) {
+        // UIの即時反映
+        const currentCount = parseInt(countSpan.textContent);
+        countSpan.textContent = isStarred ? currentCount - 1 : currentCount + 1;
+        button.classList.toggle('starred', !isStarred);
+
+        currentUser.star = updatedStars;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+        if (!isStarred) {
             const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
             if (postData?.userid && postData.userid !== currentUser.id) {
-                // ▼▼▼ この行を修正 ▼▼▼
                 sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストをお気に入りに登録しました。`, `#post/${postData.id}`);
             }
         }
-    }
         button.disabled = false;
     };
     
