@@ -828,114 +828,70 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-        // [修正点] isNestedオプションを追加
         const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
-        // [修正点] ポストが存在しない、またはリポスト元も存在しない場合はnullを返す
         if (!post) return null;
-        if (post.repost_to && !post.content && !post.reposted_post) {
-            const authorOfRepost = author || { id: post.userid, name: '不明' };
-            const deletedPostEl = document.createElement('div');
-            deletedPostEl.className = 'post';
-            deletedPostEl.innerHTML = `
-                <div class="repost-indicator">
-                    ${ICONS.repost}
-                    <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
-                </div>
-                <div class="deleted-post-container">このポストは削除されました。</div>`;
-            return deletedPostEl;
-        }
-
-        // ケース1: シンプルリポスト (本文なし)
-        if (post.repost_to && !post.content) {
-            const authorOfRepost = author || { id: post.userid, name: '不明' };
-            const originalPost = post.reposted_post;
-
-            const repostWrapperEl = document.createElement('div');
-            repostWrapperEl.className = 'post';
-            repostWrapperEl.dataset.postId = post.id; // ラッパーはリポスト自身のIDを持つ
-
-            const repostIndicator = document.createElement('div');
-            repostIndicator.className = 'repost-indicator';
-            repostIndicator.innerHTML = `
-                <div class="repost-indicator-icon">${ICONS.repost}</div>
-                <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました
-            `;
-            repostWrapperEl.appendChild(repostIndicator);
-            
-            // シンプルリポストもメニューから削除できるようにする
-            if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
-                const menuBtn = document.createElement('button');
-                menuBtn.className = 'post-menu-btn';
-                menuBtn.innerHTML = '…';
-                const menu = document.createElement('div');
-                menu.className = 'post-menu';
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'リポストを削除';
-                menu.appendChild(deleteBtn);
-                repostIndicator.appendChild(menuBtn); // インジケーターの右に配置
-                repostIndicator.appendChild(menu);
-            }
-
-            if (!originalPost) {
-                const deletedPostContainer = document.createElement('div');
-                deletedPostContainer.className = 'deleted-post-container';
-                deletedPostContainer.textContent = 'このポストは削除されました。';
-                repostWrapperEl.appendChild(deletedPostContainer);
-            } else {
-                const originalPostEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: true });
-                if (originalPostEl) {
-                    // [修正点] 中身のポストに目印となるクラスを追加
-                    originalPostEl.classList.add('reposted-content-wrapper');
-                    repostWrapperEl.appendChild(originalPostEl);
-                }
-            }
-            return repostWrapperEl;
-        }
         
-        // ケース2: 通常ポスト、引用ポスト、返信
-        if (!author) return null;
+        // [修正点] どのポストを描画し、誰を作者として表示するかを最初に決定する
+        const isSimpleRepost = post.repost_to && !post.content;
+        const displayPost = isSimpleRepost ? post.reposted_post : post;
+        const displayAuthor = isSimpleRepost ? post.reposted_post?.user : author;
+
+        // 描画すべきポスト内容がない場合はここで終了
+        if (!displayPost || !displayAuthor) {
+            // リポスト元が削除された場合の表示
+            if (isSimpleRepost) {
+                const deletedPostWrapper = document.createElement('div');
+                deletedPostWrapper.className = 'post';
+                deletedPostWrapper.dataset.postId = post.id; // リポスト自身のID
+                const repostIndicator = document.createElement('div');
+                repostIndicator.className = 'repost-indicator';
+                repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${author.id}">${escapeHTML(author.name)}</a>さんがリポストしました`;
+                deletedPostWrapper.innerHTML = `<div class="post-main">${repostIndicator.outerHTML}<div class="deleted-post-container">このポストは削除されました。</div></div>`;
+                return deletedPostWrapper;
+            }
+            return null;
+        }
 
         const postEl = document.createElement('div');
-        // [修正点] シンプルリポストでない場合にのみ、postクラスを追加（ラッパーが既に追加しているため）
-        if (!(post.repost_to && !post.content)) {
-            postEl.className = 'post';
-        }
+        postEl.className = 'post';
+        // [重要] dataset.postIdには、常にタイムライン上のエントリ自身のIDを設定
         postEl.dataset.postId = post.id;
         
         const userIconLink = document.createElement('a');
-        userIconLink.href = `#profile/${author.id}`;
+        userIconLink.href = `#profile/${displayAuthor.id}`;
         userIconLink.className = 'user-icon-link';
         const userIcon = document.createElement('img');
-        userIcon.src = getUserIconUrl(author);
+        userIcon.src = getUserIconUrl(displayAuthor);
         userIcon.className = 'user-icon';
-        userIcon.alt = `${author.name}'s icon`;
+        userIcon.alt = `${displayAuthor.name}'s icon`;
         userIconLink.appendChild(userIcon);
         postEl.appendChild(userIconLink);
 
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
+
+        // [修正点] シンプルリポストの場合、インジケーターを最初に追加
+        if (isSimpleRepost) {
+            const repostIndicator = document.createElement('div');
+            repostIndicator.className = 'repost-indicator';
+            repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${author.id}">${escapeHTML(author.name)}</a>さんがリポストしました`;
+            postMain.appendChild(repostIndicator);
+        }
         
-        // ▼▼▼ 返信先表示のロジックをこのブロックに差し替え ▼▼▼
-        if (post.reply_to && post.reply_to.user) {
+        if (displayPost.reply_to && displayPost.reply_to.user) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
-            const replyLink = document.createElement('a');
-            replyLink.href = `#profile/${post.reply_to.user.id}`;
-            replyLink.textContent = `@${escapeHTML(post.reply_to.user.name)}`;
-            replyDiv.appendChild(replyLink);
-            replyDiv.append(' さんに返信');
+            replyDiv.innerHTML = `<a href="#profile/${displayPost.reply_to.user.id}">@${escapeHTML(displayPost.reply_to.user.name)}</a> さんに返信`;
             postMain.appendChild(replyDiv);
         }
-        // ▲▲▲ 差し替えここまで ▲▲▲
 
         const postHeader = document.createElement('div');
         postHeader.className = 'post-header';
         const authorLink = document.createElement('a');
-        authorLink.href = `#profile/${author.id}`;
+        authorLink.href = `#profile/${displayAuthor.id}`;
         authorLink.className = 'post-author';
-        authorLink.textContent = escapeHTML(author.name || '不明');
+        authorLink.textContent = escapeHTML(displayAuthor.name || '不明');
         postHeader.appendChild(authorLink);
 
         if (author.admin) {
@@ -1053,38 +1009,37 @@ window.addEventListener('DOMContentLoaded', () => {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
 
-            const replyCount = replyCountsMap.get(post.id) || 0;
+            // [重要] アクションボタンのカウントとIDは、常に表示されている内容(displayPost)を対象とする
+            const replyCount = replyCountsMap.get(displayPost.id) || 0;
+            const likeCount = displayPost.like || 0;
+            const starCount = displayPost.star || 0;
+            const repostCount = displayPost.repost_count || 0;
+
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
-            replyBtn.title = '返信';
+            replyBtn.dataset.username = escapeHTML(displayAuthor.name);
             replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
-            replyBtn.dataset.username = escapeHTML(author.name);
             actionsDiv.appendChild(replyBtn);
 
             const likeBtn = document.createElement('button');
-            const isLiked = currentUser.like?.includes(post.id);
-            likeBtn.className = `like-button ${isLiked ? 'liked' : ''}`;
-            likeBtn.innerHTML = `${ICONS.likes} <span>${post.like || 0}</span>`;
+            likeBtn.className = `like-button ${currentUser.like?.includes(displayPost.id) ? 'liked' : ''}`;
+            likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
             actionsDiv.appendChild(likeBtn);
             
             const starBtn = document.createElement('button');
-            const isStarred = currentUser.star?.includes(post.id);
-            starBtn.className = `star-button ${isStarred ? 'starred' : ''}`;
-            starBtn.innerHTML = `${ICONS.stars} <span>${post.star || 0}</span>`;
+            starBtn.className = `star-button ${currentUser.star?.includes(displayPost.id) ? 'starred' : ''}`;
+            starBtn.innerHTML = `${ICONS.stars} <span>${starCount}</span>`;
             actionsDiv.appendChild(starBtn);
             
-            // [修正点] リポストボタンを追加
             const repostBtn = document.createElement('button');
             repostBtn.className = 'repost-button';
-            repostBtn.title = 'リポスト';
-            repostBtn.innerHTML = `${ICONS.repost} <span>${post.repost_count || 0}</span>`;
+            repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount}</span>`;
             actionsDiv.appendChild(repostBtn);
             
             postMain.appendChild(actionsDiv);
         }
         
-        postEl.appendChild(userIconLink); // アイコンを先頭に
-        postEl.appendChild(postMain); // メインコンテンツをその後ろに
+        postEl.appendChild(postMain);
         return postEl;
     }
 
