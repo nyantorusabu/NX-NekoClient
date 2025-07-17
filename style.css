@@ -1902,7 +1902,71 @@ input, textarea {
         transform: rotate(360deg);
     }
 }
+/* リポストインジケーター */
+.repost-indicator {
+    color: var(--secondary-text-color);
+    font-size: 0.9em;
+    padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    /* [修正点] width指定を削除 */
+}
+.repost-indicator svg {
+    width: 1em;
+    height: 1em;
+    stroke: currentColor;
+}
+.repost-indicator a {
+    color: inherit;
+    font-weight: bold;
+    text-decoration: none;
+}
+.repost-indicator a:hover {
+    text-decoration: underline;
+}
+.repost-indicator-icon {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* 右寄せ */
+    flex-basis: 48px; /* 通常のアイコン幅に合わせる */
+    padding-right: 0.5rem; /* post-mainとのgapを考慮 */
+}
+.repost-indicator svg {
+    width: 1.5em; /* アイコンサイズを調整 */
+    height: 1.5em;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+/* 引用ポストの入れ子コンテナ */
+.nested-repost-container {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    margin-top: 1rem;
+    padding: 0.8rem;
+}
+.nested-repost-container .post {
+    border: none;
+    padding: 0;
+}
+/* 入れ子の中ではアクションボタンを非表示に */
+.nested-repost-container .post-actions {
+    display: none;
+}
 
+/* 削除済みポストの表示 */
+.deleted-post-container {
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    color: var(--secondary-text-color);
+}
+
+/* リポストボタン */
+.repost-button:hover {
+    color: #00ba7c; /* 緑色 */
+}
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {
