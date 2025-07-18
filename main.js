@@ -878,8 +878,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 return deletedPostWrapper;
             }
 
-            // 元ポストが存在する場合、isNested: falseで描画
-            const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: false });
+            // 元ポストが存在する場合、isNested: trueで描画
+            const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: true });
             if (!postEl) return null;
 
             postEl.dataset.postId = post.id;
