@@ -561,7 +561,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    function openRepostModal(post) {
+    function openRepostModal(post, triggerButton) {
         closePostModal();
         
         const modalId = `repost-menu-${post.id}`;
@@ -582,14 +582,14 @@ window.addEventListener('DOMContentLoaded', () => {
         menu.appendChild(simpleRepostBtn);
         menu.appendChild(quotePostBtn);
 
-        const button = document.querySelector(`.post[data-post-id="${post.id}"] .repost-button`);
+        // [修正点] 引数で渡されたボタンを直接使用する
+        const button = triggerButton;
         if(button) {
             document.body.appendChild(menu);
             const btnRect = button.getBoundingClientRect();
             menu.style.position = 'absolute';
             menu.style.top = `${window.scrollY + btnRect.top - menu.offsetHeight}px`;
             menu.style.left = `${window.scrollX + btnRect.left}px`;
-            // [修正点] CSSの right: 0 を無効化する
             menu.style.right = 'auto';
         }
 
@@ -597,7 +597,7 @@ window.addEventListener('DOMContentLoaded', () => {
             document.addEventListener('click', () => menu.remove(), { once: true });
         }, 0);
     }
-
+    
     async function handleSimpleRepost(postId) {
         if (!currentUser) return alert("ログインが必要です。");
         showLoading(true);
@@ -3526,40 +3526,29 @@ async function openEditPostModal(postId) {
         // --- 4. ポストのアクションや本体のクリック処理 ---
         const postElement = target.closest('.post');
         if (postElement) {
-            // [重要] 2種類のIDをデータ属性から取得
             const timelinePostId = postElement.dataset.postId;
             const actionTargetPostId = postElement.dataset.actionTargetId || timelinePostId;
 
             const editButton = target.closest('.edit-btn');
-            if (editButton) {
-                openEditPostModal(timelinePostId); // 編集は常にタイムラインのエントリ
-                return;
-            }
+            if (editButton) { openEditPostModal(timelinePostId); return; }
+            
             const deleteButton = target.closest('.delete-btn');
-            if (deleteButton) {
-                window.deletePost(timelinePostId); // 削除は常にタイムラインのエントリ
-                return;
-            }
+            if (deleteButton) { window.deletePost(timelinePostId); return; }
 
             const replyButton = target.closest('.reply-button');
-            if (replyButton) {
-                window.handleReplyClick(actionTargetPostId, replyButton.dataset.username);
-                return;
-            }
+            if (replyButton) { window.handleReplyClick(actionTargetPostId, replyButton.dataset.username); return; }
+            
             const likeButton = target.closest('.like-button');
-            if (likeButton) {
-                window.handleLike(likeButton, actionTargetPostId);
-                return;
-            }
+            if (likeButton) { window.handleLike(likeButton, actionTargetPostId); return; }
+            
             const starButton = target.closest('.star-button');
-            if (starButton) {
-                window.handleStar(starButton, actionTargetPostId);
-                return;
-            }
+            if (starButton) { window.handleStar(starButton, actionTargetPostId); return; }
+            
             const repostButton = target.closest('.repost-button');
             if (repostButton) {
                 supabase.from('post').select('*, user(id, name, scid, icon_data, admin, verify)').eq('id', actionTargetPostId).single().then(({data}) => {
-                    if(data) openRepostModal(data);
+                    // [修正点] クリックされたボタン要素自体を関数に渡す
+                    if(data) openRepostModal(data, repostButton);
                 });
                 return;
             }
@@ -3568,7 +3557,6 @@ async function openEditPostModal(postId) {
             if (target.closest('.attachment-download-link')) { /* ... */ }
             
             if (!target.closest('a') && !target.closest('.post-menu-btn')) {
-                // 画面遷移はアクション対象のポスト
                 window.location.hash = `#post/${actionTargetPostId}`;
                 return;
             }
