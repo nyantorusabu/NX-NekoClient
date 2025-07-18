@@ -951,9 +951,6 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.textContent = escapeHTML(author.name || '不明');
         postHeader.appendChild(authorLink);
         
-        const postMain = document.createElement('div');
-        postMain.className = 'post-main';
-        
         if (post.reply_to && post.reply_to.user) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
