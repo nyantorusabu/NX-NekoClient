@@ -950,21 +950,6 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.className = 'post-author';
         authorLink.textContent = escapeHTML(author.name || '不明');
         postHeader.appendChild(authorLink);
-        
-        if (post.reply_to && post.reply_to.user) {
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'replying-to';
-            replyDiv.innerHTML = `<a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信`;
-            postMain.appendChild(replyDiv);
-        }
-
-        const postHeader = document.createElement('div');
-        postHeader.className = 'post-header';
-        const authorLink = document.createElement('a');
-        authorLink.href = `#profile/${author.id}`;
-        authorLink.className = 'post-author';
-        authorLink.textContent = escapeHTML(author.name || '不明');
-        postHeader.appendChild(authorLink);
 
         if (author.admin) {
             const adminBadge = document.createElement('img');
