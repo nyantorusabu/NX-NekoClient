@@ -1001,6 +1001,7 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(postContent);
         }
 
+        // [修正点] 添付ファイルのイベントに event.stopPropagation() を追加
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
             attachmentsContainer.className = 'attachments-container';
@@ -1016,27 +1017,32 @@ window.addEventListener('DOMContentLoaded', () => {
                     img.src = publicURL;
                     img.alt = escapeHTML(attachment.name);
                     img.className = 'attachment-image';
+                    // 画像クリックでモーダルを開き、イベントの伝播を止める
+                    img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
                     itemDiv.appendChild(img);
                 } else if (attachment.type === 'video') {
                     const video = document.createElement('video');
                     video.src = publicURL;
                     video.controls = true;
+                    // 動画クリック時はイベントの伝播のみを止める
+                    video.onclick = (e) => { e.stopPropagation(); };
                     itemDiv.appendChild(video);
                 } else if (attachment.type === 'audio') {
                     const audio = document.createElement('audio');
                     audio.src = publicURL;
                     audio.controls = true;
+                    audio.onclick = (e) => { e.stopPropagation(); };
                     itemDiv.appendChild(audio);
                 }
                 
-                if (attachment.type === 'file' || attachment.type === 'image' || attachment.type === 'video' || attachment.type === 'audio') {
+                if (attachment.type !== 'audio' && attachment.type !== 'video') { // ダウンロードリンクの条件を調整
                     const downloadLink = document.createElement('a');
                     downloadLink.className = 'attachment-download-link';
                     downloadLink.href = '#';
                     downloadLink.textContent = `ダウンロード: ${escapeHTML(attachment.name)}`;
-                    downloadLink.dataset.url = publicURL;
-                    downloadLink.dataset.name = attachment.name;
+                    downloadLink.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.handleDownload(publicURL, attachment.name); };
                     itemDiv.appendChild(downloadLink);
+
                 }
                 attachmentsContainer.appendChild(itemDiv);
             }
@@ -1065,7 +1071,13 @@ window.addEventListener('DOMContentLoaded', () => {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
             
-            const actionTargetPost = post; // 引用ポストのアクション対象は自分自身
+            // [最重要修正点] アクション対象は、シンプルリポストの場合はリポスト先、それ以外はポスト自身
+            const actionTargetPost = (post.repost_to && !post.content) ? post.reposted_post : post;
+            if (!actionTargetPost) { // リポスト先が削除されている場合
+                postMain.appendChild(actionsDiv); // 空のアクション欄だけ表示
+                postEl.appendChild(postMain);
+                return postEl;
+            }
 
             const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
             const likeCount = actionTargetPost.like || 0;
@@ -2198,7 +2210,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         trigger.before(adPostEl);
                     }
                     
-                    const postIds = posts.map(p => p.repost_to || p.id).filter(id => id);
+                    // [最重要修正点] タイムラインに表示されるポスト自身のIDを収集する
+                    const postIds = posts.map(p => p.id);
                     
                     const [
                         { data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }
@@ -2215,18 +2228,17 @@ window.addEventListener('DOMContentLoaded', () => {
                     const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
 
                     for (const post of posts) {
-                        const targetPost = post.reposted_post || post;
-                        targetPost.like = likeCountsMap.get(targetPost.id) || 0;
-                        targetPost.star = starCountsMap.get(targetPost.id) || 0;
-                        targetPost.repost_count = repostCountsMap.get(targetPost.id) || 0;
+                        // [最重要修正点] postオブジェクト自身にカウントをマージする
+                        post.like = likeCountsMap.get(post.id) || 0;
+                        post.star = starCountsMap.get(post.id) || 0;
+                        post.repost_count = repostCountsMap.get(post.id) || 0;
                         
                         const postEl = await renderPost(post, post.user, { replyCountsMap, userCache: allUsersCache });
-                        if (postEl) currentTrigger.before(postEl);
+                        if (postEl) trigger.before(postEl);
                     }
     
                     currentPagination.page++;
                     if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
-
                 } else {
                     currentPagination.hasMore = false;
                 }
@@ -3575,16 +3587,20 @@ async function openEditPostModal(postId) {
             const repostButton = target.closest('.repost-button');
             if (repostButton) {
                 supabase.from('post').select('*, user(id, name, scid, icon_data, admin, verify)').eq('id', actionTargetPostId).single().then(({data}) => {
-                    // [修正点] クリックされたボタン要素自体を関数に渡す
                     if(data) openRepostModal(data, repostButton);
                 });
                 return;
             }
 
-            if (target.closest('.attachment-item img')) { /* ... */ }
-            if (target.closest('.attachment-download-link')) { /* ... */ }
+            // [修正点] 添付ファイルのクリックはrenderPost内で処理されるため、ここからは削除・コメントアウト
+            // const imageAttachment = target.closest('.attachment-item img');
+            // if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
             
-            if (!target.closest('a') && !target.closest('.post-menu-btn')) {
+            // [修正点] ダウンロードリンクもrenderPost内で処理されるため、ここからは削除・コメントアウト
+            // const downloadLink = target.closest('.attachment-download-link');
+            // if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
+            
+            if (!target.closest('a') && !target.closest('.post-menu-btn') && !target.closest('.attachment-item')) {
                 window.location.hash = `#post/${actionTargetPostId}`;
                 return;
             }
