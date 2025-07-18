@@ -1455,13 +1455,38 @@ window.addEventListener('DOMContentLoaded', () => {
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
+            // [最重要修正点] 返信リストの順序を再構築する
+            const repliesByParentId = new Map();
+            allRepliesRaw.forEach(reply => {
+                const parentId = reply.reply_id;
+                if (!repliesByParentId.has(parentId)) {
+                    repliesByParentId.set(parentId, []);
+                }
+                repliesByParentId.get(parentId).push(reply);
+            });
+            // 各親ID内の返信を時間順にソート
+            for (const replies of repliesByParentId.values()) {
+                replies.sort((a, b) => new Date(a.time) - new Date(b.time));
+            }
+
+            const flatReplyList = [];
+            const buildFlatList = (parentId) => {
+                const children = repliesByParentId.get(parentId) || [];
+                for (const child of children) {
+                    flatReplyList.push(child);
+                    buildFlatList(child.id); // 再帰的に孫以降を探す
+                }
+            };
+            buildFlatList(postId); // メインポストを起点にツリーを平坦化
+
+
             const repliesContainer = document.createElement('div');
             contentDiv.appendChild(repliesContainer);
             const trigger = document.createElement('div');
             trigger.className = 'load-more-trigger';
             contentDiv.appendChild(trigger);
             
-            let pagination = { page: 0, hasMore: allRepliesRaw.length > 0 };
+            let pagination = { page: 0, hasMore: flatReplyList.length > 0 };
             const REPLIES_PER_PAGE = 10;
             let isLoadingReplies = false;
 
@@ -1472,7 +1497,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 const from = pagination.page * REPLIES_PER_PAGE;
                 const to = from + REPLIES_PER_PAGE;
-                const repliesToRender = allRepliesRaw.slice(from, to);
+                // [修正点] 新しく生成した正しい順序のリストからデータを取得
+                const repliesToRender = flatReplyList.slice(from, to);
 
                 for (const reply of repliesToRender) {
                     const postForRender = { 
