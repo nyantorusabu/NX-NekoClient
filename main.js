@@ -855,44 +855,44 @@ window.addEventListener('DOMContentLoaded', () => {
             const authorOfRepost = author || { id: post.userid, name: '不明' };
             const originalPost = post.reposted_post;
 
-            // [最重要修正点] 元ポストが存在しない場合の処理を先に行う
             if (!originalPost) {
                 const deletedPostWrapper = document.createElement('div');
                 deletedPostWrapper.className = 'post';
                 deletedPostWrapper.dataset.postId = post.id;
                 
-                const postMain = document.createElement('div');
-                postMain.className = 'post-main';
+                // このブロック内だけで使う変数
+                const deletedPostMain = document.createElement('div');
+                deletedPostMain.className = 'post-main';
 
                 const repostIndicator = document.createElement('div');
                 repostIndicator.className = 'repost-indicator';
                 repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました`;
-                postMain.appendChild(repostIndicator);
+                deletedPostMain.appendChild(repostIndicator);
 
                 const deletedContainer = document.createElement('div');
                 deletedContainer.className = 'deleted-post-container';
                 deletedContainer.textContent = 'このポストは削除されました。';
-                postMain.appendChild(deletedContainer);
+                deletedPostMain.appendChild(deletedContainer);
                 
-                deletedPostWrapper.appendChild(postMain);
+                deletedPostWrapper.appendChild(deletedPostMain);
                 return deletedPostWrapper;
             }
 
-            // 元ポストが存在する場合、isNested: trueで描画
+            // [重要] isNested: true で元ポストを描画
             const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: true });
             if (!postEl) return null;
 
             postEl.dataset.postId = post.id;
             postEl.dataset.actionTargetId = originalPost.id;
 
-            const postMain = postEl.querySelector('.post-main');
-            if (postMain) {
+            const repostedPostMain = postEl.querySelector('.post-main');
+            if (repostedPostMain) {
                 const repostIndicator = document.createElement('div');
                 repostIndicator.className = 'repost-indicator';
                 repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${author.id}">${escapeHTML(author.name)}</a>さんがリポストしました`;
-                postMain.prepend(repostIndicator);
+                repostedPostMain.prepend(repostIndicator);
 
-                const postHeader = postMain.querySelector('.post-header');
+                const postHeader = repostedPostMain.querySelector('.post-header');
                 if (postHeader) {
                     postHeader.querySelector('.post-menu-btn')?.remove();
                     postHeader.querySelector('.post-menu')?.remove();
@@ -950,7 +950,7 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.className = 'post-author';
         authorLink.textContent = escapeHTML(author.name || '不明');
         postHeader.appendChild(authorLink);
-
+        
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
         
@@ -1080,8 +1080,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
-
-            const actionTargetPost = post.reposted_post || post;
+            
+            const actionTargetPost = post;
 
             const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
             const likeCount = actionTargetPost.like || 0;
@@ -1090,7 +1090,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
-            replyBtn.dataset.username = escapeHTML(author.name);
+            replyBtn.dataset.username = escapeHTML(actionTargetPost.user?.name || author.name);
             replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
             actionsDiv.appendChild(replyBtn);
 
@@ -1115,7 +1115,7 @@ window.addEventListener('DOMContentLoaded', () => {
         postEl.appendChild(postMain);
         return postEl;
     }
-
+    
     function createAdPostHTML() {
         const adContainer = document.createElement('div');
         adContainer.className = 'post ad-post';
