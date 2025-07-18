@@ -860,7 +860,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 deletedPostWrapper.className = 'post';
                 deletedPostWrapper.dataset.postId = post.id;
                 
-                // このブロック内だけで使う変数
+                // [修正点] 変数名を変更して構文エラーを解決
                 const deletedPostMain = document.createElement('div');
                 deletedPostMain.className = 'post-main';
 
@@ -878,8 +878,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 return deletedPostWrapper;
             }
 
-            // [重要] isNested: true で元ポストを描画
-            const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: true });
+            // [修正点] isNested: false で元ポストを描画し、アクションボタンが表示されるようにする
+            const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: false });
             if (!postEl) return null;
 
             postEl.dataset.postId = post.id;
