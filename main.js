@@ -855,33 +855,35 @@ window.addEventListener('DOMContentLoaded', () => {
             const authorOfRepost = author || { id: post.userid, name: '不明' };
             const originalPost = post.reposted_post;
 
+            // [最重要修正点] 元ポストが存在しない場合の処理を先に行う
             if (!originalPost) {
-                // 削除済みポストの表示
                 const deletedPostWrapper = document.createElement('div');
                 deletedPostWrapper.className = 'post';
                 deletedPostWrapper.dataset.postId = post.id;
-                const deletedIndicator = document.createElement('div');
-                deletedIndicator.className = 'repost-indicator';
-                deletedIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました`;
-                const deletedContainer = document.createElement('div');
-                deletedContainer.className = 'deleted-post-container';
-                deletedContainer.textContent = 'このポストは削除されました。';
                 
                 const postMain = document.createElement('div');
                 postMain.className = 'post-main';
-                postMain.appendChild(deletedIndicator);
+
+                const repostIndicator = document.createElement('div');
+                repostIndicator.className = 'repost-indicator';
+                repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました`;
+                postMain.appendChild(repostIndicator);
+
+                const deletedContainer = document.createElement('div');
+                deletedContainer.className = 'deleted-post-container';
+                deletedContainer.textContent = 'このポストは削除されました。';
                 postMain.appendChild(deletedContainer);
+                
                 deletedPostWrapper.appendChild(postMain);
                 return deletedPostWrapper;
             }
 
-            // [重要] isNestedをfalseにして、アクションボタンが表示されるように元ポストを描画
+            // 元ポストが存在する場合、isNested: falseで描画
             const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: false });
             if (!postEl) return null;
 
-            // [重要] IDをリポスト自身とアクション対象に振り分ける
-            postEl.dataset.postId = post.id; // ラッパーIDはリポスト自身
-            postEl.dataset.actionTargetId = originalPost.id; // アクション対象は元ポスト
+            postEl.dataset.postId = post.id;
+            postEl.dataset.actionTargetId = originalPost.id;
 
             const postMain = postEl.querySelector('.post-main');
             if (postMain) {
@@ -892,12 +894,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 const postHeader = postMain.querySelector('.post-header');
                 if (postHeader) {
-                    // 元ポストのメニューを削除
                     postHeader.querySelector('.post-menu-btn')?.remove();
                     postHeader.querySelector('.post-menu')?.remove();
 
-                    // リポスト用のメニューを追加
-                    if (currentUser && (currentUser.id === post.userid || currentUser.admin)) {
+                    if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
                         const menuBtn = document.createElement('button');
                         menuBtn.className = 'post-menu-btn';
                         menuBtn.innerHTML = '…';
@@ -921,7 +921,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const postEl = document.createElement('div');
         postEl.className = 'post';
         postEl.dataset.postId = post.id;
-        // [重要] 通常・引用ポストのアクション対象は自分自身
         postEl.dataset.actionTargetId = post.id;
         
         const userIconLink = document.createElement('a');
@@ -933,6 +932,24 @@ window.addEventListener('DOMContentLoaded', () => {
         userIcon.alt = `${author.name}'s icon`;
         userIconLink.appendChild(userIcon);
         postEl.appendChild(userIconLink);
+
+        const postMain = document.createElement('div');
+        postMain.className = 'post-main';
+        
+        if (post.reply_to && post.reply_to.user) {
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'replying-to';
+            replyDiv.innerHTML = `<a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信`;
+            postMain.appendChild(replyDiv);
+        }
+
+        const postHeader = document.createElement('div');
+        postHeader.className = 'post-header';
+        const authorLink = document.createElement('a');
+        authorLink.href = `#profile/${author.id}`;
+        authorLink.className = 'post-author';
+        authorLink.textContent = escapeHTML(author.name || '不明');
+        postHeader.appendChild(authorLink);
 
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
@@ -978,7 +995,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const menu = document.createElement('div');
             menu.className = 'post-menu';
             
-            if (!post.repost_to || post.content) { // 編集ボタンの条件
+            if (!post.repost_to || post.content) {
                 const editBtn = document.createElement('button');
                 editBtn.className = 'edit-btn';
                 editBtn.textContent = '編集';
@@ -1063,12 +1080,13 @@ window.addEventListener('DOMContentLoaded', () => {
         if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
-            
-            // アクションボタンのカウントとIDは、常に表示されている内容(post)を対象とする
-            const replyCount = replyCountsMap.get(post.id) || 0;
-            const likeCount = post.like || 0;
-            const starCount = post.star || 0;
-            const repostCount = post.repost_count || 0;
+
+            const actionTargetPost = post.reposted_post || post;
+
+            const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
+            const likeCount = actionTargetPost.like || 0;
+            const starCount = actionTargetPost.star || 0;
+            const repostCount = actionTargetPost.repost_count || 0;
 
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
@@ -1077,12 +1095,12 @@ window.addEventListener('DOMContentLoaded', () => {
             actionsDiv.appendChild(replyBtn);
 
             const likeBtn = document.createElement('button');
-            likeBtn.className = `like-button ${currentUser.like?.includes(post.id) ? 'liked' : ''}`;
+            likeBtn.className = `like-button ${currentUser.like?.includes(actionTargetPost.id) ? 'liked' : ''}`;
             likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
             actionsDiv.appendChild(likeBtn);
             
             const starBtn = document.createElement('button');
-            starBtn.className = `star-button ${currentUser.star?.includes(post.id) ? 'starred' : ''}`;
+            starBtn.className = `star-button ${currentUser.star?.includes(actionTargetPost.id) ? 'starred' : ''}`;
             starBtn.innerHTML = `${ICONS.stars} <span>${starCount}</span>`;
             actionsDiv.appendChild(starBtn);
             
