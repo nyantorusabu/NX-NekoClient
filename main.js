@@ -1043,27 +1043,29 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(attachmentsContainer);
         }
 
-        // [修正点] 引用ポストの入れ子コンテナを生成
+        // [修正点] 引用ポストの入れ子コンテナを生成する前に、引用元が存在するかチェックする
         if (post.repost_to && post.content) {
             const nestedContainer = document.createElement('div');
             nestedContainer.className = 'nested-repost-container';
-            const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.user, { ...options, isNested: true });
-            if (nestedPostEl) {
-                nestedContainer.appendChild(nestedPostEl);
-                postMain.appendChild(nestedContainer);
+
+            // 引用元(post.reposted_post)が存在する場合のみ、再帰的に描画する
+            if (post.reposted_post) {
+                const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.user, { ...options, isNested: true });
+                if (nestedPostEl) {
+                    nestedContainer.appendChild(nestedPostEl);
+                }
             } else {
-                const deletedContainer = document.createElement('div');
-                deletedContainer.className = 'nested-repost-container';
-                deletedContainer.innerHTML = `<div class="deleted-post-container">このポストは削除されました。</div>`;
-                postMain.appendChild(deletedContainer);
+                // 存在しない場合は、削除済みメッセージを表示
+                nestedContainer.innerHTML = `<div class="deleted-post-container">このポストは削除されました。</div>`;
             }
+            postMain.appendChild(nestedContainer);
         }
 
         if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
             
-            const actionTargetPost = post;
+            const actionTargetPost = post; // 引用ポストのアクション対象は自分自身
 
             const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
             const likeCount = actionTargetPost.like || 0;
