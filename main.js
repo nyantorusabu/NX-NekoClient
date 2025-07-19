@@ -847,12 +847,15 @@ window.addEventListener('DOMContentLoaded', () => {
         const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
         if (!post) return null;
+        
+        // [修正点] authorオブジェクトは、postオブジェクト自身に含まれているものを正として使う
+        const displayAuthor = author || post.author;
+        if (!displayAuthor) return null; // 作者情報がなければ描画しない
 
         const isSimpleRepost = post.repost_to && !post.content;
         
-        // ケース1: シンプルリポスト
         if (isSimpleRepost) {
-            const authorOfRepost = author || { id: post.userid, name: '不明' };
+            const authorOfRepost = displayAuthor;
             const originalPost = post.reposted_post;
 
             if (!originalPost) {
@@ -878,8 +881,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 return deletedPostWrapper;
             }
 
-            // [修正点] isNested: false で元ポストを描画し、アクションボタンが表示されるようにする
-            const postEl = await renderPost(originalPost, originalPost.user, { ...options, isNested: false });
+            // [修正点] 再帰呼び出し時に、.authorプロパティを渡す
+            const postEl = await renderPost(originalPost, originalPost.author, { ...options, isNested: false });
             if (!postEl) return null;
 
             postEl.dataset.postId = post.id;
@@ -936,10 +939,11 @@ window.addEventListener('DOMContentLoaded', () => {
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
         
-        if (post.reply_to && post.reply_to.user) {
+        // [修正点] 返信先のデータ構造の変更に対応
+        if (post.reply_to_post && post.reply_to_post.author) {
             const replyDiv = document.createElement('div');
             replyDiv.className = 'replying-to';
-            replyDiv.innerHTML = `<a href="#profile/${post.reply_to.user.id}">@${escapeHTML(post.reply_to.user.name)}</a> さんに返信`;
+            replyDiv.innerHTML = `<a href="#profile/${post.reply_to_post.author.id}">@${escapeHTML(post.reply_to_post.author.name)}</a> さんに返信`;
             postMain.appendChild(replyDiv);
         }
 
@@ -1049,41 +1053,46 @@ window.addEventListener('DOMContentLoaded', () => {
             postMain.appendChild(attachmentsContainer);
         }
 
-        // [修正点] 引用ポストの入れ子コンテナを生成する前に、引用元が存在するかチェックする
+         // [修正点] 引用ポストのネスト表示 (遅延読み込みと .author の使用)
         if (post.repost_to && post.content) {
             const nestedContainer = document.createElement('div');
             nestedContainer.className = 'nested-repost-container';
-
-            // 引用元(post.reposted_post)が存在する場合のみ、再帰的に描画する
+            
             if (post.reposted_post) {
-                const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.user, { ...options, isNested: true });
+                // 引用元に、さらに引用元があるが、その先のデータが欠けている場合
+                if (post.reposted_post.repost_to && !post.reposted_post.reposted_post) {
+                    const { data: deeperPosts, error } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [post.reposted_post.repost_to] });
+                    if (deeperPosts && deeperPosts.length > 0) {
+                        post.reposted_post.reposted_post = deeperPosts[0];
+                    }
+                }
+                // [修正点] .authorプロパティを渡す
+                const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.author, { ...options, isNested: true });
                 if (nestedPostEl) {
                     nestedContainer.appendChild(nestedPostEl);
                 }
             } else {
-                // 存在しない場合は、削除済みメッセージを表示
                 nestedContainer.innerHTML = `<div class="deleted-post-container">このポストは削除されました。</div>`;
             }
             postMain.appendChild(nestedContainer);
         }
 
+        // isNestedがfalseの場合（＝タイムラインのトップレベルの投稿）のみアクションボタンを描画
         if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
             
-            // [最重要修正点] アクション対象は、シンプルリポストの場合はリポスト先、それ以外はポスト自身
-            const actionTargetPost = (post.repost_to && !post.content) ? post.reposted_post : post;
-            if (!actionTargetPost) { // リポスト先が削除されている場合
-                postMain.appendChild(actionsDiv); // 空のアクション欄だけ表示
-                postEl.appendChild(postMain);
-                return postEl;
-            }
-
-            const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
-            const likeCount = actionTargetPost.like || 0;
-            const starCount = actionTargetPost.star || 0;
-            const repostCount = actionTargetPost.repost_count || 0;
-
+            // アクションボタンのステータス表示は、常に表示されているポストの内容(post)に依存する
+            // シンプルリポストの場合、その中身(post.reposted_post)にカウントが設定されている
+            const actionTargetPost = (isSimpleRepost && post.reposted_post) ? post.reposted_post : post;
+            
+            // アクション対象が存在しない(削除済み)場合は、ボタンを描画しない
+            if (actionTargetPost) {
+                const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
+                const likeCount = actionTargetPost.like || 0;
+                const starCount = actionTargetPost.star || 0;
+                const repostCount = actionTargetPost.repost_count || 0;
+                
             const replyBtn = document.createElement('button');
             replyBtn.className = 'reply-button';
             replyBtn.dataset.username = escapeHTML(actionTargetPost.user?.name || author.name);
@@ -1104,6 +1113,7 @@ window.addEventListener('DOMContentLoaded', () => {
             repostBtn.className = 'repost-button';
             repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount}</span>`;
             actionsDiv.appendChild(repostBtn);
+            }
             
             postMain.appendChild(actionsDiv);
         }
@@ -1145,7 +1155,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
                     <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
                     <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
-                <!-- admax -->
+                    <!-- admax -->
                 </body>
             `);
             iframeDoc.close();
@@ -2130,7 +2140,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     async function loadPostsWithPagination(container, type, options = {}) {
-        // [修正点] postLoadObserverを関数の外で宣言しないようにする
         let localPostLoadObserver;
         currentPagination = { page: 0, hasMore: true, type, options };
         
@@ -2140,10 +2149,8 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const loadMore = async () => {
             if (isLoadingMore || !currentPagination.hasMore) return;
-            
-            // [修正点] 処理の開始時に、トリガーがDOMに存在するかを必ず確認する
             const currentTrigger = container.querySelector('.load-more-trigger');
-            if (!currentTrigger) return; // コンテナがクリアされた場合は処理を中断
+            if (!currentTrigger) return;
 
             isLoadingMore = true;
             currentTrigger.innerHTML = '<div class="spinner"></div>';
@@ -2151,75 +2158,70 @@ window.addEventListener('DOMContentLoaded', () => {
             const from = currentPagination.page * POSTS_PER_PAGE;
             const to = from + POSTS_PER_PAGE - 1;
             
-            const userSelect = `user(id, name, scid, icon_data, admin, verify)`;
-            let query = supabase.from('post').select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect}), reply_to:reply_id(*, ${userSelect})`);
+            let postIdsToFetch = [];
+            let hasMoreIds = true;
 
-            if (type === 'timeline') {
-                query = query.is('reply_id', null);
-                if (options.tab === 'following') {
-                    if (currentUser?.follow?.length > 0) { query = query.in('userid', currentUser.follow); } 
-                    else { currentPagination.hasMore = false; }
+            try {
+                // --- 1. ID取得フェーズ ---
+                let idQuery;
+                if (type === 'timeline') {
+                    idQuery = supabase.from('post').select('id').is('reply_id', null);
+                    if (options.tab === 'following' && currentUser?.follow?.length > 0) {
+                        idQuery = idQuery.in('userid', currentUser.follow);
+                    } else if (options.tab === 'following' && !currentUser?.follow?.length > 0) {
+                        hasMoreIds = false;
+                    }
+                } else if (type === 'profile_posts') {
+                    if (!options.userId) {
+                        hasMoreIds = false;
+                    } else {
+                        idQuery = supabase.from('post').select('id').eq('userid', options.userId);
+                        if (options.subType === 'posts_only') {
+                            idQuery = idQuery.is('reply_id', null);
+                        } else if (options.subType === 'replies_only') {
+                            idQuery = idQuery.not('reply_id', 'is', null);
+                        }
+                    }
+                } else if (type === 'search') {
+                    idQuery = supabase.from('post').select('id').ilike('content', `%${options.query}%`);
+                } else if (type === 'likes' || type === 'stars') {
+                    // likes/starsはIDリストが既にあるため、DBからIDを取得する必要はない
+                    const idList = options.ids || [];
+                    postIdsToFetch = idList.slice(from, to + 1);
+                    if (postIdsToFetch.length < POSTS_PER_PAGE) {
+                        hasMoreIds = false;
+                    }
                 }
-            } else if (type === 'search') {
-                query = query.ilike('content', `%${options.query}%`);
-            } else if (type === 'likes' || type === 'stars') {
-                if (!options.ids || options.ids.length === 0) { currentPagination.hasMore = false; } 
-                else { query = query.in('id', options.ids); }
-            } else if (type === 'profile_posts') {
-                if (!options.userId) { // ユーザーIDがなければ終了
+
+                if (idQuery && hasMoreIds) {
+                    const { data, error } = await idQuery.order('time', { ascending: false }).range(from, to);
+                    if (error) throw error;
+                    postIdsToFetch = data.map(p => p.id);
+                    if (data.length < POSTS_PER_PAGE) {
+                        hasMoreIds = false;
+                    }
+                }
+                
+                if (postIdsToFetch.length === 0) {
                     currentPagination.hasMore = false;
                 } else {
-                    query = query.eq('userid', options.userId); // user_idでポストを検索
+                    // --- 2. データ充填（ハイドレーション）フェーズ ---
+                    const { data: hydratedPosts, error: hydratedError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: postIdsToFetch });
+                    if (hydratedError) throw hydratedError;
                     
-                    if (options.subType === 'posts_only') {
-                        query = query.is('reply_id', null);
-                    } else if (options.subType === 'replies_only') {
-                        query = query.not('reply_id', 'is', null);
-                    }
-                }
-            }
-            
-            query = query.order('time', { ascending: false });
-            
-            query = query.order('time', { ascending: false });
+                    // 元の順序を保持するためにIDのマップを作成
+                    const idOrderMap = new Map(postIdsToFetch.map((id, index) => [id, index]));
+                    const posts = hydratedPosts.sort((a, b) => idOrderMap.get(a.id) - idOrderMap.get(b.id));
 
-            const emptyMessages = { timeline: 'まだポストがありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。' };
-            const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
-
-            if (!currentPagination.hasMore) {
-                const existingPosts = container.querySelectorAll('.post').length;
-                trigger.innerHTML = existingPosts === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
-                isLoadingMore = false;
-                if(postLoadObserver) postLoadObserver.unobserve(trigger);
-                return;
-            }
-            
-            const { data: posts, error } = await query.range(from, to);
-            
-            // [修正点] awaitの後にも、トリガーがDOMに存在するかを再度確認する
-            if (!container.querySelector('.load-more-trigger')) return;
-
-            if (error) {
-                console.error("ポストの読み込みに失敗:", error);
-                trigger.innerHTML = '読み込みに失敗しました。';
-            } else {
-                if (posts.length > 0) {
-                    // 2ページ目以降の読み込み時に広告を挿入する
-                    if (currentPagination.page > 0) {
-                        const adPostEl = createAdPostHTML();
-                        trigger.before(adPostEl);
-                    }
-                    
-                    // [最重要修正点] タイムラインに表示されるポスト自身のIDを収集する
-                    const postIds = posts.map(p => p.id);
-                    
+                    // --- 3. カウント取得フェーズ ---
+                    const postIdsForCounts = posts.map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id).filter(id => id);
                     const [
                         { data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }
                     ] = await Promise.all([
-                        supabase.rpc('get_reply_counts', { post_ids: postIds }),
-                        supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIds }),
-                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIds }),
-                        supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIds })
+                        supabase.rpc('get_reply_counts', { post_ids: postIdsForCounts }),
+                        supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIdsForCounts }),
+                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIdsForCounts }),
+                        supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIdsForCounts })
                     ]);
 
                     const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
@@ -2227,21 +2229,32 @@ window.addEventListener('DOMContentLoaded', () => {
                     const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
                     const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
 
+                    // --- 4. 描画フェーズ ---
                     for (const post of posts) {
-                        // [最重要修正点] postオブジェクト自身にカウントをマージする
-                        post.like = likeCountsMap.get(post.id) || 0;
-                        post.star = starCountsMap.get(post.id) || 0;
-                        post.repost_count = repostCountsMap.get(post.id) || 0;
+                        const isSimpleRepost = post.repost_to && !post.content;
+                        const targetPostForCounts = isSimpleRepost ? post.reposted_post : post;
+
+                        if (targetPostForCounts) {
+                            targetPostForCounts.like = likeCountsMap.get(targetPostForCounts.id) || 0;
+                            targetPostForCounts.star = starCountsMap.get(targetPostForCounts.id) || 0;
+                            targetPostForCounts.repost_count = repostCountsMap.get(targetPostForCounts.id) || 0;
+                        }
                         
-                        const postEl = await renderPost(post, post.user, { replyCountsMap, userCache: allUsersCache });
-                        if (postEl) trigger.before(postEl);
+                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache });
+                        if (postEl) currentTrigger.before(postEl);
                     }
-    
+                    
                     currentPagination.page++;
-                    if (posts.length < POSTS_PER_PAGE) { currentPagination.hasMore = false; }
-                } else {
-                    currentPagination.hasMore = false;
+                    currentPagination.hasMore = hasMoreIds;
                 }
+            } catch (error) {
+                console.error("ポストの読み込みに失敗:", error);
+                if (currentTrigger) currentTrigger.innerHTML = '読み込みに失敗しました。';
+            } finally {
+                if (!container.querySelector('.load-more-trigger')) return;
+                
+                const emptyMessages = { timeline: 'まだポストがありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。' };
+                const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
 
                 if (!currentPagination.hasMore) {
                     currentTrigger.innerHTML = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
@@ -2249,8 +2262,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 } else {
                     currentTrigger.innerHTML = '';
                 }
+                isLoadingMore = false;
             }
-            isLoadingMore = false;
         };
         
         localPostLoadObserver = new IntersectionObserver((entries) => {
