@@ -70,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // [修正点] 新規アカウント作成を許可するための "new: true" をボディに追加
                 body: JSON.stringify({ 
                     type: 'verifyComment', 
                     username: scratchUsername, 
