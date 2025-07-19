@@ -1967,6 +1967,43 @@ input, textarea {
 .repost-button:hover {
     color: #00ba7c; /* 緑色 */
 }
+.trends-widget-container {
+    border-top: 1px solid var(--border-color);
+}
+
+.trends-widget-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    padding: 0.75rem 1rem;
+}
+
+.trend-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+}
+
+.trend-item:hover {
+    background-color: var(--bg-color);
+}
+
+.trend-item-meta {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+}
+
+.trend-item-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0.1rem 0;
+}
+
+.trend-item-count {
+    font-size: 0.8rem;
+    color: var(--secondary-text-color);
+}
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {
