@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (sessionError) throw new Error('セッションの設定に失敗しました。');
             
-            window.location.replace('/');
+            window.location.replace('index.html');
 
         } catch (e) {
             errorMessage.textContent = e.message;
