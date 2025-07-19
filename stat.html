@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyaXの統計</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    
+    <!-- SupabaseのJavaScriptライブラリを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --primary-color: #1d9bf0;
+            --border-color: #cfd9de;
+            --text-color: #0f1419;
+            --secondary-text-color: #536471;
+            --bg-color: #f7f9f9;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .container {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 0;
+        }
+        h1 img {
+            width: 32px;
+            height: 32px;
+        }
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            margin: 2rem 0;
+        }
+        .stats-item {
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+        .stats-item:last-child {
+            border-bottom: none;
+        }
+        .stats-label {
+            color: var(--secondary-text-color);
+        }
+        .stats-value {
+            font-weight: bold;
+            font-feature-settings: "tnum"; /* 数字を等幅に */
+        }
+        .spinner {
+            display: inline-block;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 1em;
+            height: 1em;
+            border-radius: 50%;
+            border-left-color: var(--primary-color);
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--secondary-text-color);
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><img src="favicon.png" alt="NyaX Logo"> NyaXの統計</h1>
+        
+        <ul class="stats-list">
+            <li class="stats-item">
+                <span class="stats-label">総ユーザー数</span>
+                <span id="total-users" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総ポスト数</span>
+                <span id="total-posts" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総返信</span>
+                <span id="total-replies" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総リポスト</span>
+                <span id="total-reposts" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総いいね数</span>
+                <span id="total-likes" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総お気に入り数</span>
+                <span id="total-stars" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総DM数</span>
+                <span id="total-dms" class="stats-value"><div class="spinner"></div></span>
+            </li>
+            <li class="stats-item">
+                <span class="stats-label">総メッセージ数</span>
+                <span id="total-dm-messages" class="stats-value"><div class="spinner"></div></span>
+            </li>
+        </ul>
+        
+        <p id="last-updated" class="footer"></p>
+    </div>
+
+    <script>
+        // --- 1. Supabaseクライアントの初期化 ---
+        // あなたのプロジェクトのURLとanonキーに置き換えてください
+        const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- 2. DOM要素の取得 ---
+        const totalUsersElem = document.getElementById('total-users');
+        const totalPostsElem = document.getElementById('total-posts');
+        const totalRepliesElem = document.getElementById('total-replies');
+        const totalRepostsElem = document.getElementById('total-reposts');
+        const totalLikesElem = document.getElementById('total-likes');
+        const totalStarsElem = document.getElementById('total-stars');
+        const totalDmsElem = document.getElementById('total-dms');
+        const totalDmMessagesElem = document.getElementById('total-dm-messages');
+        const lastUpdatedElem = document.getElementById('last-updated');
+        
+        // --- 3. データを取得して表示する関数 ---
+        async function fetchAndDisplayStats() {
+            try {
+                // SQL関数を呼び出し、結果を1行のオブジェクトとして受け取る
+                const { data, error } = await supabase.rpc('get_nyax_statistics').single();
+                if (error) throw error;
+                
+                // 取得したデータでHTMLを更新
+                totalUsersElem.textContent = `${data.total_users}人がNyaXを利用中`;
+                totalPostsElem.textContent = `今までに${data.total_posts}回ポスト`;
+                totalRepliesElem.textContent = `今までに${data.total_replies}回ポストに返信`;
+                totalRepostsElem.textContent = `今までに${data.total_reposts}回リポスト`;
+                totalLikesElem.textContent = `${data.total_likes}個のいいね`;
+                totalStarsElem.textContent = `${data.total_stars}個のお気に入り`;
+                totalDmsElem.textContent = `今までに${data.total_dms}個のDMが作成`;
+                totalDmMessagesElem.textContent = `今までに${data.total_dm_messages}回メッセージが送信`;
+
+                // 最終更新日時を更新
+                lastUpdatedElem.textContent = `最終更新: ${new Date().toLocaleString('ja-JP')}`;
+
+            } catch (err) {
+                console.error("統計データの取得に失敗しました:", err);
+                lastUpdatedElem.textContent = "データの取得に失敗しました。";
+            }
+        }
+
+        // --- 4. 初期読み込みと定期更新 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndDisplayStats(); // ページ読み込み時に初回実行
+            setInterval(fetchAndDisplayStats, 60000); // 60秒ごとに自動更新
+        });
+    </script>
+</body>
+</html>
