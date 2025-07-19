@@ -227,7 +227,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let processed = escapeHTML(standardText);
             const urls = [];
 
-            const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*))/g;
+            const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=;]*))/g;
             processed = processed.replace(urlRegex, (url) => {
                 const placeholder = `%%URL_${urls.length}%%`;
                 urls.push(url);
@@ -1185,21 +1185,52 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showExploreScreen() {
         DOM.pageHeader.innerHTML = `
             <div class="header-search-bar">
-                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                ${ICONS.explore}
                 <input type="search" id="search-input" placeholder="検索">
             </div>`;
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) {
-                window.location.hash = `#search/${encodeURIComponent(query)}`;
-            }
+            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
         };
         searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
 
         showScreen('explore-screen');
-        DOM.exploreContent.innerHTML = `<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">ユーザーやポストを検索してみましょう。</p>`;
-        showLoading(false);
+        const contentDiv = DOM.exploreContent;
+        contentDiv.innerHTML = '<div class="spinner"></div>'; // ローディング表示
+
+        try {
+            // 新しいSQL関数を呼び出してトレンドを取得
+            const { data: trends, error } = await supabase.rpc('get_trending_hashtags');
+            if (error) throw error;
+
+            if (trends && trends.length > 0) {
+                let trendsHtml = `
+                    <div class="trends-widget-container">
+                        <div class="trends-widget-title">トレンド</div>
+                `;
+                trends.forEach((trend, index) => {
+                    trendsHtml += `
+                        <a href="#search/${encodeURIComponent(trend.tag_name)}" class="trend-item">
+                            <div class="trend-item-meta">
+                                <span>${index + 1}</span>位
+                            </div>
+                            <div class="trend-item-name">#${escapeHTML(trend.tag_name)}</div>
+                            <div class="trend-item-count">${trend.occurrence_count}件のポスト</div>
+                        </a>
+                    `;
+                });
+                trendsHtml += `</div>`;
+                contentDiv.innerHTML = trendsHtml;
+            } else {
+                contentDiv.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">現在、トレンドはありません。</p>';
+            }
+        } catch (err) {
+            console.error("トレンドの取得に失敗:", err);
+            contentDiv.innerHTML = '<p style="padding: 2rem; text-align: center; color: var(--secondary-text-color);">トレンドの取得に失敗しました。</p>';
+        } finally {
+            showLoading(false)
+        }
     }
 
     async function showSearchResults(query) {
@@ -2147,120 +2178,119 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const loadMore = async () => {
             if (isLoadingMore || !currentPagination.hasMore) return;
+
             const currentTrigger = container.querySelector('.load-more-trigger');
-            if (!currentTrigger) return;
+            if (!currentTrigger) {
+                if (localPostLoadObserver) localPostLoadObserver.disconnect();
+                return;
+            }
 
             isLoadingMore = true;
             currentTrigger.innerHTML = '<div class="spinner"></div>';
 
-            const from = currentPagination.page * POSTS_PER_PAGE;
-            const to = from + POSTS_PER_PAGE - 1;
-            
-            let postIdsToFetch = [];
-            let hasMoreIds = true;
-
             try {
-                // --- 1. ID取得フェーズ ---
-                let idQuery;
-                if (type === 'timeline') {
-                    idQuery = supabase.from('post').select('id').is('reply_id', null);
-                    if (options.tab === 'following' && currentUser?.follow?.length > 0) {
-                        idQuery = idQuery.in('userid', currentUser.follow);
-                    } else if (options.tab === 'following' && !currentUser?.follow?.length > 0) {
-                        hasMoreIds = false;
-                    }
-                } else if (type === 'profile_posts') {
-                    if (!options.userId) {
-                        hasMoreIds = false;
-                    } else {
-                        idQuery = supabase.from('post').select('id').eq('userid', options.userId);
-                        if (options.subType === 'posts_only') {
-                            idQuery = idQuery.is('reply_id', null);
-                        } else if (options.subType === 'replies_only') {
-                            idQuery = idQuery.not('reply_id', 'is', null);
-                        }
-                    }
-                } else if (type === 'search') {
-                    idQuery = supabase.from('post').select('id').ilike('content', `%${options.query}%`);
-                } else if (type === 'likes' || type === 'stars') {
-                    // likes/starsはIDリストが既にあるため、DBからIDを取得する必要はない
-                    const idList = options.ids || [];
-                    postIdsToFetch = idList.slice(from, to + 1);
-                    if (postIdsToFetch.length < POSTS_PER_PAGE) {
-                        hasMoreIds = false;
-                    }
-                }
-
-                if (idQuery && hasMoreIds) {
-                    const { data, error } = await idQuery.order('time', { ascending: false }).range(from, to);
-                    if (error) throw error;
-                    postIdsToFetch = data.map(p => p.id);
-                    if (data.length < POSTS_PER_PAGE) {
-                        hasMoreIds = false;
-                    }
-                }
+                const from = currentPagination.page * POSTS_PER_PAGE;
+                const to = from + POSTS_PER_PAGE - 1;
                 
-                if (postIdsToFetch.length === 0) {
-                    currentPagination.hasMore = false;
-                } else {
-                    // --- 2. データ充填（ハイドレーション）フェーズ ---
-                    const { data: hydratedPosts, error: hydratedError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: postIdsToFetch });
-                    if (hydratedError) throw hydratedError;
-                    
-                    // 元の順序を保持するためにIDのマップを作成
-                    const idOrderMap = new Map(postIdsToFetch.map((id, index) => [id, index]));
-                    const posts = hydratedPosts.sort((a, b) => idOrderMap.get(a.id) - idOrderMap.get(b.id));
+                let posts = [];
+                let hasMoreItems = true;
 
-                    // --- 3. カウント取得フェーズ ---
+                if (type === 'search') {
+                    const { data: searchResult, error } = await supabase.rpc('search_posts', { query: options.query, page_size: POSTS_PER_PAGE, page_num: currentPagination.page });
+                    if (error) throw error;
+                    posts = searchResult || [];
+                    if (posts.length < POSTS_PER_PAGE) {
+                        hasMoreItems = false;
+                    }
+                } else {
+                    let postIdsToFetch = [];
+                    let idQuery;
+                    if (type === 'timeline') {
+                        idQuery = supabase.from('post').select('id').is('reply_id', null);
+                        if (options.tab === 'following' && currentUser?.follow?.length > 0) {
+                            idQuery = idQuery.in('userid', currentUser.follow);
+                        } else if (options.tab === 'following' && !currentUser?.follow?.length > 0) {
+                            hasMoreItems = false;
+                        }
+                    } else if (type === 'profile_posts') {
+                        if (!options.userId) { hasMoreItems = false; }
+                        else {
+                            idQuery = supabase.from('post').select('id').eq('userid', options.userId);
+                            if (options.subType === 'posts_only') { idQuery = idQuery.is('reply_id', null); }
+                            else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
+                        }
+                    } else if (type === 'likes' || type === 'stars') {
+                        const idList = options.ids || [];
+                        postIdsToFetch = idList.slice(from, to + 1);
+                        if (postIdsToFetch.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                    }
+
+                    if (idQuery && hasMoreItems) {
+                        const { data, error } = await idQuery.order('time', { ascending: false }).range(from, to);
+                        if (error) throw error;
+                        postIdsToFetch = data.map(p => p.id);
+                        if (data.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                    }
+                    
+                    if (postIdsToFetch.length > 0) {
+                        const { data: hydratedPosts, error: hydratedError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: postIdsToFetch });
+                        if (hydratedError) throw hydratedError;
+                        const idOrderMap = new Map(postIdsToFetch.map((id, index) => [id, index]));
+                        posts = hydratedPosts.sort((a, b) => idOrderMap.get(a.id) - idOrderMap.get(b.id));
+                    } else if (type !== 'likes' && type !== 'stars') {
+                         hasMoreItems = false;
+                    }
+                }
+
+                if (!container.querySelector('.load-more-trigger')) return;
+
+                if (posts && posts.length > 0) {
                     const postIdsForCounts = posts.map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id).filter(id => id);
-                    const [
-                        { data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }
-                    ] = await Promise.all([
+                    const [{ data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }] = await Promise.all([
                         supabase.rpc('get_reply_counts', { post_ids: postIdsForCounts }),
                         supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIdsForCounts }),
                         supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIdsForCounts }),
                         supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIdsForCounts })
                     ]);
-
                     const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
                     const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
                     const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
                     const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
-
-                    // --- 4. 描画フェーズ ---
                     for (const post of posts) {
                         const isSimpleRepost = post.repost_to && !post.content;
                         const targetPostForCounts = isSimpleRepost ? post.reposted_post : post;
-
                         if (targetPostForCounts) {
                             targetPostForCounts.like = likeCountsMap.get(targetPostForCounts.id) || 0;
                             targetPostForCounts.star = starCountsMap.get(targetPostForCounts.id) || 0;
                             targetPostForCounts.repost_count = repostCountsMap.get(targetPostForCounts.id) || 0;
                         }
-                        
                         const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache });
                         if (postEl) currentTrigger.before(postEl);
                     }
-                    
-                    currentPagination.page++;
-                    currentPagination.hasMore = hasMoreIds;
                 }
+                
+                currentPagination.page++;
+                currentPagination.hasMore = hasMoreItems;
+            
             } catch (error) {
                 console.error("ポストの読み込みに失敗:", error);
-                if (currentTrigger) currentTrigger.innerHTML = '読み込みに失敗しました。';
+                if (currentTrigger) currentTrigger.innerHTML = 'ポストの読み込みに失敗しました。';
+                currentPagination.hasMore = false;
+                if (localPostLoadObserver) localPostLoadObserver.disconnect();
             } finally {
-                if (!container.querySelector('.load-more-trigger')) return;
+                isLoadingMore = false;
+                const finalTrigger = container.querySelector('.load-more-trigger');
+                if (!finalTrigger) return;
                 
                 const emptyMessages = { timeline: 'まだポストがありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。' };
                 const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
 
                 if (!currentPagination.hasMore) {
-                    currentTrigger.innerHTML = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
+                    finalTrigger.innerHTML = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
                     if (localPostLoadObserver) localPostLoadObserver.disconnect();
-                } else {
-                    currentTrigger.innerHTML = '';
+                } else if (finalTrigger.innerHTML.includes('spinner')) {
+                    finalTrigger.innerHTML = '';
                 }
-                isLoadingMore = false;
             }
         };
         
