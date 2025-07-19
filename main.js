@@ -1385,6 +1385,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
         try {
+            // [修正点] まず、開こうとしているポストがシンプルリポストか判定する（このロジックは変更なし）
             const { data: gatePost, error: gateError } = await supabase
                 .from('post')
                 .select('content, repost_to')
@@ -1398,21 +1399,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            const userSelect = `user(id, name, scid, icon_data, admin, verify)`;
-            const { data: mainPost, error: postError } = await supabase
-                .from('post')
-                .select(`*, ${userSelect}, reposted_post:repost_to(*, ${userSelect}), reply_to:reply_id(*, ${userSelect})`)
-                .eq('id', postId)
-                .single();
-    
-            if (postError) throw postError;
+            // [最重要修正点] 新しいSQL関数で、全ての関連データを一括取得する
+            const { data: posts, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId] });
+            if (postError || !posts || posts.length === 0) throw postError || new Error('ポストの取得に失敗しました。');
+            const mainPost = posts[0];
             
             const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
             if (repliesError) throw repliesError;
 
             const allPostIdsOnPage = new Set([mainPost.id, ...allRepliesRaw.map(r => r.id)]);
             if(mainPost.reposted_post) allPostIdsOnPage.add(mainPost.reposted_post.id);
-            if(mainPost.reply_to) allPostIdsOnPage.add(mainPost.reply_to.id);
+            if(mainPost.reply_to_post) allPostIdsOnPage.add(mainPost.reply_to_post.id);
             
             const postIdsArray = Array.from(allPostIdsOnPage);
             const [
@@ -1448,11 +1445,12 @@ window.addEventListener('DOMContentLoaded', () => {
             
             contentDiv.innerHTML = '';
     
-            if (mainPost.reply_to) {
-                mainPost.reply_to.like = likeCountsMap.get(mainPost.reply_to.id) || 0;
-                mainPost.reply_to.star = starCountsMap.get(mainPost.reply_to.id) || 0;
-                mainPost.reply_to.repost_count = repostCountsMap.get(mainPost.reply_to.id) || 0;
-                const parentPostEl = await renderPost(mainPost.reply_to, mainPost.reply_to.user, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
+            // [修正点] 新しいデータ構造に合わせて、描画する全てのポストにカウントをマージ
+            if (mainPost.reply_to_post) {
+                mainPost.reply_to_post.like = likeCountsMap.get(mainPost.reply_to_post.id) || 0;
+                mainPost.reply_to_post.star = starCountsMap.get(mainPost.reply_to_post.id) || 0;
+                mainPost.reply_to_post.repost_count = repostCountsMap.get(mainPost.reply_to_post.id) || 0;
+                const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
                 if (parentPostEl) {
                     const parentContainer = document.createElement('div');
                     parentContainer.className = 'parent-post-container';
@@ -1469,7 +1467,7 @@ window.addEventListener('DOMContentLoaded', () => {
             mainPost.like = likeCountsMap.get(mainPost.id) || 0;
             mainPost.star = starCountsMap.get(mainPost.id) || 0;
             mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
-            const mainPostEl = await renderPost(mainPost, mainPost.user, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
+            const mainPostEl = await renderPost(mainPost, mainPost.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
     
             const repliesHeader = document.createElement('h3');
