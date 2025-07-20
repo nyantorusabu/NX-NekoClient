@@ -1173,12 +1173,32 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showMainScreen() {
         DOM.pageHeader.innerHTML = `<h2 id="page-title">ホーム</h2>`;
         showScreen('main-screen');
+        
+        const tabsContainer = document.querySelector('.timeline-tabs');
+        if (currentUser) {
+            tabsContainer.innerHTML = `
+                <button class="timeline-tab-button" data-tab="all">すべて</button>
+                <button class="timeline-tab-button" data-tab="foryou">おすすめ(β)</button>
+                <button class="timeline-tab-button" data-tab="following">フォロー中</button>
+            `;
+            // ログインユーザーのデフォルトは「すべて」
+            currentTimelineTab = 'all';
+        } else {
+            tabsContainer.innerHTML = `
+                <button class="timeline-tab-button" data-tab="all">すべて</button>
+            `;
+            // 未ログインユーザーのデフォルトも「すべて」
+            currentTimelineTab = 'all';
+        }
+
         if (currentUser) {
             DOM.postFormContainer.innerHTML = createPostFormHTML();
             attachPostFormListeners(DOM.postFormContainer);
-        } else { DOM.postFormContainer.innerHTML = ''; }
-        document.querySelector('.timeline-tabs [data-tab="following"]').style.display = currentUser ? 'flex' : 'none';
-        await switchTimelineTab(currentUser ? currentTimelineTab : 'foryou');
+        } else {
+            DOM.postFormContainer.innerHTML = '';
+        }
+        
+        await switchTimelineTab(currentTimelineTab);
         showLoading(false);
     }
 
@@ -2189,28 +2209,40 @@ window.addEventListener('DOMContentLoaded', () => {
             currentTrigger.innerHTML = '<div class="spinner"></div>';
 
             try {
-                const from = currentPagination.page * POSTS_PER_PAGE;
-                const to = from + POSTS_PER_PAGE - 1;
-                
                 let posts = [];
                 let hasMoreItems = true;
 
-                if (type === 'search') {
-                    const { data: searchResult, error } = await supabase.rpc('search_posts', { query: options.query, page_size: POSTS_PER_PAGE, page_num: currentPagination.page });
+                // [最重要修正点] 2つの異なるページネーション方式を明確に分離
+                if ((type === 'timeline' && options.tab === 'foryou') || type === 'search') {
+                    // --- ケースA: SQL関数側でページネーションを行う ---
+                    const rpcName = type === 'search' ? 'search_posts' : 'get_recommended_posts';
+                    const rpcParams = type === 'search' 
+                        ? { query: options.query, page_size: POSTS_PER_PAGE, page_num: currentPagination.page }
+                        : { p_user_id: currentUser?.id || null, page_size: POSTS_PER_PAGE, page_num: currentPagination.page };
+
+                    const { data: rpcResult, error } = await supabase.rpc(rpcName, rpcParams);
                     if (error) throw error;
-                    posts = searchResult || [];
+                    
+                    posts = rpcResult || [];
                     if (posts.length < POSTS_PER_PAGE) {
                         hasMoreItems = false;
                     }
+
                 } else {
+                    // --- ケースB: JS側でIDを取得し、ページネーションする ---
+                    const from = currentPagination.page * POSTS_PER_PAGE;
+                    const to = from + POSTS_PER_PAGE - 1;
+                    
                     let postIdsToFetch = [];
                     let idQuery;
+
                     if (type === 'timeline') {
+                        // [修正点] 'all'タブと'following'タブのロジックをここに集約
                         idQuery = supabase.from('post').select('id').is('reply_id', null);
-                        if (options.tab === 'following' && currentUser?.follow?.length > 0) {
-                            idQuery = idQuery.in('userid', currentUser.follow);
-                        } else if (options.tab === 'following' && !currentUser?.follow?.length > 0) {
-                            hasMoreItems = false;
+                        if (options.tab === 'following') {
+                            if (currentUser?.follow?.length > 0) {
+                                idQuery = idQuery.in('userid', currentUser.follow);
+                            } else { hasMoreItems = false; }
                         }
                     } else if (type === 'profile_posts') {
                         if (!options.userId) { hasMoreItems = false; }
@@ -2226,10 +2258,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (idQuery && hasMoreItems) {
-                        const { data, error } = await idQuery.order('time', { ascending: false }).range(from, to);
-                        if (error) throw error;
-                        postIdsToFetch = data.map(p => p.id);
-                        if (data.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                        const { data: idData, error: idError } = await idQuery.order('time', { ascending: false }).range(from, to);
+                        if (idError) throw idError;
+                        postIdsToFetch = idData.map(p => p.id);
+                        if (idData.length < POSTS_PER_PAGE) { hasMoreItems = false; }
                     }
                     
                     if (postIdsToFetch.length > 0) {
@@ -2237,14 +2269,19 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (hydratedError) throw hydratedError;
                         const idOrderMap = new Map(postIdsToFetch.map((id, index) => [id, index]));
                         posts = hydratedPosts.sort((a, b) => idOrderMap.get(a.id) - idOrderMap.get(b.id));
-                    } else if (type !== 'likes' && type !== 'stars') {
-                         hasMoreItems = false;
                     }
                 }
 
                 if (!container.querySelector('.load-more-trigger')) return;
 
                 if (posts && posts.length > 0) {
+
+                    // [最重要修正点] 2ページ目以降に広告を挿入するロジックを復活させる
+                    if (currentPagination.page > 0) {
+                        const adPostEl = createAdPostHTML();
+                        if (adPostEl) currentTrigger.before(adPostEl);
+                    }
+                    
                     const postIdsForCounts = posts.map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id).filter(id => id);
                     const [{ data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }] = await Promise.all([
                         supabase.rpc('get_reply_counts', { post_ids: postIdsForCounts }),
