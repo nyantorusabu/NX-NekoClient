@@ -6,8 +6,9 @@
     <title>NyaXの統計</title>
     <link rel="icon" href="favicon.png" type="image/png">
     
-    <!-- SupabaseのJavaScriptライブラリを読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- [新規追加] Chart.jsライブラリを読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         :root {
@@ -23,9 +24,11 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            padding: 1rem;
             margin: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
+            box-sizing: border-box;
         }
         .container {
             background: white;
@@ -33,7 +36,7 @@
             border-radius: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px; /* 横幅を少し広げる */
             box-sizing: border-box;
         }
         h1 {
@@ -69,7 +72,7 @@
         }
         .stats-value {
             font-weight: bold;
-            font-feature-settings: "tnum"; /* 数字を等幅に */
+            font-feature-settings: "tnum";
         }
         .spinner {
             display: inline-block;
@@ -83,6 +86,14 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        /* [新規追加] グラフ用のコンテナスタイル */
+        .chart-container {
+            margin-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+            position: relative;
+            height: 300px; /* グラフの高さを指定 */
         }
         .footer {
             text-align: center;
@@ -130,6 +141,10 @@
                 <span id="total-dm-messages" class="stats-value"><div class="spinner"></div></span>
             </li>
         </ul>
+
+	<div class="chart-container">
+            <canvas id="user-growth-chart"></canvas>
+        </div>
         
         <p id="last-updated" class="footer"></p>
     </div>
@@ -177,11 +192,80 @@
                 lastUpdatedElem.textContent = "データの取得に失敗しました。";
             }
         }
+            
+		// --- [新規追加] グラフデータを取得して描画する関数 ---
+        async function fetchAndDisplayChart() {
+            try {
+            // 新しいSQL関数を呼び出す
+            const { data, error } = await supabase.rpc('get_user_growth_data');
+            if (error) throw error;
+
+            // Chart.jsが要求する形式にデータを加工
+            const labels = data.map(row => new Date(row.registration_day).toLocaleDateString('ja-JP'));
+            const chartData = data.map(row => row.cumulative_users);
+
+            const ctx = document.getElementById('user-growth-chart').getContext('2d');
+                
+            // 既存のグラフがあれば破棄して再描画
+            if (window.myUserGrowthChart) {
+                    window.myUserGrowthChart.destroy();
+                }
+
+                window.myUserGrowthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '総ユーザー数',
+                            data: chartData,
+                            borderColor: 'rgba(29, 155, 240, 1)',
+                            backgroundColor: 'rgba(29, 155, 240, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.1, // 線を少し滑らかにする
+                            fill: true,   // 線の下を塗りつぶす
+                            pointRadius: 0 // データ点を非表示にして線を強調
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '累計ユーザー数'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: '日付'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false // データセットが1つなので凡例は非表示
+                            }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error("グラフデータの取得に失敗しました:", err);
+                const chartContainer = document.querySelector('.chart-container');
+                if(chartContainer) chartContainer.innerHTML = '<p style="text-align:center; color: red;">グラフの描画に失敗しました。</p>';
+            }
+        }
 
         // --- 4. 初期読み込みと定期更新 ---
         document.addEventListener('DOMContentLoaded', () => {
-            fetchAndDisplayStats(); // ページ読み込み時に初回実行
-            setInterval(fetchAndDisplayStats, 60000); // 60秒ごとに自動更新
+            fetchAndDisplayStats();
+            fetchAndDisplayChart(); // グラフも初回実行
+            
+            // 統計データのみ定期更新
+            setInterval(fetchAndDisplayStats, 60000);
         });
     </script>
 </body>
