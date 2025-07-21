@@ -221,25 +221,41 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     function formatPostContent(text, userCache = new Map()) {
-
-        // 通常のテキスト処理ヘルパー関数（この中の改行処理はMarkdown以外でのみ使われる）
+        // --- 新しい絵文字置換ヘルパー ---
+        const applyEmoji = (str) => {
+            // 直前・直後に単語構成文字(英数字_)がないことを確認し、foo_bar_bazのようなケースを回避
+            // これにより、URL内の _text_ が誤って置換されるのを防ぎます。
+            // 絵文字IDには英数字、アンダースコア、ハイフン、感嘆符、疑問符、ドットが利用可能です。
+            const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
+            return str.replace(emojiRegex, (match, emojiId) => {
+                // IDはHTMLエスケープされていることを前提としますが、念のためエスケープします。
+                const escapedId = escapeHTML(emojiId);
+                return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+            });
+        };
+    
+        // 通常のテキスト処理ヘルパー関数
         const processStandardText = (standardText) => {
             let processed = escapeHTML(standardText);
             const urls = [];
-
+    
+            // 1. URLを先にプレースホルダーに置換します。これにより、URL内の文字列が後続の処理で誤変換されるのを防ぎます。
             const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=;]*))/g;
             processed = processed.replace(urlRegex, (url) => {
                 const placeholder = `%%URL_${urls.length}%%`;
                 urls.push(url);
                 return placeholder;
             });
-
-            // [修正点] 句読点を除外するロジックを削除し、マッチした文字列全体をタグとして扱う
+    
+            // 2. 絵文字を置換します (URLはプレースホルダーになっているため安全です)。
+            processed = applyEmoji(processed);
+            
+            // 3. ハッシュタグとメンションを置換します。
             const hashtagRegex = /#(\S+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
             });
-
+    
             const mentionRegex = /@(\d+)/g;
             processed = processed.replace(mentionRegex, (match, userId) => {
                 const numericId = parseInt(userId);
@@ -250,37 +266,46 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 return match;
             });
-
+            
+            // 4. 最後にURLのプレースホルダーを<a>タグに戻します。
             urls.forEach((url, i) => {
                 const placeholder = `%%URL_${i}%%`;
-                const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${url}</a>`;
+                // リンクの表示テキストはエスケープし、href属性は元のURLをそのまま使います。
+                const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(url)}</a>`;
                 processed = processed.replace(placeholder, link);
             });
             
             return processed.replace(/\n/g, '<br>');
         };
-
+    
         // --- メインの処理 ---
         const lines = text.split(/\r?\n/);
         const firstLine = lines[0].trim();
-
+    
         if (firstLine === '!markdown') {
             const markdownContent = lines.slice(1).join('\n');
             
-            const rawHtml = marked.parse(markdownContent, {
-                breaks: true, // marked.jsには改行を<br>にするよう指示
+            // Markdownの場合、marked.jsでHTMLに変換する前に絵文字を<img>タグに変換します。
+            const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
+            const contentWithEmoji = markdownContent.replace(emojiRegex, (match, emojiId) => {
+                const escapedId = escapeHTML(emojiId);
+                return `<img src="/emoji/${escapedId}.png" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+            });
+    
+            const rawHtml = marked.parse(contentWithEmoji, {
+                breaks: true,
                 gfm: true
             });
-
-            // [修正点] アコーディオン内の改行問題を解決するため、DOMPurifyの設定を変更
+    
+            // [TypeError修正] DOMPurify.defaultsに依存せず、ADD_TAGSとADD_ATTRを使用して許可するタグ/属性を明示的に追加します。
             const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
                 ADD_TAGS: ['details', 'summary'],
-                // 改行を維持するための設定は、ここでは不要。CSSと後処理で対応
+                ADD_ATTR: ['style', 'class'], // 絵文字表示に必要なstyle属性とclass属性を許可
             });
-
+    
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = sanitizedHtml;
-
+    
             // コピーボタンの追加処理（変更なし）
             tempDiv.querySelectorAll('pre').forEach(preElement => {
                 preElement.style.position = 'relative';
@@ -301,9 +326,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 wrapper.appendChild(codeElement);
                 wrapper.appendChild(button);
             });
-
+    
             return tempDiv.innerHTML;
-
+    
         } else {
             return processStandardText(text);
         }
