@@ -76,7 +76,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-            auth: { storageKey: 'supabase.auth.token.nyax' }
+            auth: { storageKey: 'sb-mnvdpvsivqqbzbtjtpws-auth-token' }
         });
 
         function getUserIconUrl(user) {
@@ -113,7 +113,6 @@
                 const { data, error } = await supabase.rpc(config.rpc);
                 if (error) throw error;
 
-                // [最重要修正点] "..." プレースホルダーを、完全なHTMLテンプレートに修正
                 const listHtml = data && data.length > 0
                     ? '<ol class="rank-list">' + data.map(item => {
                         const rankClass = item.rank == 1 ? 'gold' : item.rank == 2 ? 'silver' : item.rank == 3 ? 'bronze' : '';
@@ -138,15 +137,20 @@
             }
         }
         
-        async function loadMyRanks() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if(!session) return;
+        async function loadMyRanks(session) {
+            const myRanksSection = document.getElementById('my-ranks-section');
+            if (!session) {
+                myRanksSection.style.display = 'none';
+                return;
+            }
             
-            // セッションから直接uuidを取得し、それを元にNyaXの内部IDを取得
             const { data: user } = await supabase.from('user').select('id').eq('uuid', session.user.id).single();
-            if(!user) return;
+            if (!user) {
+                myRanksSection.style.display = 'none';
+                return;
+            }
             
-            document.getElementById('my-ranks-section').style.display = 'block';
+            myRanksSection.style.display = 'block';
 
             const [
                 {data: myFollower}, {data: myPost}, {data: myLike}, {data: myStar}
@@ -163,10 +167,17 @@
             document.getElementById('my-star-rank').textContent = myStar ? `${myStar.rank}位 (${myStar.star_count})` : 'ランク外';
         }
 
+        // [最重要修正点] onAuthStateChangeを使用して、認証状態の確定を待つ
         document.addEventListener('DOMContentLoaded', () => {
-            loadMyRanks();
-            loadRanking('followers'); // デフォルトでフォロワーランキングを表示
+            // 公開ランキングはすぐに読み込み開始
+            loadRanking('followers');
 
+            // 認証状態の変更を監視し、確定したら個人の順位を取得
+            supabase.auth.onAuthStateChange((event, session) => {
+                loadMyRanks(session);
+            });
+
+            // タブのクリックイベント
             rankTabs.addEventListener('click', (e) => {
                 if(e.target.matches('.rank-tab-button')) {
                     loadRanking(e.target.dataset.rankType);
