@@ -1,0 +1,122 @@
+[
+  {
+    "id": "neko",
+    "name": "猫"
+  },
+  {
+    "id": "smile",
+    "name": "にっこり"
+  },
+  {
+    "id": "he-",
+    "name": "へー"
+  },
+  {
+    "id": "huh",
+    "name": "えぇ..."
+  },
+  {
+    "id": "angry",
+    "name": "怒った猫"
+  },
+  {
+    "id": "good",
+    "name": "いいね!"
+  },
+  {
+    "id": "bad",
+    "name": "よくないね!"
+  },
+  {
+    "id": "right",
+    "name": "右"
+  },
+  {
+    "id": "left",
+    "name": "左"
+  },
+  {
+    "id": "sinu",
+    "name": "ﾀﾋぬ"
+  },
+  {
+    "id": "nemui",
+    "name": "ねむい"
+  },
+  {
+    "id": "kirakira",
+    "name": "目を輝かせた猫"
+  },
+  {
+    "id": "heart-neko",
+    "name": "ハートを出す猫"
+  },
+  {
+    "id": "run",
+    "name": "走る猫"
+  },
+  {
+    "id": "running",
+    "name": "走っている猫"
+  },
+  {
+    "id": "raia-dansa-",
+    "name": "ライアーダンサー"
+  },
+  {
+    "id": "taiko",
+    "name": "太鼓"
+  },
+  {
+    "id": "danger",
+    "name": "危険"
+  },
+  {
+    "id": "dame",
+    "name": "禁止"
+  },
+  {
+    "id": "nyax",
+    "name": "NyaXアイコン(小さい)"
+  },
+  {
+    "id": "crew",
+    "name": "クルー"
+  },
+  {
+    "id": "ecb",
+    "name": "緊急会議ボタン"
+  },
+  {
+    "id": "srb",
+    "name": "Supam Rice Ball"
+  },
+  {
+    "id": "onigiri",
+    "name": "おにぎり"
+  },
+  {
+    "id": "sushi",
+    "name": "寿司"
+  },
+  {
+    "id": "tmt",
+    "name": "とまと"
+  },
+  {
+    "id": "semicolon",
+    "name": "セミコロン"
+  },
+  {
+    "id": "write",
+    "name": "ペン"
+  },
+  {
+    "id": "what",
+    "name": "What"
+  },
+  {
+    "id": "x",
+    "name": "X"
+  }
+]
