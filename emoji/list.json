@@ -68,6 +68,22 @@
     "name": "太鼓"
   },
   {
+    "id": "doyaruneko",
+    "name": "どや...?"
+  },
+  {
+    "id": "niramitukeru",
+    "name": "睨む猫"
+  },
+  {
+    "id": "atsukutetokeru",
+    "name": "暑くて溶けそう..."
+  },
+  {
+    "id": "toketawa",
+    "name": "溶けたわ()"
+  },
+  {
     "id": "danger",
     "name": "危険"
   },
@@ -84,12 +100,16 @@
     "name": "クルー"
   },
   {
+    "id": "sitai",
+    "name": "ﾀﾋ体"
+  },
+  {
     "id": "ecb",
     "name": "緊急会議ボタン"
   },
   {
     "id": "srb",
-    "name": "Supam Rice Ball"
+    "name": "Supamu Rice Ball"
   },
   {
     "id": "onigiri",
@@ -118,5 +138,9 @@
   {
     "id": "x",
     "name": "X"
+  },
+  {
+    "id": "paper",
+    "name": "紙製の船"
   }
 ]
