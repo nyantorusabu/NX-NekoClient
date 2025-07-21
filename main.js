@@ -731,79 +731,96 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handlePostSubmit(container) {
-        if (!currentUser) return alert("ログインが必要です。");
-        const contentEl = container.querySelector('textarea');
-        const content = contentEl.value.trim();
-        // [修正点] 引用ポストの場合は本文が空でもOK
-        if (!content && selectedFiles.length === 0 && !quotingPost) return alert('内容を入力するか、ファイルを添付してください。');
-        
-        const button = container.querySelector('#post-submit-button');
-        button.disabled = true; button.textContent = '投稿中...';
-        showLoading(true);
+    if (!currentUser) return alert("ログインが必要です。");
+    const contentEl = container.querySelector('textarea');
+    const content = contentEl.value.trim();
+    if (!content && selectedFiles.length === 0 && !quotingPost) return alert('内容を入力するか、ファイルを添付してください。');
 
-        try {
-            let attachmentsData = [];
-            if (selectedFiles.length > 0) {
-                for (const file of selectedFiles) {
-                    const fileId = await uploadFileViaEdgeFunction(file);
-                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
-                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
-                }
-            }
-            
-            // [修正点] 引用ポストIDをpostDataに追加
-            const postData = { 
-                userid: currentUser.id, 
-                content, 
-                reply_id: replyingTo?.id || null, 
-                attachments: attachmentsData.length > 0 ? attachmentsData : null,
-                repost_to: quotingPost?.id || null // ★★★ この行を追加 ★★★
-            };
-            const { data: newPost, error: postError } = await supabase.from('post').insert(postData).select().single();
-            if(postError) throw postError;
+    const button = container.querySelector('#post-submit-button');
+    button.disabled = true;
+    button.textContent = '投稿中...';
+    showLoading(true);
 
-            // --- 通知送信ロジック (変更なし) ---
-            let repliedUserId = null;
-            if (replyingTo) {
-                const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
-                if (parentPost && parentPost.userid !== currentUser.id) {
-                    repliedUserId = parentPost.userid;
-                    sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
-                }
-            }
-            const mentionRegex = /@(\d+)/g;
-            const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
-                const mentionedId = parseInt(match[1]);
-                if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
-                    mentionedIds.add(mentionedId);
-                }
-            }
-            if (mentionedIds.size > 0) {
-                mentionedIds.forEach(id => {
-                    sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
-                });
-            }
-            // --- 通知送信ロジックここまで ---
+    let attachmentsData = [];
+    let uploadedFileIds = []; // 削除用にファイルIDを保持
 
-            selectedFiles = [];
-            contentEl.value = '';
-            container.querySelector('.file-preview-container').innerHTML = '';
-            if (container.closest('.modal-overlay')) {
-                closePostModal();
-            } else {
-                clearReply();
+    try {
+        // 1. ファイルがあれば先にアップロード
+        if (selectedFiles.length > 0) {
+            for (const file of selectedFiles) {
+                const fileId = await uploadFileViaEdgeFunction(file);
+                uploadedFileIds.push(fileId); // 削除候補としてIDを保存
+                const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                attachmentsData.push({ type: fileType, id: fileId, name: file.name });
             }
+        }
 
-            // [修正点] ホーム画面を開いている場合のみ、タイムラインを再読み込みする
-            if (window.location.hash === '#' || window.location.hash === '') {
-                await router();
+        // 2. 新しいRPC関数を呼び出してポストをDBに保存
+        const { data: newPost, error: rpcError } = await supabase.rpc('create_post', {
+            p_content: content,
+            p_reply_id: replyingTo?.id || null,
+            p_repost_to: quotingPost?.id || null,
+            p_attachments: attachmentsData.length > 0 ? attachmentsData : null
+        }).single(); // .single()を追加して、返り値が1行であることを期待
+
+        // 3. RPCでエラーが発生したら、ファイルを削除して処理を中断
+        if (rpcError) {
+            throw rpcError; // catchブロックに処理を移譲
+        }
+
+        // --- 通知送信ロジック (変更なし) ---
+        let repliedUserId = null;
+        if (replyingTo) {
+            const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
+            if (parentPost && parentPost.userid !== currentUser.id) {
+                repliedUserId = parentPost.userid;
+                sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
             }
+        }
+        const mentionRegex = /@(\d+)/g;
+        const mentionedIds = new Set();
+        let match;
+        while ((match = mentionRegex.exec(content)) !== null) {
+            const mentionedId = parseInt(match[1]);
+            if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
+                mentionedIds.add(mentionedId);
+            }
+        }
+        mentionedIds.forEach(id => {
+            sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
+        });
+        // --- 通知送信ロジックここまで ---
 
-        } catch(e) { console.error(e); alert(e.message); }
-        finally { button.disabled = false; button.textContent = 'ポスト'; showLoading(false); }
+        // 成功時の後処理
+        selectedFiles = [];
+        contentEl.value = '';
+        container.querySelector('.file-preview-container').innerHTML = '';
+        if (container.closest('.modal-overlay')) {
+            closePostModal();
+        } else {
+            clearReply();
+        }
+
+        if (window.location.hash === '#' || window.location.hash === '') {
+            await router();
+        }
+
+    } catch (e) {
+        // 4. ★★★ エラー発生時のファイル自動削除 ★★★
+        console.error("ポスト送信に失敗しました:", e);
+        if (uploadedFileIds.length > 0) {
+            console.warn("投稿に失敗したため、アップロード済みファイルを削除します:", uploadedFileIds);
+            await deleteFilesViaEdgeFunction(uploadedFileIds);
+        }
+        // ユーザーにエラーメッセージを表示
+        alert(`投稿に失敗しました: ${e.message}`);
+    } finally {
+        // 最後に必ずボタンの状態を元に戻す
+        button.disabled = false;
+        button.textContent = 'ポスト';
+        showLoading(false);
     }
+}
 
     async function uploadFileViaEdgeFunction(file) {
         const formData = new FormData();
