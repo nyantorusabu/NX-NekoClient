@@ -1334,7 +1334,8 @@ input, textarea {
     border-top: 1px solid var(--border-color);
 }
 
-#settings-logout-btn {
+#settings-logout-btn,
+#settings-showlog-btn {
     padding: 0.6rem 1.2rem;
     border-radius: 9999px;
     font-weight: 700;
@@ -1343,9 +1344,11 @@ input, textarea {
     border: 1px solid #fdd8e5; /* like-colorの薄い版 */
     color: var(--like-color);
     transition: background-color 0.2s;
+    text-decoration-line: none;
 }
 
-#settings-logout-btn:hover {
+#settings-logout-btn:hover,
+#settings-showlog-btn:hover {
     background-color: #fef0f4; /* like-colorのさらに薄い版 */
 }
 

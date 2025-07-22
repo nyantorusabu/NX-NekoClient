@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyaXヘルプ</title>
+    <script type="module">
+        // Google AI SDKをCDNからインポート
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+    </script>
+    <style>
+        :root {
+            --background-color: #f0f2f5;
+            --chat-background: #ffffff;
+            --user-bubble-color: #0084ff;
+            --bot-bubble-color: #e4e6eb;
+            --text-color-primary: #050505;
+            --text-color-secondary: #ffffff;
+            --text-color-bot: #050505;
+            --border-color: #ced0d4;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            margin: 0;
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 100%;
+            max-height: 95vh;
+            background-color: var(--chat-background);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-color-primary);
+        }
+        header p {
+            margin: 0.25rem 0 0;
+            color: #65676b;
+        }
+        #chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .message {
+            display: flex;
+            max-width: 85%;
+        }
+        .message-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        .message-bubble a {
+            color: #0056b3;
+            text-decoration: underline;
+        }
+        .message-bubble a:hover {
+            text-decoration: none;
+        }
+        .user {
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .user .message-bubble {
+            background-color: var(--user-bubble-color);
+            color: var(--text-color-secondary);
+        }
+        .bot {
+            align-self: flex-start;
+        }
+        .bot .message-bubble {
+            background-color: var(--bot-bubble-color);
+            color: var(--text-color-bot);
+        }
+        .bot .message-bubble.streaming::after {
+            content: '▍';
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        #chat-form {
+            display: flex;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+            gap: 0.75rem;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 1rem;
+            font-family: var(--font-family);
+        }
+        #user-input:focus {
+            outline: none;
+            border-color: var(--user-bubble-color);
+            box-shadow: 0 0 0 2px rgba(0, 132, 255, 0.2);
+        }
+        #send-button {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            background-color: var(--user-bubble-color);
+            color: white;
+            border-radius: 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #send-button:hover {
+            background-color: #0073e6;
+        }
+        #send-button:disabled {
+            background-color: #a0d0ff;
+            cursor: not-allowed;
+        }
+        .error-message {
+            text-align: center;
+            color: #d9534f;
+            padding: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <header>
+            <h1>NekoBot(β)</h1>
+            <p>※AIは間違った回答を返すことがあります。十分注意してください</p>
+        </header>
+        <div id="chat-history">
+            <!-- チャット履歴がここに追加されます -->
+        </div>
+        <form id="chat-form">
+            <input type="text" id="user-input" placeholder="メッセージを入力..." autocomplete="off">
+            <button type="submit" id="send-button">送信</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        // ----- ▼▼▼ 設定項目 ▼▼▼ -----
+
+        /**
+         *【重要】ご自身のGemini APIキーに置き換えてください。
+         * Google AI Studio (https://aistudio.google.com/app/apikey) で取得できます。
+         */
+        const API_KEY = "AIzaSyDghmwGaa75X_H4Tftpzx9lCQnb26IdTxM";
+
+        /**
+         * 使用するAIモデル名。
+         */
+        const MODEL_NAME = "gemini-2.0-flash-lite";
+
+        /**
+         * AIに与えるシステムプロンプト（役割設定）。
+         */
+        const SYSTEM_PROMPT = `あなたは、Scratcher向けSNS「NyaX」のチャットボットです。ユーザーからの質問に対して、以下の情報とルールに基づき、親切かつ分かりやすく回答してください。
+
+#### あなたについて
+
+*   名前: NekoBot
+*   役割: NyaXの機能や使い方に関する質問に答えること。
+*   口調: 親しみやすく、丁寧な言葉遣いを心がけてください。また絵文字は**絶対に**使用しないでください。
+
+---
+
+#### NyaXの基本情報
+
+NyaX（にゃっくす）は、X (旧Twitter) のような使い心地を目指した、シンプルなSNSです。Scratchのアカウントがあれば誰でも簡単に参加でき、文章、画像、動画などの投稿を通じて他のユーザーと繋がることができます。
+
+---
+
+#### NyaXの主な機能
+
+**【アカウント・プロフィール関連】**
+
+*   **アカウント登録・ログイン**:
+    *   Scratchのアカウントを利用して認証します。特別なパスワード設定は不要で、Scratchのプロジェクトに指定されたコードをコメントするだけで安全にログインできます。
+*   **設定**:
+    *   ユーザー名、自己紹介、アイコン画像を自由に設定できます。(プロフィール画面ではなく設定から変える)
+*   **公開設定**:
+    *   「いいね」「お気に入り」「フォローリスト」などを他のユーザーに公開するかどうか、設定画面で細かく指定できます。
+
+**【投稿（ポスト）関連の機能】**
+
+*   **基本投稿**:
+    *   最大280文字のテキストを投稿できます。画像、動画、音声ファイルも添付可能です。
+*   **リポスト**:
+    *   他の人の投稿を、自分のコメントなしでフォロワーに共有する機能です。
+*   **引用ポスト**:
+    *   他の人の投稿に自分のコメントを付けて共有する機能です。(引用を返信代わりに使ったり書き忘れていた情報を引用でつけ足す行為は避けるよう言う事)
+*   **Markdown記法**:
+    *   ポストの最初の行に \`!markdown\` と書くと、見出し、リスト、コードブロックなどを使って投稿の見た目を豊かに装飾できます。
+*   **メンションとハッシュタグ**:
+    *   \`@ユーザーID\`で特定のユーザーに通知を送ったり、\`#タグ\`で話題をグループ化したりできます。
+*   **独自絵文字**:
+    *   \`_emoji_id_\` のように、アンダースコアで特定のIDを囲むと、NyaXオリジナルの絵文字を表示できます。利用可能な絵文字は絵文字一覧ページで確認できます。
+*   **ポストの編集・削除**:
+    *   投稿後でも、自分のポストの内容を編集したり、削除したりできます。
+
+**【コミュニケーション機能】**
+
+*   **返信（リプライ）**:
+    *   他のユーザーの投稿に対して、会話を続ける形でコメントを投稿できます。
+*   **いいね**:
+    *   気に入った投稿にハートを送る、最も手軽な反応方法です。
+*   **お気に入り**:
+    *   後で読み返したい投稿を保存しておくためのブックマーク機能です。
+*   **ダイレクトメッセージ (DM)**:
+    *   特定のユーザーやグループと、他の人には見えない非公開のチャットができます。
+
+**【閲覧・検索機能】**
+
+*   **タイムライン**:
+    *   **すべて**: 全ユーザーの投稿が時系列で流れます。
+    *   **おすすめ**: あなたの活動に基づいて、興味を持ちそうな投稿をNyaXが自動で選びます。
+    *   **フォロー中**: あなたがフォローしているユーザーの投稿だけが表示されます。
+*   **プロフィール画面**:
+    *   ユーザーのプロフィール情報と共に、「ポスト」「返信」「メディア」「いいね」などのタブで、そのユーザーの活動をまとめて見ることができます。
+*   **検索**:
+    *   キーワードを入力して、関連する投稿やユーザーを高速に探すことができます。
+*   **トレンド**:
+    *   「検索」ページでは、今NyaXで話題になっているハッシュタグをランキング形式で確認できます。
+
+---
+
+#### 【重要】NyaXルール
+
+基本方針
+本ルールに違反した場合、運営は違反内容に応じて該当ポストの削除やアカウントの凍結といった措置を行います。
+ルールに明記されていない行為であっても、他のユーザーへの迷惑行為やサービスの安定運用を妨げる行為など、運営が不適切と判断した場合は措置の対象となることがあります。
+アカウントに関するルール
+複数アカウントの所持は、1人あたり3つまでを上限とします。
+所持しているアカウントのいずれかが凍edされた場合、凍結を回避する目的で別のアカウントを使用してサービスを利用することは禁止します。
+NyaXアカウントを第三者へ譲渡、売買、貸与することは禁止します。
+ポストに関するルール
+スパム行為や、自動化された手段による大量投稿など、サーバーに過度な負荷をかける行為は禁止します。
+攻撃的な表現や、他者が不快に感じる可能性のある発言は控えてください。
+特定の個人や団体に対する誹謗中傷、嫌がらせ、脅迫といった行為は控えてください。
+ルールに違反するポストを発見した場合は、管理者(@8766)へダイレクトメッセージで「ポストのID」と「違反内容」を報告してください。
+ダイレクトメッセージに関するルール
+ダイレクトメッセージの内容は、プライバシー保護のため運営が通常閲覧することはありません。ただし、利用者からルール違反の通報があった場合に限り、内容を確認することがあります。
+メッセージ機能を利用した、特定の個人に対する誹謗中傷、嫌がらせ、脅迫を禁止します。
+相手の迷惑となるような、一方的なメッセージの連続送信（連投）は控えてください。
+メッセージでルール違反の行為を受けた場合は、管理者(@8766)へダイレクトメッセージで「DMのID」と「具体的な状況」を報告してください。
+金銭に関するルール
+NyaX上での金銭のやり取りは特に規制しませんが、常識的な行動を心がけましょう。
+金銭等のトラブルについてNyaXは一切の責任を負いません。
+Scratchに関するルール
+Scratch上でNyaXのURLを貼ることを禁止します(コミュニティーガイドラインに違反するため)
+Scratch上のコンテンツをNyaXで宣伝することは自由に行っても構いません。
+
+---
+
+#### NyaXの各URLと簡単な説明
+/:NyaXのメイン画面です。基本的な動作は全てここで行います
+/emoji: NyaXで利用できるEmojiを一覧表示します
+/stat: NyaXの統計を確認できます
+/ranking: フォロワー数,ポスト数,いいね数,お気に入り数のランキングを見れます
+/help: NekoBotに質問することができます
+
+---
+
+#### NyaXの利用者制限について
+認証に使用したScratchアカウントが次の条件を全て満たしていない場合ブロックされます
+1.NewScratcherではなくScratcherになっている
+2.正規のフォロワーが25人以上
+NyaXは海外からやVPN経由でのアクセスをブロックします。
+
+---
+
+#### 個人情報について
+NyaXはログイン時に以下の情報が含まれるログを保存します
+1.認証した日付
+2.認証に使用したScratchのユーザー名
+3.IPアドレス
+NyaXは上のような個人情報を公開することはありません。
+但し、凍結された場合に限り、NyaXTeam(NyaXの運営)は上の情報を確認する権限を持ちます。
+もし保存されている情報を確認したい場合は管理者にDMでお伝えください。
+また、DMはNyaXTeamが確認することはできませんが管理者は確認できます。
+通常時は確認することはありませんがNyaXルール違反の通報を受けたときのみ確認します。
+
+---
+
+#### 応答のガイドライン
+
+*   上記の機能やルールについて質問されたら、該当する説明を元に回答してください。
+*   リストにない質問や技術的な詳細について聞かれた場合は、「ごめんなさい、その質問には詳しくお答えできません。開発者にお問い合わせください。」のように回答してください。
+*   常にユーザーフレンドリーな対応を心がけてください。`;
+
+        // ----- ▲▲▲ 設定項目ここまで ▲▲▲ -----
+
+        // --- DOM要素の取得 ---
+        const chatHistory = document.getElementById('chat-history');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+        let chat;
+
+        // --- 初期化処理 ---
+        function initializeChat() {
+            if (API_KEY === "YOUR_GEMINI_API_KEY") {
+                addMessageToUI("<strong>エラー:</strong> Gemini APIキーが設定されていません。<code>help.html</code>ファイルを編集して、APIキーを設定してください。", "bot", true);
+                sendButton.disabled = true;
+                userInput.disabled = true;
+                return;
+            }
+
+            try {
+                const genAI = new GoogleGenerativeAI(API_KEY);
+                const model = genAI.getGenerativeModel({
+                    model: MODEL_NAME,
+                    systemInstruction: SYSTEM_PROMPT,
+                });
+                const generationConfig = {
+                    temperature: 0, // Temperatureを0に設定
+                    // 他の設定が必要な場合はここに追加
+                };
+                chat = model.startChat({
+                    generationConfig,
+                    history: [],
+                });
+
+            } catch (error) {
+                console.error("AIの初期化に失敗:", error);
+                addMessageToUI(`<strong>エラー:</strong> AIの初期化に失敗しました。APIキーやモデル名が正しいか確認してください。<br><small>${error.message}</small>`, "bot", true);
+                sendButton.disabled = true;
+                userInput.disabled = true;
+            }
+        }
+
+        /**
+         * 応答テキスト内の特定のパスをリンクに変換する
+         * @param {string} text - 変換するテキスト
+         * @returns {string} - 変換後のHTML文字列
+         */
+        function formatResponse(text) {
+            const pageLinks = {
+                "/:": "NyaX",
+                "/emoji": "絵文字一覧",
+                "/stat": "統計",
+                "/ranking": "ランキング",
+                "/help": "ヘルプ"
+            };
+            
+            // HTMLエスケープを先に行い、意図しないタグが生成されるのを防ぐ
+            // ただし、改行は<br>にしたいので一旦プレースホルダーに
+            const newlinePlaceholder = "%%NEWLINE%%";
+            let escapedText = text
+                .replace(/&/g, "&")
+                .replace(/</g, "<")
+                .replace(/>/g, ">")
+                .replace(/"/g, '"')
+                .replace(/'/g, "'")
+                .replace(/\n/g, newlinePlaceholder);
+
+            // pageLinksの各パスを対応する<a>タグに置換
+            for (const [path, name] of Object.entries(pageLinks)) {
+                const linkHtml = `<a href="${path}" target="_blank" rel="noopener noreferrer">${name}</a>`;
+                // String.prototype.replaceAll を使って、全ての出現箇所を置換
+                escapedText = escapedText.replaceAll(path, linkHtml);
+            }
+
+            // 最後に改行のプレースホルダーを<br>に戻す
+            return escapedText.replaceAll(newlinePlaceholder, '<br>');
+        }
+
+        /**
+         * チャット履歴にメッセージを追加する
+         * @param {string} text - メッセージ内容 (HTML可)
+         * @param {'user' | 'bot'} sender - 送信者
+         * @param {boolean} isError - エラーメッセージかどうか
+         * @returns {HTMLElement} - 追加されたメッセージのDOM要素
+         */
+        function addMessageToUI(text, sender, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            if (isError) {
+                bubbleDiv.classList.add('error-message');
+            }
+            bubbleDiv.innerHTML = text;
+
+            messageDiv.appendChild(bubbleDiv);
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight; // 自動スクロール
+            return bubbleDiv;
+        }
+
+        // --- フォーム送信時の処理 ---
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = userInput.value.trim();
+            if (!prompt) return;
+
+            userInput.value = '';
+            sendButton.disabled = true;
+            addMessageToUI(prompt, 'user');
+
+            const botBubble = addMessageToUI('', 'bot');
+            botBubble.classList.add('streaming');
+
+            try {
+                const result = await chat.sendMessageStream(prompt);
+                let responseText = "";
+                for await (const chunk of result.stream) {
+                    responseText += chunk.text();
+                    botBubble.innerHTML = formatResponse(responseText);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+
+            } catch (error) {
+                console.error("AIからの応答取得に失敗:", error);
+                botBubble.innerHTML = `<strong>エラー:</strong> メッセージの送信に失敗しました。<br><small>${error.message}</small>`;
+                botBubble.classList.add('error-message');
+            } finally {
+                botBubble.classList.remove('streaming');
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        });
+
+        // --- 初期化実行 ---
+        initializeChat();
+    </script>
+</body>
+</html>

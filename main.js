@@ -336,54 +336,53 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
-        showLoading(true);
-        isLoadingMore = false;
+    showLoading(true);
+    isLoadingMore = false;
 
-        // [修正点] 画面遷移時に、まずフォロー/フォロワー用のサブメニューが残っていたら削除する
-        const existingSubTabs = document.getElementById('profile-sub-tabs-container');
-        if (existingSubTabs) {
-            existingSubTabs.remove();
-        }
-
-        await updateNavAndSidebars();
-        const hash = window.location.hash || '#';
-
-        if (postLoadObserver) {
-            postLoadObserver.disconnect();
-        }
-
-        try {
-            if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-            else if (hash.startsWith('#profile/')) {
-                const path = hash.substring(9);
-                const userId = parseInt(path, 10);
-                
-                if (isNaN(userId)) {
-                    window.location.hash = '#'; return;
-                }
-
-                const subpageMatch = path.match(/\/(.+)/);
-                const subpage = subpageMatch ? subpageMatch[1] : 'posts';
-                
-                await showProfileScreen(userId, subpage);
-            }
-            else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
-            else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
-            else if (hash === '#dm') await showDmScreen();
-            else if (hash === '#settings' && currentUser) await showSettingsScreen();
-            else if (hash === '#explore') await showExploreScreen();
-            else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
-            else if (hash === '#likes' && currentUser) await showLikesScreen();
-            else if (hash === '#stars' && currentUser) await showStarsScreen();
-            else await showMainScreen();
-        } catch (error) {
-            console.error("Routing error:", error);
-            DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
-            showScreen('main-screen');
-            DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
-            showLoading(false);
-        }
+    const existingSubTabs = document.getElementById('profile-sub-tabs-container');
+    if (existingSubTabs) {
+        existingSubTabs.remove();
     }
+
+    await updateNavAndSidebars();
+    const hash = window.location.hash || '#';
+
+    if (postLoadObserver) {
+        postLoadObserver.disconnect();
+    }
+
+    try {
+        if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
+        else if (hash.startsWith('#profile/')) {
+            const path = hash.substring(9);
+            const userId = parseInt(path, 10);
+            if (isNaN(userId)) { window.location.hash = '#'; return; }
+            const subpageMatch = path.match(/\/(.+)/);
+            const subpage = subpageMatch ? subpageMatch[1] : 'posts';
+            await showProfileScreen(userId, subpage);
+        }
+        else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
+        // ★★★ この行を新規追加 ★★★
+        else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
+        // ★★★ ここまで ★★★
+        else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
+        else if (hash === '#dm') await showDmScreen();
+        else if (hash === '#settings' && currentUser) await showSettingsScreen();
+        else if (hash === '#explore') await showExploreScreen();
+        else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
+        else if (hash === '#likes' && currentUser) await showLikesScreen();
+        else if (hash === '#stars' && currentUser) await showStarsScreen();
+        else await showMainScreen();
+    } catch (error) {
+        console.error("Routing error:", error);
+        DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
+        showScreen('main-screen');
+        DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
+    } finally {
+        // `showAdminLogsScreen`内で個別にローディングを解除するため、ここでの一括解除は不要
+        // showLoading(false);
+    }
+}
     
     // --- 6. ナビゲーションとサイドバー ---
     async function loadRightSidebar() {
@@ -2136,99 +2135,190 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showSettingsScreen() {
-        if (!currentUser) return router();
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
-        showScreen('settings-screen');
-        newIconDataUrl = null;
-        resetIconToDefault = false;
-        // ▼▼▼ innerHTMLの生成部分を修正 ▼▼▼
-        document.getElementById('settings-screen').innerHTML = `
-            <form id="settings-form">
-                <label for="setting-username">ユーザー名:</label>
-                <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
-                
-                <label for="setting-icon-input">アイコン:</label>
-                <div class="setting-icon-container">
-                    <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
-                    <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
-                </div>
-                <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
-
-                <label for="setting-me">自己紹介:</label>
-                <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
-                <fieldset><legend>公開設定</legend>
-                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
-                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
-                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
-                </fieldset>
-                <button type="submit">設定を保存</button>
-            </form>
-            <div class="settings-danger-zone">
-                <button id="settings-logout-btn">ログアウト</button>
+    if (!currentUser) return router();
+    DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
+    showScreen('settings-screen');
+    newIconDataUrl = null;
+    resetIconToDefault = false;
+    
+    document.getElementById('settings-screen').innerHTML = `
+        <form id="settings-form">
+            <label for="setting-username">ユーザー名:</label>
+            <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
+            
+            <label for="setting-icon-input">アイコン:</label>
+            <div class="setting-icon-container">
+                <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
             </div>
-            `;
-        // ▲▲▲ 修正ここまで ▲▲▲
-        
-        const iconInput = document.getElementById('setting-icon-input');
-        const iconPreview = document.getElementById('setting-icon-preview');
-        
-        iconPreview.addEventListener('click', () => iconInput.click());
-        iconInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file || !file.type.startsWith('image/')) return;
+            <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
 
-            resetIconToDefault = false;
-            const reader = new FileReader();
+            <label for="setting-me">自己紹介:</label>
+            <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
+            <fieldset><legend>公開設定</legend>
+                <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
+                <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
+                <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
+                <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+            </fieldset>
+            <button type="submit">設定を保存</button>
+        </form>
+        <div class="settings-danger-zone" style="display: flex; gap: 0.5rem;">
+            <!-- ボタンはJSで動的に挿入します -->
+        </div>
+        `;
+    
+    const dangerZone = document.querySelector('.settings-danger-zone');
+    let dangerZoneHTML = `<button id="settings-logout-btn">ログアウト</button>`;
 
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const MAX_DIMENSION = 300;
-                    let { width, height } = img;
-
-                    // リサイズが必要か判定
-                    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-                        if (width > height) {
-                            height = Math.round((height * MAX_DIMENSION) / width);
-                            width = MAX_DIMENSION;
-                        } else {
-                            width = Math.round((width * MAX_DIMENSION) / height);
-                            height = MAX_DIMENSION;
-                        }
-                    }
-
-                    // canvasを使ってリサイズ
-                    const canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // リサイズ後の画像をData URLとして取得
-                    newIconDataUrl = canvas.toDataURL(file.type); // 元のファイル形式を維持
-                    iconPreview.src = newIconDataUrl;
-                };
-                img.src = event.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-        // ▲▲▲ 置き換えここまで ▲▲▲
-
-        document.getElementById('reset-icon-btn').addEventListener('click', () => {
-            resetIconToDefault = true;
-            newIconDataUrl = null;
-            iconInput.value = ''; // ファイル選択をクリア
-            iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
-        });
-
-        document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
-        // ▼▼▼ この行を追加 ▼▼▼
-        document.getElementById('settings-logout-btn').addEventListener('click', handleLogout);
-        // ▲▲▲ 追加ここまで ▲▲▲
-        showLoading(false);
+    // 管理者の場合「アクセスログ」ボタンを追加
+    if (currentUser.admin) {
+        // ★★★ ここを修正 ★★★
+        // <a>タグに、ログアウトボタンと同じID/クラスを適用してスタイルを統一
+        dangerZoneHTML += `
+            <a href="#admin/logs" id="settings-showlog-btn">
+                アクセスログ
+            </a>
+        `;
+        // ★★★ ここまで ★★★
     }
+    dangerZone.innerHTML = dangerZoneHTML;
+    
+    // (以降のロジックは変更なし)
+    const iconInput = document.getElementById('setting-icon-input');
+    const iconPreview = document.getElementById('setting-icon-preview');
+    
+    iconPreview.addEventListener('click', () => iconInput.click());
+    iconInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        resetIconToDefault = false;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const MAX_DIMENSION = 300;
+                let { width, height } = img;
+                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                    if (width > height) {
+                        height = Math.round((height * MAX_DIMENSION) / width);
+                        width = MAX_DIMENSION;
+                    } else {
+                        width = Math.round((width * MAX_DIMENSION) / height);
+                        height = MAX_DIMENSION;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                newIconDataUrl = canvas.toDataURL(file.type);
+                iconPreview.src = newIconDataUrl;
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('reset-icon-btn').addEventListener('click', () => {
+        resetIconToDefault = true;
+        newIconDataUrl = null;
+        iconInput.value = '';
+        iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
+    });
+
+    document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+    document.getElementById('settings-logout-btn').addEventListener('click', (e) => {
+        handleLogout();
+    });
+
+    showLoading(false);
+}
+
+    async function showAdminLogsScreen() {
+    DOM.pageHeader.innerHTML = `
+        <div class="header-with-back-button">
+            <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+            <h2 id="page-title">アクセスログ</h2>
+        </div>`;
+    showScreen('admin-logs-screen');
+    const contentDiv = document.getElementById('admin-logs-content');
+    contentDiv.innerHTML = ''; // 表示前にクリア
+
+    isLoadingMore = false;
+    const LOGS_PER_PAGE = 40;
+    let currentPage = 0;
+    let hasMore = true;
+
+    // 無限スクロールのトリガー要素
+    const trigger = document.createElement('div');
+    trigger.className = 'load-more-trigger';
+    contentDiv.appendChild(trigger);
+
+    const loadMoreLogs = async () => {
+        if (isLoadingMore || !hasMore) return;
+        isLoadingMore = true;
+        trigger.innerHTML = '<div class="spinner"></div>';
+
+        const offset = currentPage * LOGS_PER_PAGE;
+        const { data, error } = await supabase.rpc('get_logs_with_masked_ip', {
+            p_limit: LOGS_PER_PAGE,
+            p_offset: offset
+        });
+
+        if (error) {
+            console.error('ログの取得に失敗:', error);
+            trigger.innerHTML = `<p class="error-message">${error.message}</p>`;
+            hasMore = false;
+            isLoadingMore = false;
+            return;
+        }
+
+        if (data && data.length > 0) {
+            data.forEach(log => {
+                const logItem = document.createElement('div');
+                logItem.className = 'widget-item'; // 通知と似たスタイルを流用
+                logItem.style.cssText = 'display: flex; flex-direction: column; gap: 0.25rem;';
+
+                logItem.innerHTML = `
+                    <div>
+                        <strong>SCID:</strong> ${escapeHTML(log.scratch_id)} (#${log.nyax_id})
+                    </div>
+                    <div style="font-size: 0.9rem; color: var(--secondary-text-color);">
+                        ${new Date(log.log_time).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--secondary-text-color); font-family: monospace; word-break: break-all;">
+                        識別子: ${log.masked_ip_uuid}
+                    </div>
+                `;
+                // トリガー要素の直前に新しいログアイテムを挿入
+                contentDiv.insertBefore(logItem, trigger);
+            });
+            currentPage++;
+        }
+
+        if (!data || data.length < LOGS_PER_PAGE) {
+            hasMore = false;
+            trigger.innerHTML = contentDiv.children.length > 1 ? 'すべてのログを読み込みました' : 'ログはまだありません。';
+            if (postLoadObserver) postLoadObserver.disconnect();
+        } else {
+            trigger.innerHTML = '';
+        }
+        isLoadingMore = false;
+    };
+
+    // IntersectionObserverを設定して無限スクロールを実装
+    postLoadObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+            loadMoreLogs();
+        }
+    }, { rootMargin: '200px' });
+    
+    postLoadObserver.observe(trigger);
+    showLoading(false); // 初回のローディング表示を解除
+}
     
     async function loadPostsWithPagination(container, type, options = {}) {
         let localPostLoadObserver;
