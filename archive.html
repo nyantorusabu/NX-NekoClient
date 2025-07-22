@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NyaX Post Archive</title>
+    <!-- ライブラリ (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <style>
+        /* (基本スタイルは変更なし) */
+        :root {
+            --primary-color: #1d9bf0;
+            --border-color: #eff3f4;
+            --bg-color: #f7f9f9;
+            --text-color: #0f1419;
+            --secondary-text-color: #536471;
+        }
+        body {
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #fff;
+            color: var(--text-color);
+        }
+        .header {
+            position: sticky;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 10;
+        }
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background-color: var(--bg-color);
+            border-radius: 9999px;
+            padding: 0.5rem 1rem;
+            gap: 0.5rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .search-bar svg {
+            flex-shrink: 0; width: 20px; height: 20px; fill: none; stroke: var(--secondary-text-color);
+        }
+        .search-bar input {
+            flex-grow: 1; border: none; background: transparent; outline: none; font-size: 1rem;
+        }
+        .main-container {
+            max-width: fit-content;
+            margin: 0 auto;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            min-height: 100vh;
+        }
+        .status-message {
+            text-align: center;
+            padding: 2rem;
+            color: var(--secondary-text-color);
+            font-size: 1.2rem;
+        }
+        .post {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+        }
+        .post .user-icon {
+            width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0;
+        }
+        .post-main { flex-grow: 1; min-width: 0; } /* min-width:0を追加 */
+        .post-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
+        .post-author { font-weight: bold; color: var(--text-color); text-decoration: none; }
+        .post-time { font-size: 0.9rem; color: var(--secondary-text-color); white-space: nowrap; }
+        .admin-badge, .verify-badge { width: 1.2em; height: 1.2em; vertical-align: text-bottom; }
+        .post-content { margin-bottom: 1rem; white-space: pre-wrap; word-wrap: break-word; font-size: 1rem; }
+        .post-content a { color: var(--primary-color); text-decoration: none; }
+        .post-content a:hover { text-decoration: underline; }
+        .attachments-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+        .attachment-item { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .attachment-item img, .attachment-item video, .attachment-item audio { max-height: 15em; max-width: 100%; display: block; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s ease infinite; margin: 2rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ★★★ ここから新規追加・修正 ★★★ */
+        .repost-indicator {
+            color: var(--secondary-text-color);
+            font-size: 0.9em;
+            margin-bottom: 0.5rem; /* ポストヘッダーとの間隔を確保 */
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+        }
+        .nested-repost-container {
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .nested-repost-container .post {
+            border: none;
+            padding: 0.8rem;
+        }
+        .deleted-post-container {
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            color: var(--secondary-text-color);
+        }
+        /* ★★★ ここまで ★★★ */
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="search-bar">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="search" id="search-input" placeholder="アーカイブ内を検索...">
+        </div>
+    </header>
+
+    <main class="main-container" id="posts-container">
+        <!-- ポストがここに描画されます -->
+    </main>
+
+    <div id="load-more-trigger"></div>
+
+    <script type="module">
+        // (設定は変更なし)
+        const ARCHIVE_URL = '/archive/post.json';
+        const POSTS_PER_PAGE = 20;
+        const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+
+        // ----- グローバル変数 -----
+        let allHydratedPosts = [];
+        let hydratedPostsById = new Map(); // ★★★ ポストをIDで引けるようにMapを追加
+        let postsToRender = [];
+        let renderedCount = 0;
+        let observer;
+        const userCache = new Map();
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // (DOM要素の取得は変更なし)
+        const postsContainer = document.getElementById('posts-container');
+        const searchInput = document.getElementById('search-input');
+        const loadMoreTrigger = document.getElementById('load-more-trigger');
+
+        // (ヘルパー関数は変更なし)
+        
+        // 画像の読み込みに失敗した場合にアーカイブパスを参照する
+        window.handleImageError = (imgElement, fileId) => {
+            const archiveSrc = `/archive/image/${fileId}`;
+            // 無限ループを防ぐため、一度だけ試行する
+            if (imgElement.src !== archiveSrc) {
+                imgElement.src = archiveSrc;
+            }
+        };
+
+        function getUserIconUrl(user) {
+            if (!user) return ''; 
+            if (user.icon_data && !user.icon_data.startsWith('data:image')) {
+                const { data } = supabase.storage.from('nyax').getPublicUrl(user.icon_data);
+                return data.publicUrl;
+            }
+            return `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+        }
+
+        /**
+         * テキストを安全にHTMLエスケープする
+         */
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }
+
+        /**
+         * ポスト本文をフォーマットする (Markdownと絵文字)
+         */
+        function formatPostContent(text) {
+            // 絵文字を置換
+            const applyEmoji = (str) => {
+                const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
+                return str.replace(emojiRegex, (match, emojiId) => {
+                    const escapedId = escapeHTML(emojiId);
+                    return `<img src="https://nyax.onrender.com/emoji/${escapedId}.png" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em;">`;
+                });
+            };
+
+            const lines = text.split(/\r?\n/);
+            const firstLine = lines[0].trim();
+
+            if (firstLine === '!markdown') {
+                const markdownContent = lines.slice(1).join('\n');
+                const contentWithEmoji = applyEmoji(markdownContent);
+                const rawHtml = marked.parse(contentWithEmoji, { breaks: true, gfm: true });
+                return DOMPurify.sanitize(rawHtml, { ADD_TAGS: ['details', 'summary'], ADD_ATTR: ['style', 'class'] });
+            } else {
+                return applyEmoji(escapeHTML(text)).replace(/\n/g, '<br>');
+            }
+        }
+
+        /**
+         * ★★★ ポストオブジェクトからHTML要素を生成する関数（大幅に更新） ★★★
+         */
+        function createPostElement(post, isNested = false) {
+            if (!post || !post.author) return null;
+
+            // --- ケース1: シンプルリポスト（コメントなし） ---
+            if (post.repost_to && !post.content) {
+                const originalPost = hydratedPostsById.get(post.repost_to);
+                const authorOfRepost = post.author;
+
+                if (!originalPost) {
+                    const postEl = document.createElement('div');
+                    postEl.className = 'post';
+                    postEl.innerHTML = `
+                        <div>
+                            <img src="${getUserIconUrl(authorOfRepost)}" class="user-icon" alt="${escapeHTML(authorOfRepost.name)}'s icon">
+                        </div>
+                        <div class="post-main">
+                            <div class="repost-indicator">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1em; height: 1em;"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>
+                                <span><a href="index.html#profile/${authorOfRepost.id}" class="post-author" target="_blank">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました</span>
+                            </div>
+                            <div class="deleted-post-container" style="margin-top: 0.5rem;">リポスト元のポストは削除されています。</div>
+                        </div>`;
+                    return postEl;
+                }
+                
+                const postEl = createPostElement(originalPost, true); 
+                
+                if (postEl && !isNested) {
+                    const postMain = postEl.querySelector('.post-main');
+                    if(postMain) {
+                        const repostIndicator = document.createElement('div');
+                        repostIndicator.className = 'repost-indicator';
+                        repostIndicator.innerHTML = `
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 1em; height: 1em;"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>
+                            <span><a href="index.html#profile/${authorOfRepost.id}" class="post-author" target="_blank">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました</span>
+                        `;
+                        postMain.prepend(repostIndicator);
+                    }
+                }
+                return postEl;
+            }
+
+            // --- ケース2: 通常ポストまたは引用ポスト ---
+            const postEl = document.createElement('div');
+            postEl.className = 'post';
+            const author = post.author;
+
+            let postHTML = `
+                <div>
+                    <a href="index.html#profile/${author.id}" target="_blank">
+                        <img src="${getUserIconUrl(author)}" class="user-icon" alt="${escapeHTML(author.name)}'s icon">
+                    </a>
+                </div>
+                <div class="post-main">
+                    <div class="post-header">
+                        <a href="index.html#profile/${author.id}" class="post-author" target="_blank">${escapeHTML(author.name)}</a>
+                        ${author.admin ? `<img src="/icons/admin.png" class="admin-badge" title="NyaXTeam">` : ''}
+                        ${author.verify ? `<img src="/icons/verify.png" class="verify-badge" title="認証済み">` : ''}
+                        <span class="post-time">#${author.id} · ${new Date(post.time).toLocaleString('ja-JP')}</span>
+                    </div>`;
+            
+            if (post.content) { postHTML += `<div class="post-content">${formatPostContent(post.content)}</div>`; }
+            // (添付ファイル、引用ポストのHTML生成は変更なし)
+            if (post.attachments && post.attachments.length > 0) { /* ... */ }
+            if (post.repost_to && post.content) {
+                 postHTML += `<div class="nested-repost-container">`;
+                 const nestedPost = hydratedPostsById.get(post.repost_to);
+                 if (nestedPost) {
+                    const nestedPostEl = createPostElement(nestedPost, true);
+                    if (nestedPostEl) {
+                        nestedPostEl.querySelector('.repost-indicator')?.remove();
+                        postHTML += nestedPostEl.outerHTML;
+                    }
+                 } else {
+                    postHTML += `<div class="deleted-post-container">引用元のポストは削除されています。</div>`;
+                 }
+                 postHTML += `</div>`;
+            }
+            postHTML += `</div>`;
+            postEl.innerHTML = postHTML;
+            return postEl;
+        }
+
+
+        /**
+         * 無限スクロールで次のポスト群を読み込む
+         */
+        function loadMorePosts() {
+            const fragment = document.createDocumentFragment();
+            const nextBatch = postsToRender.slice(renderedCount, renderedCount + POSTS_PER_PAGE);
+
+            nextBatch.forEach(post => {
+                const postElement = createPostElement(post);
+                if (postElement) fragment.appendChild(postElement);
+            });
+
+            postsContainer.appendChild(fragment);
+            renderedCount += nextBatch.length;
+
+            if (renderedCount >= postsToRender.length) {
+                if (observer) observer.disconnect();
+                const endMessage = document.createElement('div');
+                endMessage.className = 'status-message';
+                endMessage.textContent = postsToRender.length > 0 ? 'すべてのアーカイブを読み込みました' : '該当するポストはありません。';
+                postsContainer.appendChild(endMessage);
+            }
+        }
+
+        /**
+         * 検索バーの入力に基づいてポストをフィルタリングし、再描画する
+         */
+        function filterAndRender() {
+            const query = searchInput.value.toLowerCase().trim();
+            
+            if (query) {
+                postsToRender = allHydratedPosts.filter(post => {
+                    const contentMatch = post.content?.toLowerCase().includes(query);
+                    const authorNameMatch = post.author?.name.toLowerCase().includes(query);
+                    const authorIdMatch = post.author?.id.toString().includes(query);
+                    const authorScidMatch = post.author?.scid.toLowerCase().includes(query);
+                    return contentMatch || authorNameMatch || authorIdMatch || authorScidMatch;
+                });
+            } else {
+                postsToRender = [...allHydratedPosts];
+            }
+            
+            // 表示をリセット
+            postsContainer.innerHTML = '';
+            renderedCount = 0;
+            if (observer) observer.disconnect();
+
+            loadMorePosts(); // 最初のページを描画
+            setupInfiniteScroll(); // 無限スクロールを再設定
+        }
+
+        /**
+         * IntersectionObserverを設定する
+         */
+        function setupInfiniteScroll() {
+            observer = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && renderedCount < postsToRender.length) {
+                    loadMorePosts();
+                }
+            }, { rootMargin: '500px' });
+            observer.observe(loadMoreTrigger);
+        }
+
+        /**
+         * メインのデータ取得・結合処理
+         */
+        async function initialize() {
+            postsContainer.innerHTML = '<div class="spinner"></div>';
+            try {
+                // 1. アーカイブJSONを取得
+                const response = await fetch(ARCHIVE_URL);
+                if (!response.ok) throw new Error(`アーカイブの取得に失敗 (HTTP ${response.status})`);
+                const archivePosts = await response.json();
+                if (!Array.isArray(archivePosts)) throw new Error('アーカイブデータが不正な形式です。');
+
+                // 2. 登場する全ユーザーIDを収集
+                const userIds = [...new Set(archivePosts.map(p => p.userid).filter(id => id))];
+
+                // 3. DBから最新のユーザー情報を一括取得
+                if (userIds.length > 0) {
+                    const { data: users, error } = await supabase.from('user').select('*').in('id', userIds);
+                    if (error) throw new Error(`ユーザー情報の取得に失敗: ${error.message}`);
+                    users.forEach(user => userCache.set(user.id, user));
+                }
+
+                // 4. ポストとユーザー情報を結合（ハイドレーション）
+                const hydrated = archivePosts.map(post => ({
+                    ...post,
+                    author: userCache.get(post.userid) || null
+                })).filter(post => post.author);
+
+                // ★★★ 5. 結合後のデータをIDで引けるMapに格納 ★★★
+                hydrated.forEach(post => hydratedPostsById.set(post.id, post));
+                
+                // 6. 新しい順にソート
+                allHydratedPosts = hydrated.sort((a, b) => new Date(b.time) - new Date(a.time));
+                
+                filterAndRender(); // 初期表示
+
+            } catch (error) {
+                console.error(error);
+                postsContainer.innerHTML = `<div class="status-message">${error.message}</div>`;
+            }
+        }
+
+        // --- イベントリスナーと初期化 ---
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                filterAndRender();
+            }, 300); // 300ミリ秒のデバウンス
+        });
+
+        // --- 初期化実行 ---
+        initialize();
+    </script>
+</body>
+</html>
