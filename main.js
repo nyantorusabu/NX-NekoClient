@@ -885,56 +885,70 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-        const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
+    const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
-        if (!post) return null;
-        
-        // [修正点] authorオブジェクトは、postオブジェクト自身に含まれているものを正として使う
-        const displayAuthor = author || post.author;
-        if (!displayAuthor) return null; // 作者情報がなければ描画しない
+    if (!post) return null;
+    
+    const displayAuthor = author || post.author;
+    if (!displayAuthor) return null;
 
-        const isSimpleRepost = post.repost_to && !post.content;
-        
-        if (isSimpleRepost) {
-            const authorOfRepost = displayAuthor;
-            const originalPost = post.reposted_post;
+    const isSimpleRepost = post.repost_to && !post.content;
+    
+    // --- ケース1: シンプルリポスト（コメントなし）の処理 ---
+    if (isSimpleRepost) {
+        const authorOfRepost = displayAuthor;
+        const originalPost = post.reposted_post;
 
-            if (!originalPost) {
-                const deletedPostWrapper = document.createElement('div');
-                deletedPostWrapper.className = 'post';
-                deletedPostWrapper.dataset.postId = post.id;
-                
-                // [修正点] 変数名を変更して構文エラーを解決
-                const deletedPostMain = document.createElement('div');
-                deletedPostMain.className = 'post-main';
+        // リポスト元が削除されている場合
+        if (!originalPost) {
+            const deletedPostWrapper = document.createElement('div');
+            deletedPostWrapper.className = 'post';
+            deletedPostWrapper.dataset.postId = post.id;
+            
+            const deletedPostMain = document.createElement('div');
+            deletedPostMain.className = 'post-main';
 
-                const repostIndicator = document.createElement('div');
-                repostIndicator.className = 'repost-indicator';
-                repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${authorOfRepost.id}">${escapeHTML(authorOfRepost.name)}</a>さんがリポストしました`;
-                deletedPostMain.appendChild(repostIndicator);
+            const repostIndicator = document.createElement('div');
+            repostIndicator.className = 'repost-indicator';
+            repostIndicator.innerHTML = `${ICONS.repost}`; // 安全な内部SVGなのでinnerHTML
+            const repostAuthorLink = document.createElement('a');
+            repostAuthorLink.href = `#profile/${authorOfRepost.id}`;
+            repostAuthorLink.textContent = authorOfRepost.name; // 安全なtextContent
+            const repostText = document.createElement('span');
+            repostText.textContent = ` さんがリポストしました`;
+            repostIndicator.appendChild(repostAuthorLink);
+            repostIndicator.appendChild(repostText);
+            deletedPostMain.appendChild(repostIndicator);
 
-                const deletedContainer = document.createElement('div');
-                deletedContainer.className = 'deleted-post-container';
-                deletedContainer.textContent = 'このポストは削除されました。';
-                deletedPostMain.appendChild(deletedContainer);
-                
-                deletedPostWrapper.appendChild(deletedPostMain);
-                return deletedPostWrapper;
-            }
+            const deletedContainer = document.createElement('div');
+            deletedContainer.className = 'deleted-post-container';
+            deletedContainer.textContent = 'このポストは削除されました。'; // 安全なtextContent
+            deletedPostMain.appendChild(deletedContainer);
+            
+            deletedPostWrapper.appendChild(deletedPostMain);
+            return deletedPostWrapper;
+        }
 
-            // [修正点] 再帰呼び出し時に、.authorプロパティを渡す
-            const postEl = await renderPost(originalPost, originalPost.author, { ...options, isNested: false });
-            if (!postEl) return null;
+        // リポスト元が存在する場合、オリジナルポストを再帰的に描画
+        const postEl = await renderPost(originalPost, originalPost.author, { ...options, isNested: false });
+        if (!postEl) return null;
 
-            postEl.dataset.postId = post.id;
-            postEl.dataset.actionTargetId = originalPost.id;
+        postEl.dataset.postId = post.id;
+        postEl.dataset.actionTargetId = originalPost.id;
 
-            const repostedPostMain = postEl.querySelector('.post-main');
-            if (repostedPostMain) {
-                const repostIndicator = document.createElement('div');
-                repostIndicator.className = 'repost-indicator';
-                repostIndicator.innerHTML = `${ICONS.repost} <a href="#profile/${author.id}">${escapeHTML(author.name)}</a>さんがリポストしました`;
-                repostedPostMain.prepend(repostIndicator);
+        const repostedPostMain = postEl.querySelector('.post-main');
+        if (repostedPostMain) {
+            const repostIndicator = document.createElement('div');
+            repostIndicator.className = 'repost-indicator';
+            repostIndicator.innerHTML = `${ICONS.repost}`;
+            const repostAuthorLink = document.createElement('a');
+            repostAuthorLink.href = `#profile/${authorOfRepost.id}`;
+            repostAuthorLink.textContent = authorOfRepost.name;
+            const repostText = document.createElement('span');
+            repostText.textContent = ` さんがリポストしました`;
+            repostIndicator.appendChild(repostAuthorLink);
+            repostIndicator.appendChild(repostText);
+            repostedPostMain.prepend(repostIndicator);
 
                 const postHeader = repostedPostMain.querySelector('.post-header');
                 if (postHeader) {
@@ -963,59 +977,71 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!author) return null;
 
         const postEl = document.createElement('div');
-        postEl.className = 'post';
-        postEl.dataset.postId = post.id;
-        postEl.dataset.actionTargetId = post.id;
-        
-        const userIconLink = document.createElement('a');
-        userIconLink.href = `#profile/${author.id}`;
-        userIconLink.className = 'user-icon-link';
-        const userIcon = document.createElement('img');
-        userIcon.src = getUserIconUrl(author);
-        userIcon.className = 'user-icon';
-        userIcon.alt = `${author.name}'s icon`;
-        userIconLink.appendChild(userIcon);
-        postEl.appendChild(userIconLink);
+    postEl.className = 'post';
+    postEl.dataset.postId = post.id;
+    postEl.dataset.actionTargetId = post.id;
+    
+    // ユーザーアイコン
+    const userIconLink = document.createElement('a');
+    userIconLink.href = `#profile/${displayAuthor.id}`;
+    userIconLink.className = 'user-icon-link';
+    const userIcon = document.createElement('img');
+    userIcon.src = getUserIconUrl(displayAuthor);
+    userIcon.className = 'user-icon';
+    userIcon.alt = `${displayAuthor.name}'s icon`;
+    userIconLink.appendChild(userIcon);
+    postEl.appendChild(userIconLink);
 
-        const postMain = document.createElement('div');
-        postMain.className = 'post-main';
-        
-        // [修正点] 返信先のデータ構造の変更に対応
-        if (post.reply_to_post && post.reply_to_post.author) {
-            const replyDiv = document.createElement('div');
-            replyDiv.className = 'replying-to';
-            replyDiv.innerHTML = `<a href="#profile/${post.reply_to_post.author.id}">@${escapeHTML(post.reply_to_post.author.name)}</a> さんに返信`;
-            postMain.appendChild(replyDiv);
-        }
+    // ポストの右側メイン部分
+    const postMain = document.createElement('div');
+    postMain.className = 'post-main';
+    
+    // 返信先表示
+    if (post.reply_to_post && post.reply_to_post.author) {
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'replying-to';
+        const replyAuthorLink = document.createElement('a');
+        replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
+        replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`; // 安全なtextContent
+        const replyText = document.createElement('span');
+        replyText.textContent = ` さんに返信`;
+        replyDiv.appendChild(replyAuthorLink);
+        replyDiv.appendChild(replyText);
+        postMain.appendChild(replyDiv);
+    }
 
-        const postHeader = document.createElement('div');
-        postHeader.className = 'post-header';
-        const authorLink = document.createElement('a');
-        authorLink.href = `#profile/${author.id}`;
-        authorLink.className = 'post-author';
-        authorLink.textContent = escapeHTML(author.name || '不明');
-        postHeader.appendChild(authorLink);
+    // ポストヘッダー
+    const postHeader = document.createElement('div');
+    postHeader.className = 'post-header';
+    const authorLink = document.createElement('a');
+    authorLink.href = `#profile/${displayAuthor.id}`;
+    authorLink.className = 'post-author';
+    authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
+    postHeader.appendChild(authorLink);
 
-        if (author.admin) {
-            const adminBadge = document.createElement('img');
-            adminBadge.src = 'icons/admin.png';
-            adminBadge.className = 'admin-badge';
-            adminBadge.title = 'NyaXTeam';
-            authorLink.appendChild(adminBadge);
-        } else if (author.verify) { // adminがfalseの場合のみverifyをチェック
-            const verifyBadge = document.createElement('img');
-            verifyBadge.src = 'icons/verify.png';
-            verifyBadge.className = 'verify-badge';
-            verifyBadge.title = '認証済み';
-            authorLink.appendChild(verifyBadge);
-        }
+    // 管理者・認証済みバッジ
+    if (displayAuthor.admin) {
+        const adminBadge = document.createElement('img');
+        adminBadge.src = 'icons/admin.png';
+        adminBadge.className = 'admin-badge';
+        adminBadge.title = 'NyaXTeam';
+        authorLink.appendChild(adminBadge);
+    } else if (displayAuthor.verify) {
+        const verifyBadge = document.createElement('img');
+        verifyBadge.src = 'icons/verify.png';
+        verifyBadge.className = 'verify-badge';
+        verifyBadge.title = '認証済み';
+        authorLink.appendChild(verifyBadge);
+    }
 
-        const postTime = document.createElement('span');
-        postTime.className = 'post-time';
-        postTime.textContent = `#${author.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
-        postHeader.appendChild(postTime);
+    // 投稿日時
+    const postTime = document.createElement('span');
+    postTime.className = 'post-time';
+    postTime.textContent = `#${displayAuthor.id || '????'} · ${new Date(post.time).toLocaleString('ja-JP')}`;
+    postHeader.appendChild(postTime);
 
-        if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
+    // ポストメニューボタン
+    if (currentUser && !isNested && (currentUser.id === post.userid || currentUser.admin)) {
             const menuBtn = document.createElement('button');
             menuBtn.className = 'post-menu-btn';
             menuBtn.innerHTML = '…';
@@ -1040,86 +1066,69 @@ window.addEventListener('DOMContentLoaded', () => {
         postMain.appendChild(postHeader);
         
         if (post.content) {
-            const postContent = document.createElement('div');
-            postContent.className = 'post-content';
-            postContent.innerHTML = formatPostContent(post.content, userCache);
-            postMain.appendChild(postContent);
-        }
+        const postContent = document.createElement('div');
+        postContent.className = 'post-content';
+        // 唯一のinnerHTML使用箇所。必ずサニタイズ済みの結果を渡す
+        postContent.innerHTML = formatPostContent(post.content, userCache);
+        postMain.appendChild(postContent);
+    }
 
-        // [修正点] 添付ファイルのイベントに event.stopPropagation() を追加
-        if (post.attachments && post.attachments.length > 0) {
-            const attachmentsContainer = document.createElement('div');
-            attachmentsContainer.className = 'attachments-container';
-            for (const attachment of post.attachments) {
-                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
-                const publicURL = publicUrlData.publicUrl;
-                
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'attachment-item';
-
-                if (attachment.type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = publicURL;
-                    img.alt = escapeHTML(attachment.name);
-                    img.className = 'attachment-image';
-                    // 画像クリックでモーダルを開き、イベントの伝播を止める
-                    img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
-                    itemDiv.appendChild(img);
-                } else if (attachment.type === 'video') {
-                    const video = document.createElement('video');
-                    video.src = publicURL;
-                    video.controls = true;
-                    // 動画クリック時はイベントの伝播のみを止める
-                    video.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(video);
-                } else if (attachment.type === 'audio') {
-                    const audio = document.createElement('audio');
-                    audio.src = publicURL;
-                    audio.controls = true;
-                    audio.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(audio);
-                }
-                
-                if (attachment.type !== 'audio' && attachment.type !== 'video') { // ダウンロードリンクの条件を調整
-                    const downloadLink = document.createElement('a');
-                    downloadLink.className = 'attachment-download-link';
-                    downloadLink.href = '#';
-                    downloadLink.textContent = `ダウンロード: ${escapeHTML(attachment.name)}`;
-                    downloadLink.onclick = (e) => { e.preventDefault(); e.stopPropagation(); window.handleDownload(publicURL, attachment.name); };
-                    itemDiv.appendChild(downloadLink);
-
-                }
-                attachmentsContainer.appendChild(itemDiv);
-            }
-            postMain.appendChild(attachmentsContainer);
-        }
-
-         // [修正点] 引用ポストのネスト表示 (遅延読み込みと .author の使用)
-        if (post.repost_to && post.content) {
-            const nestedContainer = document.createElement('div');
-            nestedContainer.className = 'nested-repost-container';
+    // 添付ファイル
+    if (post.attachments && post.attachments.length > 0) {
+        const attachmentsContainer = document.createElement('div');
+        attachmentsContainer.className = 'attachments-container';
+        for (const attachment of post.attachments) {
+            const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+            const publicURL = publicUrlData.publicUrl;
             
-            if (post.reposted_post) {
-                // 引用元に、さらに引用元があるが、その先のデータが欠けている場合
-                if (post.reposted_post.repost_to && !post.reposted_post.reposted_post) {
-                    const { data: deeperPosts, error } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [post.reposted_post.repost_to] });
-                    if (deeperPosts && deeperPosts.length > 0) {
-                        post.reposted_post.reposted_post = deeperPosts[0];
-                    }
-                }
-                // [修正点] .authorプロパティを渡す
-                const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.author, { ...options, isNested: true });
-                if (nestedPostEl) {
-                    nestedContainer.appendChild(nestedPostEl);
-                }
-            } else {
-                nestedContainer.innerHTML = `<div class="deleted-post-container">このポストは削除されました。</div>`;
-            }
-            postMain.appendChild(nestedContainer);
-        }
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'attachment-item';
 
-        // isNestedがfalseの場合（＝タイムラインのトップレベルの投稿）のみアクションボタンを描画
-        if (currentUser && !isNested) {
+            if (attachment.type === 'image') {
+                const img = document.createElement('img');
+                img.src = publicURL;
+                img.alt = attachment.name;
+                img.className = 'attachment-image';
+                img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
+                itemDiv.appendChild(img);
+            } else if (attachment.type === 'video') {
+                const video = document.createElement('video');
+                video.src = publicURL;
+                video.controls = true;
+                video.onclick = (e) => { e.stopPropagation(); };
+                itemDiv.appendChild(video);
+            } else if (attachment.type === 'audio') {
+                const audio = document.createElement('audio');
+                audio.src = publicURL;
+                audio.controls = true;
+                audio.onclick = (e) => { e.stopPropagation(); };
+                itemDiv.appendChild(audio);
+            }
+            attachmentsContainer.appendChild(itemDiv);
+        }
+        postMain.appendChild(attachmentsContainer);
+    }
+
+    // 引用ポスト
+    if (post.repost_to && post.content) {
+        const nestedContainer = document.createElement('div');
+        nestedContainer.className = 'nested-repost-container';
+        if (post.reposted_post) {
+            const nestedPostEl = await renderPost(post.reposted_post, post.reposted_post.author, { ...options, isNested: true });
+            if (nestedPostEl) {
+                nestedContainer.appendChild(nestedPostEl);
+            }
+        } else {
+            const deletedContainer = document.createElement('div');
+            deletedContainer.className = 'deleted-post-container';
+            deletedContainer.textContent = 'このポストは削除されました。';
+            nestedContainer.appendChild(deletedContainer);
+        }
+        postMain.appendChild(nestedContainer);
+    }
+
+    // アクションボタン
+    if (currentUser && !isNested) {
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'post-actions';
             
