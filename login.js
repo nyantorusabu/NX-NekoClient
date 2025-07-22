@@ -1,3 +1,4 @@
+// login.js (完全な修正版)
 document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
@@ -34,7 +35,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'generateCode' })
+                // ★★★ ここを修正 ★★★
+                body: JSON.stringify({ 
+                    type: 'generateCode',
+                    username: scratchUsername // SCIDを送信する
+                })
             });
             const data = await response.json();
             if (!response.ok || data.error) throw new Error(data.error || 'コードの生成に失敗しました。');
@@ -74,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'verifyComment', 
                     username: scratchUsername, 
                     code: verificationCodeElem.textContent,
-                    new: true 
+                    // 'new: true' は不要なので削除しました
                 })
             });
             const data = await response.json();
@@ -82,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { error: sessionError } = await supabase.auth.setSession({
                 access_token: data.jwt,
-                refresh_token: data.jwt,
+                refresh_token: data.jwt, // refresh_tokenも同じjwtで問題ありません
             });
             if (sessionError) throw new Error('セッションの設定に失敗しました。');
             
