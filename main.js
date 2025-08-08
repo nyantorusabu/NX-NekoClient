@@ -1,7 +1,7 @@
 window.addEventListener('DOMContentLoaded', () => {
     // --- 1. 初期設定 & グローバル変数 ---
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwNTIxMDMsImV4cCI6MjA1NTYyODEwM30.yasDnEOlUi6zKNsnuPXD8RA6tsPljrwBRQNPVLsXAks';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNTM0MTIsImV4cCI6MjA2ODgyOTQxMn0.v5tAGcd0K4VW9yR1CZYVjMYHLhWJXN7Tz5j9DNf1CQE';
     
     const { createClient } = window.supabase;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -221,41 +221,31 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     function formatPostContent(text, userCache = new Map()) {
-        // --- 新しい絵文字置換ヘルパー ---
-        const applyEmoji = (str) => {
-            // 直前・直後に単語構成文字(英数字_)がないことを確認し、foo_bar_bazのようなケースを回避
-            // これにより、URL内の _text_ が誤って置換されるのを防ぎます。
-            // 絵文字IDには英数字、アンダースコア、ハイフン、感嘆符、疑問符、ドットが利用可能です。
-            const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
-            return str.replace(emojiRegex, (match, emojiId) => {
-                // IDはHTMLエスケープされていることを前提としますが、念のためエスケープします。
-                const escapedId = escapeHTML(emojiId);
-                return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
-            });
-        };
-    
-        // 通常のテキスト処理ヘルパー関数
+        // 常にプレーンテキストとして処理する
         const processStandardText = (standardText) => {
             let processed = escapeHTML(standardText);
             const urls = [];
-    
-            // 1. URLを先にプレースホルダーに置換します。これにより、URL内の文字列が後続の処理で誤変換されるのを防ぎます。
+
+            // 1. URLをプレースホルダーに置換
             const urlRegex = /(https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=;]*))/g;
             processed = processed.replace(urlRegex, (url) => {
                 const placeholder = `%%URL_${urls.length}%%`;
                 urls.push(url);
                 return placeholder;
             });
-    
-            // 2. 絵文字を置換します (URLはプレースホルダーになっているため安全です)。
-            processed = applyEmoji(processed);
-            
-            // 3. ハッシュタグとメンションを置換します。
+        
+            // 2. 絵文字を置換
+            const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
+            processed = processed.replace(emojiRegex, (match, emojiId) => {
+                const escapedId = escapeHTML(emojiId);
+                return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+            });
+
+            // 3. ハッシュタグとメンションを置換
             const hashtagRegex = /#(\S+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
             });
-    
             const mentionRegex = /@(\d+)/g;
             processed = processed.replace(mentionRegex, (match, userId) => {
                 const numericId = parseInt(userId);
@@ -266,72 +256,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 return match;
             });
-            
-            // 4. 最後にURLのプレースホルダーを<a>タグに戻します。
+
+            // 4. URLを<a>タグに戻す
             urls.forEach((url, i) => {
                 const placeholder = `%%URL_${i}%%`;
-                // リンクの表示テキストはエスケープし、href属性は元のURLをそのまま使います。
                 const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(url)}</a>`;
                 processed = processed.replace(placeholder, link);
             });
-            
+        
             return processed.replace(/\n/g, '<br>');
         };
-    
-        // --- メインの処理 ---
-        const lines = text.split(/\r?\n/);
-        const firstLine = lines[0].trim();
-    
-        if (firstLine === '!markdown') {
-            const markdownContent = lines.slice(1).join('\n');
-            
-            // Markdownの場合、marked.jsでHTMLに変換する前に絵文字を<img>タグに変換します。
-            const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
-            const contentWithEmoji = markdownContent.replace(emojiRegex, (match, emojiId) => {
-                const escapedId = escapeHTML(emojiId);
-                return `<img src="/emoji/${escapedId}.png" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
-            });
-    
-            const rawHtml = marked.parse(contentWithEmoji, {
-                breaks: true,
-                gfm: true
-            });
-    
-            // [TypeError修正] DOMPurify.defaultsに依存せず、ADD_TAGSとADD_ATTRを使用して許可するタグ/属性を明示的に追加します。
-            const sanitizedHtml = DOMPurify.sanitize(rawHtml, {
-                ADD_TAGS: ['details', 'summary'],
-                ADD_ATTR: ['style', 'class'], // 絵文字表示に必要なstyle属性とclass属性を許可
-            });
-    
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = sanitizedHtml;
-    
-            // コピーボタンの追加処理（変更なし）
-            tempDiv.querySelectorAll('pre').forEach(preElement => {
-                preElement.style.position = 'relative';
-                const button = document.createElement('button');
-                button.className = 'copy-btn markdown-copy-btn';
-                button.innerHTML = ICONS.copy;
-                button.title = 'Copy code';
-                preElement.appendChild(button);
-            });
-            tempDiv.querySelectorAll('code:not(pre > code)').forEach(codeElement => {
-                const wrapper = document.createElement('span');
-                wrapper.className = 'inline-code-wrapper';
-                const button = document.createElement('button');
-                button.className = 'copy-btn markdown-copy-btn-inline';
-                button.innerHTML = ICONS.copy;
-                button.title = 'Copy code';
-                codeElement.parentNode.insertBefore(wrapper, codeElement);
-                wrapper.appendChild(codeElement);
-                wrapper.appendChild(button);
-            });
-    
-            return tempDiv.innerHTML;
-    
-        } else {
-            return processStandardText(text);
-        }
+
+        // Markdown判定を削除し、常にprocessStandardTextを呼び出す
+        return processStandardText(text);
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -626,33 +563,44 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return alert("ログインが必要です。");
         showLoading(true);
         try {
-            // [修正点] 通知のために、まずリポスト先の投稿者情報を取得
+            // リポスト先の投稿者情報を通知のために取得
             const { data: originalPost, error: fetchError } = await supabase
                 .from('post')
                 .select('userid')
                 .eq('id', postId)
                 .single();
-            
+        
             if (fetchError) throw fetchError;
 
-            // リポストを作成
-            const { error: insertError } = await supabase.from('post').insert({
-                userid: currentUser.id,
-                repost_to: postId,
-                content: null
+            // ★★★ 変更点: 直接のinsertをrpc呼び出しに変更 ★★★
+            // content, reply_id, attachments は null を指定
+            const { error: rpcError } = await supabase.rpc('create_post', {
+                p_content: null,
+                p_reply_id: null,
+                p_repost_to: postId,
+                p_attachments: null
             });
-            if (insertError) throw insertError;
 
+            if (rpcError) {
+                // SQL関数からのエラーメッセージ（連投制限など）をユーザーに表示
+                throw rpcError;
+            }
+            // ★★★ 変更点ここまで ★★★
+
+            // 通知を送信
             sendNotification(
-                    originalPost.userid,
-                    `@${currentUser.id}さんがあなたのポストをリポストしました。`,
-                    `#post/${postId}` // ハッシュはリポスト元（オリジナル）のポストID
+                originalPost.userid,
+                `@${currentUser.id}さんがあなたのポストをリポストしました。`,
+                `#post/${postId}`
             );
 
-            router();
+            router(); // タイムラインを更新
+
         } catch(e) {
             console.error(e);
-            alert('リポストに失敗しました。');
+            // エラーメッセージから "Error: " の部分を取り除く
+            const friendlyMessage = e.message.replace(/^Error: /, '');
+            alert(`リポストに失敗しました: ${friendlyMessage}`);
         } finally {
             showLoading(false);
         }
