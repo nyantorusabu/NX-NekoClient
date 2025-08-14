@@ -142,5 +142,57 @@
   {
     "id": "paper",
     "name": "紙製の船"
+  },
+  {
+    "id": "like",
+    "name": "いいね"
+  },
+  {
+    "id": "star",
+    "name": "お気に入り"
+  },
+  {
+    "id": "reply",
+    "name": "返信"
+  },
+  {
+    "id": "repost",
+    "name": "リポスト"
+  },
+  {
+    "id": "nyaxteam",
+    "name": "NyaXTeam"
+  },
+  {
+    "id": "nyaxteam-bug",
+    "name": "バグ修正を押し付けられるNyaXTeam"
+  },
+  {
+    "id": "explosion",
+    "name": "NyaX爆破"
+  },
+  {
+    "id": "gf",
+    "name": "ガールフレンド"
+  },
+  {
+    "id": "gal-peace",
+    "name": "ギャルピ"
+  },
+  {
+    "id": "takocat",
+    "name": "タコ猫"
+  },
+  {
+    "id": "mottatakocat",
+    "name": "盛ったタコ猫"
+  },
+  {
+    "id": "fish-eating-splendid-garden-eel",
+    "name": "魚を食べるニシキアナゴ"
+  },
+  {
+    "id": "kimee-fox",
+    "name": "相棒らしい"
   }
 ]
