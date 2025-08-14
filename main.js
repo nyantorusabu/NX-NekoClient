@@ -145,7 +145,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     itemHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation();"></audio>`;
                 }
                 
-                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">ダウンロード: ${escapeHTML(attachment.name)}</a>`;
+                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">📄 ${escapeHTML(attachment.name)}</a>`;
                 itemHTML += '</div>';
                 attachmentsHTML += itemHTML;
             }
@@ -1051,6 +1051,20 @@ window.addEventListener('DOMContentLoaded', () => {
                 audio.controls = true;
                 audio.onclick = (e) => { e.stopPropagation(); };
                 itemDiv.appendChild(audio);
+            } else {
+                // ★★★ 修正点: download属性に頼らず、handleDownload関数を呼び出す ★★★
+                const downloadLink = document.createElement('a');
+                downloadLink.href = '#'; // ページ遷移を防ぐ
+                downloadLink.className = 'attachment-download-link';
+                downloadLink.textContent = `📄 ${attachment.name}`;
+                
+                // onclickイベントで、既存のダウンロード処理関数を呼び出す
+                downloadLink.onclick = (e) => {
+                    e.preventDefault(); // href="#"のデフォルトの動作（ページトップへ移動）を防ぐ
+                    e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
+                    window.handleDownload(publicURL, attachment.name); // 正しいファイル名でダウンロードを開始
+                };
+                itemDiv.appendChild(downloadLink);
             }
             attachmentsContainer.appendChild(itemDiv);
         }
