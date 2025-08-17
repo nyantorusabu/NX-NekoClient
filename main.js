@@ -833,7 +833,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function renderPost(post, author, options = {}) {
-    const { isNested = false, replyCountsMap = new Map(), userCache = new Map() } = options;
+    const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
     if (!post) return null;
     
@@ -945,17 +945,34 @@ window.addEventListener('DOMContentLoaded', () => {
     postMain.className = 'post-main';
     
     // 返信先表示
-    if (post.reply_to_post && post.reply_to_post.author) {
-        const replyDiv = document.createElement('div');
-        replyDiv.className = 'replying-to';
-        const replyAuthorLink = document.createElement('a');
-        replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
-        replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`; // 安全なtextContent
-        const replyText = document.createElement('span');
-        replyText.textContent = ` さんに返信`;
-        replyDiv.appendChild(replyAuthorLink);
-        replyDiv.appendChild(replyText);
-        postMain.appendChild(replyDiv);
+    // isDirectReplyがfalseの場合のみインジケーターを表示する
+    if (!isDirectReply) {
+        if (post.reply_to_post && post.reply_to_post.author) {
+            // (インジケーターを生成するDOM操作は変更なし)
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'replying-to';
+            const replyAuthorLink = document.createElement('a');
+            replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
+            replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
+            const replyText = document.createElement('span');
+            replyText.textContent = ` さんに返信`;
+            replyDiv.appendChild(replyAuthorLink);
+            replyDiv.appendChild(replyText);
+            postMain.appendChild(replyDiv);
+        }
+        else if (post.reply_to_user_id && post.reply_to_user_name) {
+            // (インジケーターを生成するDOM操作は変更なし)
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'replying-to';
+            const replyAuthorLink = document.createElement('a');
+            replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
+            replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
+            const replyText = document.createElement('span');
+            replyText.textContent = ` さんに返信`;
+            replyDiv.appendChild(replyAuthorLink);
+            replyDiv.appendChild(replyText);
+            postMain.appendChild(replyDiv);
+        }
     }
 
     // ポストヘッダー
@@ -1607,7 +1624,13 @@ window.addEventListener('DOMContentLoaded', () => {
                         };
                     }
                     
-                    const postEl = await renderPost(postForRender, authorForRender, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
+                    const isDirectReply = reply.reply_id === postId;
+                    
+                    const postEl = await renderPost(postForRender, authorForRender, { 
+                        userCache: allUsersCache, 
+                        replyCountsMap: replyCountsMap,
+                        isDirectReply: isDirectReply // フラグを追加
+                    });
                     
                     if (postEl) {
                         if (reply.reply_id !== postId) { postEl.classList.add('grandchild-reply'); }
