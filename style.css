@@ -2007,6 +2007,36 @@ input, textarea {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
 }
+
+/* --- DM作成/管理モーダルのスクロール対応 --- */
+
+/* 1. モーダルコンテンツの親要素に高さを設定 */
+#create-dm-modal .modal-content,
+#dm-manage-modal .modal-content {
+    /* 画面の高さの85%を最大値とし、それを超えないようにする */
+    max-height: 85vh;
+    /* コンテンツがflexboxでレイアウトされるようにする */
+    display: flex;
+    flex-direction: column;
+}
+
+/* 2. モーダル内のコンテンツを囲むdivにスクロールを適用 */
+/* (JS側で生成される #create-dm-modal-content や #dm-manage-modal-content を想定) */
+#create-dm-modal-content,
+#dm-manage-modal-content {
+    /* 利用可能なスペースいっぱいに広がる */
+    flex-grow: 1;
+    /* コンテンツがmax-heightを超えた場合にのみ、縦スクロールバーを表示 */
+    overflow-y: auto;
+    /* スクロールバーとの間に少し余白を持たせる */
+    padding: 1.5rem;
+}
+
+/* 3. JSでpaddingを設定している部分を上書きしないように調整 */
+/*    (JS側の `style="padding: 1.5rem;"` を削除するのが理想ですが、CSSで対応する場合) */
+#dm-manage-modal-content > div {
+    padding: 0 !important;
+}
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {
