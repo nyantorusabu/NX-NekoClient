@@ -194,5 +194,41 @@
   {
     "id": "kimee-fox",
     "name": "相棒らしい"
+  },
+  {
+    "id": "tubure-cat",
+    "name": "つぶれねこ"
+  },
+  {
+    "id": "himoji-cat",
+    "name": "ひもじいねこ"
+  },
+  {
+    "id": "katahaba-nukko",
+    "name": "肩幅ぬっこ"
+  },
+  {
+    "id": "long-sita-cat",
+    "name": "舌が長いねこ"
+  },
+  {
+    "id": "hige-asi-cat",
+    "name": "髭が足のねこ"
+  },
+  {
+    "id": "veryx2-long-cat",
+    "name": "Very Very Long Cat"
+  },
+  {
+    "id": "exclamation",
+    "name": "!"
+  },
+  {
+    "id": "question",
+    "name": "?"
+  },
+  {
+    "id": "vrc",
+    "name": "VRC"
   }
 ]
