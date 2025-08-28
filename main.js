@@ -3623,7 +3623,7 @@ async function openEditPostModal(postId) {
                 const mainScreenEl = document.getElementById('main-screen');
                 
                 // [修正点] 投稿者が自分でない、返信でない、かつホーム画面を開いている場合のみ通知する
-                if (currentUser && payload.new.reply_id === null && payload.new.userid !== currentUser.id && mainScreenEl && !mainScreenEl.classList.contains('hidden')) {
+                if (currentUser && payload.new.reply_id === null && payload.new.userid !== currentUser.id && mainScreenEl && !mainScreenEl.classList.contains('hidden') && currentUser.follow?.includes(payload.new.userid)) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
                     const indicator = document.createElement('div');
