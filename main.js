@@ -1210,13 +1210,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 <button class="timeline-tab-button" data-tab="foryou">おすすめ(β)</button>
                 <button class="timeline-tab-button" data-tab="following">フォロー中</button>
             `;
-            // ログインユーザーのデフォルトは「すべて」
-            currentTimelineTab = 'all';
+            // ユーザー設定からデフォルトタブを取得。なければ 'all' を使用
+            currentTimelineTab = currentUser.settings?.default_timeline_tab || 'all';
         } else {
             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
             `;
-            // 未ログインユーザーのデフォルトも「すべて」
+            // 未ログインユーザーのデフォルトは「すべて」固定
             currentTimelineTab = 'all';
         }
 
@@ -2149,6 +2149,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
             <label for="setting-me">自己紹介:</label>
             <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
+
+            <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
+            <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                <option value="all">すべて</option>
+                <option value="foryou">おすすめ(β)</option>
+                <option value="following">フォロー中</option>
+            </select>
+            
             <fieldset><legend>公開設定</legend>
                 <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
                 <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
@@ -2162,6 +2170,10 @@ window.addEventListener('DOMContentLoaded', () => {
             <!-- ボタンはJSで動的に挿入します -->
         </div>
         `;
+
+    // settingsに値がない場合は 'all' をデフォルトとして扱う
+    const currentDefaultTab = currentUser.settings?.default_timeline_tab || 'all';
+    document.getElementById('setting-default-timeline').value = currentDefaultTab;
     
     const dangerZone = document.querySelector('.settings-danger-zone');
     let dangerZoneHTML = `<button id="settings-logout-btn">ログアウト</button>`;
@@ -2668,6 +2680,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_follower: form.querySelector('#setting-show-follower').checked,
                     show_star: form.querySelector('#setting-show-star').checked,
                     show_scid: form.querySelector('#setting-show-scid').checked,
+                    default_timeline_tab: form.querySelector('#setting-default-timeline').value
                 },
             };
 
