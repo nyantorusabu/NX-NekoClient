@@ -1210,8 +1210,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 <button class="timeline-tab-button" data-tab="foryou">おすすめ(β)</button>
                 <button class="timeline-tab-button" data-tab="following">フォロー中</button>
             `;
-            // ログインユーザーのデフォルトは「おすすめ(β)」
-            currentTimelineTab = 'foryou';
+            // ログインユーザーのデフォルトは「すべて」
+            currentTimelineTab = 'all';
         } else {
             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
