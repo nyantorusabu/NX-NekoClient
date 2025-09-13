@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NyaX</title>
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="stylesheet" href="./assets/style.min.css">
+    <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
@@ -62,6 +62,13 @@
         <aside id="right-sidebar">
             <div id="right-sidebar-search-widget-container"></div>
             <div id="recommendations-widget-container"></div>
+            <!-- NyaXルール(重要) -->
+            <div class="links">
+                <a class="link" href="https://nyax.onrender.com/rule">NyaXルール</a>
+                <a class="link" href="https://nyax.onrender.com/ranking">各種ランキング</a>
+                <a class="link" href="https://nyax.onrender.com/stat">統計</a>
+                <a class="link-end" href="https://nyax.onrender.com/emoji">Emoji一覧</a>
+            </div>
         </aside>
     </div>
     <div id="login-banner" class="hidden">
@@ -121,6 +128,6 @@
             <div id="edit-dm-message-modal-content"></div>
         </div>
     </div>
-    <script src="./assets/main.min.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
