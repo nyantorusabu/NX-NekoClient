@@ -1,4 +1,3 @@
-// login.js (完全な修正版)
 document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNTM0MTIsImV4cCI6MjA2ODgyOTQxMn0.v5tAGcd0K4VW9yR1CZYVjMYHLhWJXN7Tz5j9DNf1CQE';
@@ -101,3 +100,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
