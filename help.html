@@ -337,13 +337,6 @@ NyaXは上のような個人情報を公開することはありません。
 
         // --- 初期化処理 ---
         function initializeChat() {
-            if (API_KEY === "YOUR_GEMINI_API_KEY") {
-                addMessageToUI("<strong>エラー:</strong> Gemini APIキーが設定されていません。<code>help.html</code>ファイルを編集して、APIキーを設定してください。", "bot", true);
-                sendButton.disabled = true;
-                userInput.disabled = true;
-                return;
-            }
-
             try {
                 const genAI = new GoogleGenerativeAI(API_KEY);
                 const model = genAI.getGenerativeModel({
