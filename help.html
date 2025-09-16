@@ -394,11 +394,11 @@ NyaXはログイン時に以下の情報を記録します：
             // ただし、改行は<br>にしたいので一旦プレースホルダーに
             const newlinePlaceholder = "%%NEWLINE%%";
             let escapedText = text
-                .replace(/&/g, "&")
-                .replace(/</g, "<")
-                .replace(/>/g, ">")
-                .replace(/"/g, '"')
-                .replace(/'/g, "'")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, "&#39;")
                 .replace(/\n/g, newlinePlaceholder);
 
             // pageLinksの各パスを対応する<a>タグに置換
