@@ -518,6 +518,7 @@ input, textarea {
     height: 48px;
     border-radius: 50%;
     flex-shrink: 0;
+    object-fit: cover; /* アイコンが潰れるのを防ぐ */
 }
 
 .post-main {
@@ -1117,6 +1118,7 @@ input, textarea {
 }
 
 #profile-header .user-icon-large {
+    object-fit: cover; /* アイコンが潰れるのを防ぐ */
     width: 128px;
     height: 128px;
     border-radius: 50%;
