@@ -2818,6 +2818,10 @@ function openAccountSwitcherModal() {
             
             alert('設定を更新しました。');
             currentUser = data;
+
+            // ここでアカウントリストも更新する
+            updateAccountData(currentUser);
+            
             newIconDataUrl = null;
             resetIconToDefault = false;
             window.location.hash = '';
