@@ -2050,6 +2050,66 @@ input, textarea {
     margin-top: 0.5rem;
 }
 
+#account-switcher-modal .modal-content {
+    padding: 2rem 1rem 1.5rem;
+}
+.account-switcher-list {
+    margin: 1rem 0;
+    padding: 0;
+    list-style: none;
+}
+.account-switcher-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.account-switcher-item .switcher-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+.account-switcher-item .switcher-user-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.account-switcher-item .switcher-delete-btn {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.account-switcher-item .switcher-delete-btn:hover {
+    background: #fae1e1;
+}
+.account-switcher-add-btn {
+    width: 100%;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 9999px;
+    font-weight: 700;
+    padding: 0.7rem 0;
+    margin-bottom: 1rem;
+    font-size: 1.05rem;
+    cursor: pointer;
+}
+.account-switcher-add-btn:hover {
+    background-color: var(--primary-hover-color);
+}
+.account-switcher-item.active {
+    background: #e8f5fd;
+}
+
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {
