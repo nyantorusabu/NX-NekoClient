@@ -1538,7 +1538,7 @@ function openAccountSwitcherModal() {
             });
             const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
 
@@ -1663,7 +1663,7 @@ function openAccountSwitcherModal() {
             
             const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
             
@@ -1840,7 +1840,7 @@ function openAccountSwitcherModal() {
                 const allMemberIds = new Set(dms.flatMap(dm => dm.member));
                 const newIdsToFetch = [...allMemberIds].filter(id => !allUsersCache.has(id));
                 if (newIdsToFetch.length > 0) {
-                    const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                    const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
                     if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
                 }
 
@@ -1923,7 +1923,7 @@ function openAccountSwitcherModal() {
 
             const newIdsToFetch = [...allUserIdsInDm].filter(id => id && !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: users } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                const { data: users } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
                 if (users) {
                     users.forEach(u => allUsersCache.set(u.id, u));
                 }
@@ -3325,7 +3325,7 @@ async function openEditPostModal(postId) {
         
         const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
         if (newIdsToFetch.length > 0) {
-            const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+            const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
             if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
         }
         
@@ -3665,7 +3665,7 @@ async function openEditPostModal(postId) {
             
             const newIdsToFetch = [...mentionedIds].filter(id => !allUsersCache.has(id));
             if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data').in('id', newIdsToFetch);
+                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
                 if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
             }
 
