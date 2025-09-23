@@ -270,6 +270,17 @@ window.addEventListener('DOMContentLoaded', () => {
         // Markdown判定を削除し、常にprocessStandardTextを呼び出す
         return processStandardText(text);
     }
+    function filterBlockedPosts(posts) {
+        if (!currentUser || !Array.isArray(posts)) return posts;
+        return posts.filter(post => {
+            const authorId = post.userid || post.user?.id;
+            if (!authorId) return true;
+            if (Array.isArray(currentUser.block) && currentUser.block.includes(authorId)) return false;
+            const author = allUsersCache.get(authorId);
+            if (author && Array.isArray(author.block) && author.block.includes(currentUser.id)) return false;
+            return true;
+        });
+    }
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
@@ -1884,21 +1895,10 @@ function openAccountSwitcherModal() {
                 </div>
             `;
 
-            const tmpposts = dm.post || [];
+            let posts = dm.post || [];
+            posts = filterBlockedPosts(posts);;
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
-
-            const posts = tmpposts.filter(msg => {
-                // 相手ユーザーのIDを取得
-                const uid = msg.userid;
-                if (!uid || uid === currentUser.id) return true; // 自分のメッセージは表示
-                // ブロック中なら非表示
-                if (Array.isArray(currentUser.block) && currentUser.block.includes(uid)) return false;
-                // 相手が自分をブロックしている場合（相手ユーザー情報がキャッシュにあれば判定）
-                const userObj = allUsersCache.get(uid);
-                if (userObj && Array.isArray(userObj.block) && userObj.block.includes(currentUser.id)) return false;
-                return true;
-            });
 
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
@@ -2548,7 +2548,7 @@ function openAccountSwitcherModal() {
                 if (!container.querySelector('.load-more-trigger')) return;
 
                 if (posts && posts.length > 0) {
-
+                    posts = filterBlockedPosts(posts);
                     // [最重要修正点] 2ページ目以降に広告を挿入するロジックを復活させる
                     if (currentPagination.page > 0) {
                         const adPostEl = createAdPostHTML();
