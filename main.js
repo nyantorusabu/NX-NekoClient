@@ -420,7 +420,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         // ▲▲▲ [修正点2] ここまで ▼▼▼
         // ログアウトボタン（account-button）が存在する場合のみイベントリスナーを設定
-        DOM.navMenuBottom.querySelector('#account-button')?.addEventListener('click', handleLogout);
+        DOM.navMenuBottom.querySelector('#account-button')?.addEventListener('click', openAccountSwitcherModal);
         DOM.navMenuTop.querySelector('.nav-item-post')?.addEventListener('click', () => openPostModal());
         loadRightSidebar();
     }
@@ -466,7 +466,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     DOM.friezeOverlay.classList.remove('hidden');
                     return;
                 }
-
+                
+                addAccountToList(currentUser, session);
                 subscribeToChanges();
                 router();
 
@@ -480,6 +481,106 @@ window.addEventListener('DOMContentLoaded', () => {
             router();
         }
     }
+
+    function getAccountList() {
+    return JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
+}
+function setAccountList(list) {
+    localStorage.setItem('nyax_accounts', JSON.stringify(list));
+}
+function addAccountToList(user, session) {
+    // 既存と重複チェック
+    let accounts = getAccountList();
+    if (accounts.find(a => a.id === user.id)) return;
+    accounts.push({
+        id: user.id,
+        name: user.name,
+        icon_data: user.icon_data,
+        scid: user.scid,
+        token: session, // { access_token, refresh_token }
+    });
+    setAccountList(accounts);
+}
+function removeAccountFromList(userId) {
+    let accounts = getAccountList().filter(a => a.id !== userId);
+    setAccountList(accounts);
+}
+function updateAccountData(user) {
+    // 名前・アイコンなど変更時にリストも更新
+    let accounts = getAccountList();
+    let idx = accounts.findIndex(a => a.id === user.id);
+    if (idx !== -1) {
+        accounts[idx] = {
+            ...accounts[idx],
+            name: user.name,
+            icon_data: user.icon_data,
+            scid: user.scid,
+        };
+        setAccountList(accounts);
+    }
+}
+
+// --- AccountSwitcherモーダルの描画・操作 ---
+function openAccountSwitcherModal() {
+    const modal = document.getElementById('account-switcher-modal');
+    const content = document.getElementById('account-switcher-modal-content');
+    const accounts = getAccountList();
+    const currentId = currentUser?.id;
+
+    content.innerHTML = `
+        <button class="account-switcher-add-btn">＋ アカウント追加</button>
+        <ul class="account-switcher-list">
+            ${accounts.map(acc => `
+                <li class="account-switcher-item${acc.id === currentId ? ' active' : ''}" data-id="${acc.id}">
+                    <span class="switcher-user-info">
+                        <img class="switcher-user-icon" src="${getUserIconUrl(acc)}">
+                        <span>${escapeHTML(acc.name)}</span>
+                        <span style="color:var(--secondary-text-color); font-size:0.95em;">#${acc.id}</span>
+                    </span>
+                    <button class="switcher-delete-btn" title="このアカウントを削除">×</button>
+                </li>`).join('')}
+        </ul>
+    `;
+    modal.classList.remove('hidden');
+    modal.querySelector('.modal-close-btn').onclick = () => modal.classList.add('hidden');
+    content.querySelector('.account-switcher-add-btn').onclick = () => {
+        // 現在のセッションも記録してからlogin.htmlへ
+        if (currentUser && supabase?.auth?.getSession) {
+            supabase.auth.getSession().then(({ data }) => {
+                if (data?.session && currentUser) {
+                    addAccountToList(currentUser, data.session);
+                }
+                window.location.href = 'login.html';
+            });
+        } else {
+            window.location.href = 'login.html';
+        }
+    };
+    content.querySelectorAll('.account-switcher-item').forEach(item => {
+        const userId = Number(item.dataset.id);
+        item.onclick = (e) => {
+            if (e.target.classList.contains('switcher-delete-btn')) {
+                // 削除
+                if (confirm('このアカウントをリストから削除しますか？')) {
+                    removeAccountFromList(userId);
+                    if (userId === currentId) {
+                        supabase.auth.signOut().then(() => window.location.reload());
+                    } else {
+                        openAccountSwitcherModal();
+                    }
+                }
+            } else if (userId !== currentId) {
+                // 切り替え
+                const acc = accounts.find(a => a.id === userId);
+                if (acc && acc.token) {
+                    supabase.auth.setSession(acc.token).then(() => {
+                    checkSession();
+                    });
+                }
+            }
+        };
+    });
+}
 
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
