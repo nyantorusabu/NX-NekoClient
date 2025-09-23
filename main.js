@@ -2134,39 +2134,14 @@ function openAccountSwitcherModal() {
                     followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                     actionsContainer.appendChild(followButton);
 
-                    const isBlocked = Array.isArray(currentUser.block) && currentUser.block.includes(userId);
-                    const blockBtn = document.createElement('button');
-                    blockBtn.className = 'profile-block-button';
-                    blockBtn.textContent = isBlocked ? 'ブロック解除' : 'ブロック';
-                    blockBtn.onclick = async () => {
-                        blockBtn.disabled = true;
-                        let updatedBlock = isBlocked
-                            ? currentUser.block.filter(id => id !== userId)
-                            : [...(currentUser.block || []), userId];
-                        const { error } = await supabase.from('user').update({ block: updatedBlock }).eq('id', currentUser.id);
-                        if (!error) {
-                            currentUser.block = updatedBlock;
-                            updateAccountData(currentUser);
-                            // 再描画してボタン状態を即時反映
-                            await showProfileScreen(userId, subpage);
-                        } else {
-                            alert('ブロック操作に失敗しました');
-                            blockBtn.disabled = false;
-                        }
+                    const menuButton = document.createElement('button');
+                    menuButton.className = 'profile-menu-button dm-button'; // dm-buttonのスタイルを流用
+                    menuButton.innerHTML = '…';
+                    menuButton.onclick = (e) => {
+                        e.stopPropagation();
+                        openProfileMenu(e.currentTarget, user); // 新しい関数（下記）に変更
                     };
-                    actionsContainer.appendChild(blockBtn);
-
-                    // 管理者のみに表示されるメニュー
-                    if (currentUser.admin) {
-                        const adminMenuButton = document.createElement('button');
-                        adminMenuButton.className = 'dm-button'; // スタイルを流用
-                        adminMenuButton.innerHTML = '…';
-                        adminMenuButton.onclick = (e) => {
-                            e.stopPropagation();
-                            openAdminProfileMenu(e.currentTarget, user);
-                        };
-                        actionsContainer.appendChild(adminMenuButton);
-                    }
+                    actionsContainer.appendChild(menuButton);
                 }
             }
             
@@ -3711,38 +3686,64 @@ async function openEditPostModal(postId) {
         }
     }
 
-    function openAdminProfileMenu(button, targetUser) {
-        document.getElementById('admin-profile-menu')?.remove();
+    function openProfileMenu(button, targetUser) {
+        document.getElementById('profile-menu')?.remove();
 
         const menu = document.createElement('div');
-        menu.id = 'admin-profile-menu';
+        menu.id = 'profile-menu';
         menu.className = 'post-menu is-visible';
 
-        const verifyBtn = document.createElement('button');
-        verifyBtn.textContent = targetUser.verify ? '認証を取り消す' : 'このユーザーを認証';
-        verifyBtn.onclick = () => adminToggleVerify(targetUser);
-        
-        const sendNoticeBtn = document.createElement('button');
-        sendNoticeBtn.textContent = '通知を送信';
-        sendNoticeBtn.onclick = () => adminSendNotice(targetUser.id);
-        
-        const freezeBtn = document.createElement('button');
-        freezeBtn.textContent = 'アカウントを凍結';
-        freezeBtn.className = 'delete-btn';
-        freezeBtn.onclick = () => adminFreezeAccount(targetUser.id);
-
-        menu.appendChild(verifyBtn);
-        menu.appendChild(sendNoticeBtn);
-        menu.appendChild(freezeBtn);
-
+        // ブロック/ブロック解除
+        if (currentUser.id !== targetUser.id) {
+            const isBlocked = Array.isArray(currentUser.block) && currentUser.block.includes(targetUser.id);
+            const blockBtn = document.createElement('button');
+            blockBtn.textContent = isBlocked ? 'ブロック解除' : 'ブロック';
+            blockBtn.onclick = async () => {
+                blockBtn.disabled = true;
+                let updatedBlock = isBlocked
+                    ? currentUser.block.filter(id => id !== targetUser.id)
+                    : [...(currentUser.block || []), targetUser.id];
+                const { error } = await supabase.from('user').update({ block: updatedBlock }).eq('id', currentUser.id);
+                if (!error) {
+                    currentUser.block = updatedBlock;
+                    updateAccountData(currentUser);
+                    menu.remove();
+                    await showProfileScreen(targetUser.id);
+                } else {
+                    alert('ブロック操作に失敗しました');
+                    blockBtn.disabled = false;
+                }
+            };
+            menu.appendChild(blockBtn);
+        }
+    
+        // 管理者のみのメニュー
+        if (currentUser.admin) {
+            const verifyBtn = document.createElement('button');
+            verifyBtn.textContent = targetUser.verify ? '認証を取り消す' : 'このユーザーを認証';
+            verifyBtn.onclick = () => adminToggleVerify(targetUser);
+    
+            const sendNoticeBtn = document.createElement('button');
+            sendNoticeBtn.textContent = '通知を送信';
+            sendNoticeBtn.onclick = () => adminSendNotice(targetUser.id);
+    
+            const freezeBtn = document.createElement('button');
+            freezeBtn.textContent = 'アカウントを凍結';
+            freezeBtn.className = 'delete-btn';
+            freezeBtn.onclick = () => adminFreezeAccount(targetUser.id);
+    
+            menu.appendChild(verifyBtn);
+            menu.appendChild(sendNoticeBtn);
+            menu.appendChild(freezeBtn);
+        }
+    
         document.body.appendChild(menu);
         const btnRect = button.getBoundingClientRect();
         menu.style.position = 'absolute';
         menu.style.top = `${window.scrollY + btnRect.bottom}px`;
         menu.style.left = `${window.scrollX + btnRect.left}px`;
-        // [修正点] CSSの right: 0 を無効化する
         menu.style.right = 'auto';
-        
+    
         setTimeout(() => {
             document.addEventListener('click', () => menu.remove(), { once: true });
         }, 0);
