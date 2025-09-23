@@ -275,15 +275,19 @@ window.addEventListener('DOMContentLoaded', () => {
         return posts.filter(post => {
             const authorId = post.userid || post.user?.id;
             if (!authorId) return true;
-            // 自分がこのユーザーをブロック →全員除外
+    
+            // 自分がこの投稿主をブロックしている場合は常に除外
             if (Array.isArray(currentUser.block) && currentUser.block.includes(authorId)) return false;
-            // 投稿主が自分をブロック →adminは無視、一般ユーザーは除外
+    
             const author = allUsersCache.get(authorId);
-            if (
-                !currentUser.admin && // adminでなければ
-                author && Array.isArray(author.block) && author.block.includes(currentUser.id)
-            ) {
-                return false;
+            // 投稿主が自分をブロックしている場合
+            if (author && Array.isArray(author.block) && author.block.includes(currentUser.id)) {
+                // 自分がadminのときだけ規制を通過
+                if (currentUser.admin) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
             return true;
         });
