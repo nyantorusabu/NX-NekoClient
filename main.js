@@ -428,8 +428,18 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 7. 認証とセッション ---
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
-        if(!confirm("ログアウトしますか？")) return;
-        // supabase.auth.signOut()を呼び出してセッションを破棄
+    if(!confirm("ログアウトしますか？")) return;
+    const userId = currentUser?.id;
+    if (!userId) return;
+    removeAccountFromList(userId);
+    const accounts = getAccountList();
+    if (accounts.length > 0) {
+        // 次のアカウントでログイン
+        supabase.auth.setSession(accounts[0].token).then(() => {
+            checkSession();
+        });
+    } else {
+        // 全部消えたら完全ログアウト
         supabase.auth.signOut().then(() => {
             currentUser = null;
             if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
@@ -437,6 +447,7 @@ window.addEventListener('DOMContentLoaded', () => {
             router();
         });
     }
+}
     async function checkSession() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -2287,7 +2298,10 @@ function openAccountSwitcherModal() {
     document.getElementById('setting-default-timeline').value = currentDefaultTab;
     
     const dangerZone = document.querySelector('.settings-danger-zone');
-    let dangerZoneHTML = `<button id="settings-logout-btn">ログアウト</button>`;
+    let dangerZoneHTML = `
+        <button id="settings-account-switcher-btn" style="background:#eee; color:#333; border:1px solid #ccc; margin-right:0.5rem;">アカウント切替</button>
+        <button id="settings-logout-btn">ログアウト</button>
+    `;
 
     // 管理者の場合「アクセスログ」ボタンを追加
     if (currentUser.admin) {
@@ -2347,6 +2361,7 @@ function openAccountSwitcherModal() {
     });
 
     document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+    document.getElementById('settings-account-switcher-btn').addEventListener('click', openAccountSwitcherModal);
     document.getElementById('settings-logout-btn').addEventListener('click', (e) => {
         handleLogout();
     });
