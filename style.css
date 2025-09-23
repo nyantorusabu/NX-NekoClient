@@ -1383,6 +1383,22 @@ input, textarea {
     background-color: #fef0f4; /* like-colorのさらに薄い版 */
 }
 
+#settings-account-switcher-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    cursor: pointer;
+    background: none;
+    border: 1px solid #cce6ff;
+    color: var(--primary-color);
+    transition: background-color 0.2s, border-color 0.2s;
+    margin-right: 0.5rem;
+}
+#settings-account-switcher-btn:hover {
+    background-color: #e8f5fd;
+    border-color: var(--primary-color);
+}
+
 #dm-list-container {
     width: 100%; /* 幅を100%に */
     border-right: none; /* 右の境界線を削除 */
