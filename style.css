@@ -2067,9 +2067,6 @@ input, textarea {
     padding: 0;
     list-style: none;
 }
-.account-switcher-list:hover {
-    cursor: pointer;
-}
 .account-switcher-item {
     display: flex;
     align-items: center;
@@ -2120,6 +2117,10 @@ input, textarea {
 }
 .account-switcher-item.active {
     background: #e8f5fd;
+}
+.account-switcher-item:not(.active):hover {
+    background: #f0f0f0;
+    cursor: pointer;
 }
 
 /* レスポンシブ */
