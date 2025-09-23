@@ -1884,9 +1884,21 @@ function openAccountSwitcherModal() {
                 </div>
             `;
 
-            const posts = dm.post || [];
+            const tmpposts = dm.post || [];
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
+
+            const posts = tmpposts.filter(msg => {
+                // 相手ユーザーのIDを取得
+                const uid = msg.userid;
+                if (!uid || uid === currentUser.id) return true; // 自分のメッセージは表示
+                // ブロック中なら非表示
+                if (Array.isArray(currentUser.block) && currentUser.block.includes(uid)) return false;
+                // 相手が自分をブロックしている場合（相手ユーザー情報がキャッシュにあれば判定）
+                const userObj = allUsersCache.get(uid);
+                if (userObj && Array.isArray(userObj.block) && userObj.block.includes(currentUser.id)) return false;
+                return true;
+            });
 
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
@@ -2121,6 +2133,28 @@ function openAccountSwitcherModal() {
                     followButton.classList.add('profile-follow-button');
                     followButton.onclick = () => window.handleFollowToggle(userId, followButton);
                     actionsContainer.appendChild(followButton);
+
+                    const isBlocked = Array.isArray(currentUser.block) && currentUser.block.includes(userId);
+                    const blockBtn = document.createElement('button');
+                    blockBtn.className = 'profile-block-button';
+                    blockBtn.textContent = isBlocked ? 'ブロック解除' : 'ブロック';
+                    blockBtn.onclick = async () => {
+                        blockBtn.disabled = true;
+                        let updatedBlock = isBlocked
+                            ? currentUser.block.filter(id => id !== userId)
+                            : [...(currentUser.block || []), userId];
+                        const { error } = await supabase.from('user').update({ block: updatedBlock }).eq('id', currentUser.id);
+                        if (!error) {
+                            currentUser.block = updatedBlock;
+                            updateAccountData(currentUser);
+                            // 再描画してボタン状態を即時反映
+                            await showProfileScreen(userId, subpage);
+                        } else {
+                            alert('ブロック操作に失敗しました');
+                            blockBtn.disabled = false;
+                        }
+                    };
+                    actionsContainer.appendChild(blockBtn);
 
                     // 管理者のみに表示されるメニュー
                     if (currentUser.admin) {
