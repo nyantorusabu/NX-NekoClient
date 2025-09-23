@@ -2094,6 +2094,25 @@ function openAccountSwitcherModal() {
                 return;
             }
 
+            // ブロック状態の通知
+            let blockNoticeHtml = '';
+            if (
+                currentUser &&
+                currentUser.id !== user.id
+            ) {
+                if (Array.isArray(currentUser.block) && currentUser.block.includes(user.id)) {
+                    blockNoticeHtml += `<div class="frieze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                }
+                if (Array.isArray(user.block) && user.block.includes(currentUser.id)) {
+                    blockNoticeHtml += `<div class="frieze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                }
+            }
+            if (blockNoticeHtml) {
+                // 通知を生成
+                document.querySelectorAll('.frieze-notice').forEach(el => el.remove());
+                profileTabs.insertAdjacentHTML('afterend', blockNoticeHtml);
+            }
+
             const { data: postCount, error: postCountError } = await supabase.rpc('get_user_post_count', { p_user_id: userId });
             user.postCount = postCountError ? 0 : postCount;
             
