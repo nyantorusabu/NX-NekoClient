@@ -2299,7 +2299,7 @@ function openAccountSwitcherModal() {
     
     const dangerZone = document.querySelector('.settings-danger-zone');
     let dangerZoneHTML = `
-        <button id="settings-account-switcher-btn" style="background:#eee; color:#333; border:1px solid #ccc; margin-right:0.5rem;">アカウント切替</button>
+        <button id="settings-account-switcher-btn">アカウント切替</button>
         <button id="settings-logout-btn">ログアウト</button>
     `;
 
