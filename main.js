@@ -275,9 +275,16 @@ window.addEventListener('DOMContentLoaded', () => {
         return posts.filter(post => {
             const authorId = post.userid || post.user?.id;
             if (!authorId) return true;
+            // 自分がこのユーザーをブロック →全員除外
             if (Array.isArray(currentUser.block) && currentUser.block.includes(authorId)) return false;
+            // 投稿主が自分をブロック →adminは無視、一般ユーザーは除外
             const author = allUsersCache.get(authorId);
-            if (author && Array.isArray(author.block) && author.block.includes(currentUser.id)) return false;
+            if (
+                !currentUser.admin && // adminでなければ
+                author && Array.isArray(author.block) && author.block.includes(currentUser.id)
+            ) {
+                return false;
+            }
             return true;
         });
     }
