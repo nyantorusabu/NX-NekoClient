@@ -2053,6 +2053,15 @@ input, textarea {
 #account-switcher-modal .modal-content {
     padding: 2rem 1rem 1.5rem;
 }
+#account-switcher-modal .modal-close-btn {
+    top: 1.5rem;   /* 既存よりも外側へ */
+    right: 1.5rem;
+    width: 32px;
+    height: 32px;
+    font-size: 1.5rem;
+    z-index: 10;   /* 他のボタンより前面に */
+    background: #888;
+}
 .account-switcher-list {
     margin: 1rem 0;
     padding: 0;
