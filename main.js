@@ -440,10 +440,18 @@ window.addEventListener('DOMContentLoaded', () => {
     async function checkSession() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        if (sessionError) {
-            console.error(sessionError);
-            DOM.connectionErrorOverlay.classList.remove('hidden');
-            return;
+        if (sessionError || !session) {
+        // ▼▼▼ ここから追加 ▼▼▼
+        const accounts = JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
+        if (accounts.length > 0) {
+            // 1つ目のアカウントで自動再ログイン
+            await supabase.auth.setSession(accounts[0].token);
+            return checkSession();
+        }
+        // ▲▲▲ ここまで追加 ▲▲▲
+        currentUser = null;
+        router();
+        return;
         }
 
         if (session) {
@@ -573,7 +581,9 @@ function openAccountSwitcherModal() {
                 // 切り替え
                 const acc = accounts.find(a => a.id === userId);
                 if (acc && acc.token) {
+                    // アカウント切り替え処理
                     supabase.auth.setSession(acc.token).then(() => {
+                    document.getElementById('account-switcher-modal').classList.add('hidden');
                     checkSession();
                     });
                 }
