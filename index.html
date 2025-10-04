@@ -128,13 +128,56 @@
             <small style="display: block; margin-top: 2rem;"><a href="https://forms.gle/buZpMftRNWjfhqVz8" target="_blank" rel="noopener noreferrer">間違いですか? 異議申し立てをする</a></small>
         </div>
     </div>
-    <div id="loading-overlay" class="hidden"><div class="spinner"></div></div>
+    <div id="loading-overlay"><div class="spinner"></div></div>
     <div id="edit-dm-message-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="modal-close-btn">×</button>
             <div id="edit-dm-message-modal-content"></div>
         </div>
     </div>
-    <script src="main.js"></script>
+    <div id="mainjs-error-overlay" class="modal-overlay hidden" style="z-index:3001;">
+      <div style="background: white; padding: 2rem; border-radius: 16px; text-align: center; max-width: 400px; margin: 2rem auto;">
+        <h2 style="margin-top:0; color:#d9534f;">NyaXを起動できません</h2>
+        <div id="mainjs-error-text" style="color:#d9534f; margin:1em 0; word-break:break-all;"></div>
+        <p style="color:#888; font-size:0.96em;">NyaXの起動中に問題が発生しました</p>
+        <ul style="text-align:left; color:#888; margin:1.2em 0 1.5em 0; font-size:0.98em;">
+          <li>キャッシュや拡張機能の影響の可能性があります</li>
+          <li>リロードやキャッシュの削除をしても直らない場合は管理者へご連絡ください</li>
+        </ul>
+        <button onclick="location.reload()" style="padding:0.7em 1.5em; font-size:1em; border-radius:9999px; background:#1d9bf0; color:white; border:none; font-weight:700;">再読み込み</button>
+      </div>
+    </div>
+    
+    <script>
+    window.__nyax_mainjs_booted = false;
+    window.onerror = function(message, source, lineno, colno, error) {
+      showMainJsError(
+        `JavaScriptエラー: ${message}<br>
+        <small>${source}:${lineno}:${colno}</small><br>
+        <pre style="text-align:left;">${(error && error.stack) ? error.stack : ''}</pre>`
+      );
+      return true;
+    };
+    window.onunhandledrejection = function(event) {
+      showMainJsError(
+        `未処理のPromise例外: ${event.reason ? (event.reason.stack || event.reason) : event}`
+      );
+      return true;
+    };
+    function showMainJsError(html) {
+      var overlay = document.getElementById('mainjs-error-overlay');
+      var text = document.getElementById('mainjs-error-text');
+      if (overlay && text) {
+        text.innerHTML = String(html);
+        overlay.classList.remove('hidden');
+      }
+    }
+    setTimeout(() => {
+      if (!window.__nyax_mainjs_booted) {
+        showMainJsError('システムのロードに失敗しました');
+      }
+    }, 10000);
+    </script>
+<script src="main.js"></script>
 </body>
 </html>
