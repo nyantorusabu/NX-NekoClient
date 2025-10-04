@@ -123,7 +123,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
     }
 
-    function renderDmMessage(msg) {
+    async function renderDmMessage(msg) {
         await ensureMentionedUsersCached([msg.content]);
         if (msg.type === 'system') {
             const formattedContent = formatPostContent(msg.content, allUsersCache);
@@ -1948,7 +1948,8 @@ function openAccountSwitcherModal() {
                 }
             }
             
-            const messagesHTML = posts.slice().reverse().map(renderDmMessage).join('');
+            const messagesHTMLArray = await Promise.all(posts.slice().reverse().map(msg => renderDmMessage(msg)));
+            const messagesHTML = messagesHTMLArray.join('');
             
             container.innerHTML = `
                 <div class="dm-conversation-view">${messagesHTML}</div>
@@ -2051,7 +2052,7 @@ function openAccountSwitcherModal() {
 
                     const view = document.querySelector('.dm-conversation-view');
                     if (view) {
-                        const msgHTML = renderDmMessage(latestMessage);
+                        const msgHTML = await renderDmMessage(latestMessage);
                         view.insertAdjacentHTML('afterbegin', msgHTML);
                         lastRenderedMessageId = latestMessage.id;
                         
@@ -3565,7 +3566,7 @@ async function openEditPostModal(postId) {
             // 画面を再描画して変更を反映
             const messageContainer = document.querySelector(`.dm-message-container[data-message-id="${messageId}"]`);
             if (messageContainer) {
-                messageContainer.outerHTML = renderDmMessage(postArray[messageIndex]);
+                messageContainer.outerHTML = await renderDmMessage(postArray[messageIndex]);
             }
 
         } catch (e) {
@@ -3719,7 +3720,7 @@ async function openEditPostModal(postId) {
                 input.value = '';
                 const view = document.querySelector('.dm-conversation-view');
                 if (view) {
-                    const msgHTML = renderDmMessage(message);
+                    const msgHTML = await renderDmMessage(message);
                     view.insertAdjacentHTML('afterbegin', msgHTML);
                     lastRenderedMessageId = message.id;
                     view.scrollTop = view.scrollHeight;
