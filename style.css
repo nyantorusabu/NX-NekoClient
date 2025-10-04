@@ -345,10 +345,8 @@ input, textarea {
 
 /* ポストフォーム */
 .post-form { padding: 1rem; display: flex; gap: 0.5rem; }
-/* ...（以降の.post-form関連のルールは変更なし）... */
 
 /* リアルタイム更新用ボタンのスタイル */
-/* ▼▼▼ [修正点1] ボタンの表示位置と重なり順を修正 ▼▼▼ */
 .new-posts-indicator {
     position: sticky;
     top: calc(56px + 50px); /* ヘッダー + タブの高さ */
@@ -371,7 +369,6 @@ input, textarea {
 .new-posts-indicator button:hover {
     background-color: var(--primary-hover-color);
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 
 /* ポストフォーム */
 .post-form {
@@ -564,12 +561,14 @@ input, textarea {
 }
 
 .post-content a,
+.user-me a,
 .notification-item-content a {
     color: var(--primary-color);
     text-decoration: none;
 }
 
 .post-content a:hover,
+.user-me a:hover,
 .notification-item-content a:hover {
     text-decoration: underline;
 }

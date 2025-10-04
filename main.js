@@ -2147,7 +2147,7 @@ function openAccountSwitcherModal() {
             
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
-            const userMeHtml = escapeHTML(user.me || '').replace(/\n/g, '<br>');
+            const userMeHtml = formatPostContent(user.me || '', allUsersCache);
 
             profileHeader.innerHTML = `
                 <div class="header-top">
