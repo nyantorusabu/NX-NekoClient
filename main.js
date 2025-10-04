@@ -124,6 +124,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderDmMessage(msg) {
+        await ensureMentionedUsersCached([msg.content]);
         if (msg.type === 'system') {
             const formattedContent = formatPostContent(msg.content, allUsersCache);
             return `<div class="dm-system-message">${formattedContent}</div>`;
@@ -291,6 +292,23 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             return true;
         });
+    }
+
+    async function ensureMentionedUsersCached(texts) {
+        const mentionRegex = /@(\d+)/g;
+        const allMentionedIds = new Set();
+        for (const text of texts) {
+            if (!text) continue;
+            let match;
+            while ((match = mentionRegex.exec(text)) !== null) {
+                allMentionedIds.add(parseInt(match[1]));
+            }
+        }
+        const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
+        if (newIdsToFetch.length > 0) {
+            const { data: users } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
+            if (users) users.forEach(u => allUsersCache.set(u.id, u));
+        }
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -977,6 +995,7 @@ function openAccountSwitcherModal() {
     }
 
     async function renderPost(post, author, options = {}) {
+    await ensureMentionedUsersCached([post.content]);
     const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map() } = options;
 
     if (!post) return null;
