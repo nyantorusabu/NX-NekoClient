@@ -2601,41 +2601,52 @@ function openAccountSwitcherModal() {
                 if (posts && posts.length > 0) {
                     posts = filterBlockedPosts(posts);
                 
-                    // 2ページ目以降に広告挿入
                     if (currentPagination.page > 0) {
                         const adPostEl = createAdPostHTML();
                         if (adPostEl) currentTrigger.before(adPostEl);
                     }
                 
+                    // 集計用ID（Repostは元投稿ID）
                     const postIdsForCounts = posts
                         .map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id)
                         .filter(id => id);
                 
-                    // 4大Get関数を1つにまとめたRPCを使用
+                    // RPCで一括取得
                     const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
-                
                     const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
                 
+                    // TL表示用 Map を作成（post ID → reply_count）
+                    const replyCountsMap = new Map();
                     for (const post of posts) {
-                        const isSimpleRepost = post.repost_to && !post.content;
-                        const targetPostForCounts = isSimpleRepost ? post.reposted_post : post;
+                        const targetId = post.repost_to && !post.content && post.reposted_post
+                            ? post.reposted_post.id
+                            : post.id;
+                        const metrics = metricsMap.get(targetId) || {};
+                        replyCountsMap.set(post.id, metrics.reply_count || 0);
                 
+                        // like/star/repost は元投稿にセット
+                        const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
+                            ? post.reposted_post
+                            : post;
                         if (targetPostForCounts) {
-                            const metrics = metricsMap.get(targetPostForCounts.id) || {};
                             targetPostForCounts.like = metrics.like_count || 0;
                             targetPostForCounts.star = metrics.star_count || 0;
-                            targetPostForCounts.reply_count = metrics.reply_count || 0;
                             targetPostForCounts.repost_count = metrics.repost_count || 0;
                         }
+                    }
                 
-                        const postEl = await renderPost(post, post.author, { replyCountsMap: new Map(), userCache: allUsersCache });
+                    // 投稿レンダリング（replyCountsMapを正しく渡す）
+                    for (const post of posts) {
+                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache });
                         if (postEl) currentTrigger.before(postEl);
                     }
                 }
                 
                 currentPagination.page++;
                 currentPagination.hasMore = hasMoreItems;
-            
+
+
+
             } catch (error) {
                 console.error("ポストの読み込みに失敗:", error);
                 if (currentTrigger) currentTrigger.innerHTML = 'ポストの読み込みに失敗しました。';
