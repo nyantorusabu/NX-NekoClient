@@ -1657,23 +1657,22 @@ function openAccountSwitcherModal() {
             if(mainPost.reply_to_post) allPostIdsOnPage.add(mainPost.reply_to_post.id);
             
             const postIdsArray = Array.from(allPostIdsOnPage);
-            const [
-                { data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }
-            ] = await Promise.all([
-                supabase.rpc('get_reply_counts', { post_ids: postIdsArray }),
-                supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIdsArray }),
-                supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIdsArray }),
-                supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIdsArray })
-            ]);
 
-            const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
-            const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
-            const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
-            const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
-            
+            // 4大Get関数を1つにまとめたRPCを使用
+            const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
+
+            const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+
+            // 集計値を個別Mapに展開する場合（従来互換用）
+            const replyCountsMap = new Map(metricsData.map(c => [c.post_id, c.reply_count]));
+            const likeCountsMap = new Map(metricsData.map(c => [c.post_id, c.like_count]));
+            const starCountsMap = new Map(metricsData.map(c => [c.post_id, c.star_count]));
+            const repostCountsMap = new Map(metricsData.map(c => [c.post_id, c.repost_count]));
+
+            // メンション収集
             const allMentionedIds = new Set();
             const mentionRegex = /@(\d+)/g;
-            const collectMentions = (text) => {
+            const collectMentions = (text?: string) => {
                 if (!text) return;
                 const matches = text.matchAll(mentionRegex);
                 for (const match of matches) allMentionedIds.add(parseInt(match[1]));
@@ -2601,32 +2600,35 @@ function openAccountSwitcherModal() {
 
                 if (posts && posts.length > 0) {
                     posts = filterBlockedPosts(posts);
-                    // [最重要修正点] 2ページ目以降に広告を挿入するロジックを復活させる
+                
+                    // 2ページ目以降に広告挿入
                     if (currentPagination.page > 0) {
                         const adPostEl = createAdPostHTML();
                         if (adPostEl) currentTrigger.before(adPostEl);
                     }
-                    
-                    const postIdsForCounts = posts.map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id).filter(id => id);
-                    const [{ data: replyCountsData }, { data: likeCountsData }, { data: starCountsData }, { data: repostCountsData }] = await Promise.all([
-                        supabase.rpc('get_reply_counts', { post_ids: postIdsForCounts }),
-                        supabase.rpc('get_like_counts_for_posts', { p_post_ids: postIdsForCounts }),
-                        supabase.rpc('get_star_counts_for_posts', { p_post_ids: postIdsForCounts }),
-                        supabase.rpc('get_repost_counts_for_posts', { p_post_ids: postIdsForCounts })
-                    ]);
-                    const replyCountsMap = new Map(replyCountsData.map(c => [c.post_id, c.reply_count]));
-                    const likeCountsMap = new Map(likeCountsData.map(c => [c.post_id, c.like_count]));
-                    const starCountsMap = new Map(starCountsData.map(c => [c.post_id, c.star_count]));
-                    const repostCountsMap = new Map(repostCountsData.map(c => [c.post_id, c.repost_count]));
+                
+                    const postIdsForCounts = posts
+                        .map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id)
+                        .filter(id => id);
+                
+                    // 4大Get関数を1つにまとめたRPCを使用
+                    const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
+                
+                    const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+                
                     for (const post of posts) {
                         const isSimpleRepost = post.repost_to && !post.content;
                         const targetPostForCounts = isSimpleRepost ? post.reposted_post : post;
+                
                         if (targetPostForCounts) {
-                            targetPostForCounts.like = likeCountsMap.get(targetPostForCounts.id) || 0;
-                            targetPostForCounts.star = starCountsMap.get(targetPostForCounts.id) || 0;
-                            targetPostForCounts.repost_count = repostCountsMap.get(targetPostForCounts.id) || 0;
+                            const metrics = metricsMap.get(targetPostForCounts.id) || {};
+                            targetPostForCounts.like = metrics.like_count || 0;
+                            targetPostForCounts.star = metrics.star_count || 0;
+                            targetPostForCounts.reply_count = metrics.reply_count || 0;
+                            targetPostForCounts.repost_count = metrics.repost_count || 0;
                         }
-                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache });
+                
+                        const postEl = await renderPost(post, post.author, { replyCountsMap: new Map(), userCache: allUsersCache });
                         if (postEl) currentTrigger.before(postEl);
                     }
                 }
