@@ -1672,7 +1672,7 @@ function openAccountSwitcherModal() {
             // メンション収集
             const allMentionedIds = new Set();
             const mentionRegex = /@(\d+)/g;
-            const collectMentions = (text?: string) => {
+            const collectMentions = (text) => {
                 if (!text) return;
                 const matches = text.matchAll(mentionRegex);
                 for (const match of matches) allMentionedIds.add(parseInt(match[1]));
