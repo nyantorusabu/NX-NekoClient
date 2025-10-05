@@ -2563,7 +2563,7 @@ function openAccountSwitcherModal() {
 
                     if (type === 'timeline') {
                         // [修正点] 'all'タブと'following'タブのロジックをここに集約
-                        idQuery = supabase.from('post').select('id').is('reply_id', null);
+                        idQuery = supabase.from('post_recent').select('id').is('reply_id', null);
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
