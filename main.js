@@ -2957,103 +2957,92 @@ function openAccountSwitcherModal() {
         finally { showLoading(false); }
     };
     window.handleReplyClick = (postId, username) => { if (!currentUser) return alert("ログインが必要です。"); openPostModal({ id: postId, name: username }); };
-    window.clearReply = () => { replyingTo = null; const replyInfo = document.getElementById('reply-info'); if (replyInfo) replyInfo.classList.add('hidden'); };
     window.handleLike = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
-        
+    
         const countSpan = button.querySelector('span:not(.icon)');
-        const isLiked = currentUser.like?.includes(postId);
-        const updatedLikes = isLiked ? currentUser.like.filter(id => id !== postId) : [...(currentUser.like || []), postId];
-        
-        // [修正点] userテーブルの更新のみを行う
-        const { error: userError } = await supabase.from('user').update({ like: updatedLikes }).eq('id', currentUser.id);
-
-        if (userError) {
-            alert('いいねの更新に失敗しました。');
-            button.disabled = false;
-            return;
-        }
-
-        // [修正点] postテーブルの数値を更新するRPC呼び出しを削除
-        
-        // UIの即時反映
         const currentCount = parseInt(countSpan.textContent);
-        countSpan.textContent = isLiked ? currentCount - 1 : currentCount + 1;
-        button.classList.toggle('liked', !isLiked);
-        
-        currentUser.like = updatedLikes;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-            
-        if (!isLiked) {
-            const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
-            if (postData?.userid && postData.userid !== currentUser.id) {
-                sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストにいいねしました。`, `#post/${postData.id}`);
-            }
+    
+        try {
+            const { data, error } = await supabase.rpc('handle_like', {
+                p_post_id: postId
+            });
+    
+            if (error) throw error;
+    
+            const isLiked = data.liked;
+            currentUser.like = data.updated_likes;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+            countSpan.textContent = isLiked ? currentCount + 1 : currentCount - 1;
+            button.classList.toggle('liked', isLiked);
+        } catch (e) {
+            console.error('いいね更新エラー:', e);
+            alert('いいねの更新に失敗しました。');
+        } finally {
+            button.disabled = false;
         }
-        button.disabled = false;
     };
     window.handleStar = async (button, postId) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
-        
-        const countSpan = button.querySelector('span:not(.icon)');
-        const isStarred = currentUser.star?.includes(postId);
-        const updatedStars = isStarred ? currentUser.star.filter(id => id !== postId) : [...(currentUser.star || []), postId];
-        
-        // [修正点] userテーブルの更新のみを行う
-        const { error: userError } = await supabase.from('user').update({ star: updatedStars }).eq('id', currentUser.id);
-        
-        if (userError) {
-            alert('お気に入りの更新に失敗しました。');
-            button.disabled = false;
-            return;
-        }
-
-        // [修正点] postテーブルの数値を更新するRPC呼び出しを削除
-
-        // UIの即時反映
-        const currentCount = parseInt(countSpan.textContent);
-        countSpan.textContent = isStarred ? currentCount - 1 : currentCount + 1;
-        button.classList.toggle('starred', !isStarred);
-
-        currentUser.star = updatedStars;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-        if (!isStarred) {
-            const { data: postData } = await supabase.from('post').select('userid, id').eq('id', postId).single();
-            if (postData?.userid && postData.userid !== currentUser.id) {
-                sendNotification(postData.userid, `@${currentUser.id}さんがあなたのポストをお気に入りに登録しました。`, `#post/${postData.id}`);
-            }
-        }
-        button.disabled = false;
-    };
     
+        const countSpan = button.querySelector('span:not(.icon)');
+        const currentCount = parseInt(countSpan.textContent);
+    
+        try {
+            const { data, error } = await supabase.rpc('handle_star', {
+                p_post_id: postId
+            });
+    
+            if (error) throw error;
+    
+            const isStarred = data.starred;
+            currentUser.star = data.updated_stars;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+            countSpan.textContent = isStarred ? currentCount + 1 : currentCount - 1;
+            button.classList.toggle('starred', isStarred);
+        } catch (e) {
+            console.error('お気に入り更新エラー:', e);
+            alert('お気に入りの更新に失敗しました。');
+        } finally {
+            button.disabled = false;
+        }
+    };
     window.handleFollowToggle = async (targetUserId, button) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
-        const isFollowing = currentUser.follow?.includes(targetUserId);
-        const updatedFollows = isFollowing ? currentUser.follow.filter(id => id !== targetUserId) : [...(currentUser.follow || []), targetUserId];
-        
-        const { error } = await supabase.from('user').update({ follow: updatedFollows }).eq('id', currentUser.id);
-        if (error) {
-            alert('フォロー状態の更新に失敗しました。');
-            button.disabled = false;
-        } else {
-            currentUser.follow = updatedFollows; // メモリ上のユーザー情報を更新
-            updateFollowButtonState(button, !isFollowing);
-            if (!isFollowing) { 
-            // ▼▼▼ この行を修正 ▼▼▼
-            sendNotification(targetUserId, `@${currentUser.id}さんがあなたをフォローしました。`, `#profile/${currentUser.id}`);
-            }
+    
+        try {
+            const { data, error } = await supabase.rpc('handle_follow', {
+                p_target_id: targetUserId
+            });
+    
+            if (error) throw error;
+    
+            const isFollowing = data.following;
+            currentUser.follow = data.updated_follows;
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    
+            updateFollowButtonState(button, isFollowing);
+    
+            // フォロワー数を再取得（既存RPC呼び出しを継続利用）
             const followerCountSpan = document.querySelector('#follower-count strong');
             if (followerCountSpan) {
-                const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', { target_user_id: targetUserId });
-                if (!newCountError) { followerCountSpan.textContent = newCount; } 
-                else { console.error("フォロワー数の再取得に失敗:", newCountError); followerCountSpan.textContent = '?'; }
+                const { data: newCount, error: newCountError } = await supabase.rpc('get_follower_count', {
+                    target_user_id: targetUserId
+                });
+                followerCountSpan.textContent = !newCountError ? newCount : '?';
             }
+        } catch (e) {
+            console.error('フォロー更新エラー:', e);
+            alert('フォロー状態の更新に失敗しました。');
+        } finally {
+            button.disabled = false;
         }
-    }
+    };
 
 async function openEditPostModal(postId) {
         showLoading(true);
