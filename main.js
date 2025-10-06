@@ -908,8 +908,6 @@ function openAccountSwitcherModal() {
         container.querySelector('.file-preview-container').innerHTML = '';
         if (container.closest('.modal-overlay')) {
             closePostModal();
-        } else {
-            clearReply();
         }
 
         if (window.location.hash === '#' || window.location.hash === '') {
