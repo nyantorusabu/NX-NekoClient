@@ -2574,9 +2574,12 @@ function openAccountSwitcherModal() {
                             else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
                         }
                     } else if (type === 'likes' || type === 'stars') {
-                        const idList = options.ids || [];
-                        postIdsToFetch = idList.slice(from, to + 1);
-                        if (postIdsToFetch.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                            const idList = options.ids || [];
+                            const reversedList = [...idList].reverse();
+                            postIdsToFetch = reversedList.slice(from, to + 1);
+                            if (postIdsToFetch.length < POSTS_PER_PAGE) {
+                                hasMoreItems = false;
+                            }
                     }
 
                     if (idQuery && hasMoreItems) {
