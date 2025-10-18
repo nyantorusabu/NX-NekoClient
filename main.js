@@ -496,10 +496,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (sessionError || !session) {
             // ▼▼▼ ここから追加 ▼▼▼
             const accounts = JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
-            if (accounts.length > 0) {
-                // 1つ目のアカウントで自動再ログイン
-                await supabase.auth.setSession(accounts[0].token);
-                return checkSession();
+            while (accounts.length) {
+                const { data: { session: _sess }, error: _sess_err } = await supabase.auth.setSession(accounts[0].token);
+                if (_sess_err || !_sess) {
+                    accounts.splice(0, 1);
+                    localStorage.setItem('nyax_accounts', JSON.stringify(accounts));
+                    continue;
+                } else {
+                    return checkSession(); // 直前にセッションの確認をしたため無限ループの可能性は低い
+                }
             }
             // ▲▲▲ ここまで追加 ▲▲▲
             currentUser = null;
