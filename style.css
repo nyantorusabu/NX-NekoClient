@@ -555,9 +555,13 @@ input, textarea {
 .post-content {
     margin-bottom: 1rem;
     white-space: pre-wrap;
-    word-wrap: break-word;
+    line-break: anywhere;
     font-size: 1rem;
     cursor: pointer;
+}
+
+.user-me {
+    line-break: anywhere;
 }
 
 .post-content a,
