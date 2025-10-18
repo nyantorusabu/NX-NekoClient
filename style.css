@@ -560,6 +560,10 @@ input, textarea {
     cursor: pointer;
 }
 
+.user-me {
+    line-break: anywhere;
+}
+
 .post-content a,
 .user-me a,
 .notification-item-content a {
