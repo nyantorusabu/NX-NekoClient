@@ -312,53 +312,53 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
-    showLoading(true);
-    isLoadingMore = false;
+        showLoading(true);
+        isLoadingMore = false;
 
-    const existingSubTabs = document.getElementById('profile-sub-tabs-container');
-    if (existingSubTabs) {
-        existingSubTabs.remove();
-    }
-
-    await updateNavAndSidebars();
-    const hash = window.location.hash || '#';
-
-    if (postLoadObserver) {
-        postLoadObserver.disconnect();
-    }
-
-    try {
-        if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-        else if (hash.startsWith('#profile/')) {
-            const path = hash.substring(9);
-            const userId = parseInt(path, 10);
-            if (isNaN(userId)) { window.location.hash = '#'; return; }
-            const subpageMatch = path.match(/\/(.+)/);
-            const subpage = subpageMatch ? subpageMatch[1] : 'posts';
-            await showProfileScreen(userId, subpage);
+        const existingSubTabs = document.getElementById('profile-sub-tabs-container');
+        if (existingSubTabs) {
+            existingSubTabs.remove();
         }
-        else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
-        // ★★★ この行を新規追加 ★★★
-        else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
-        // ★★★ ここまで ★★★
-        else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
-        else if (hash === '#dm') await showDmScreen();
-        else if (hash === '#settings' && currentUser) await showSettingsScreen();
-        else if (hash === '#explore') await showExploreScreen();
-        else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
-        else if (hash === '#likes' && currentUser) await showLikesScreen();
-        else if (hash === '#stars' && currentUser) await showStarsScreen();
-        else await showMainScreen();
-    } catch (error) {
-        console.error("Routing error:", error);
-        DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
-        showScreen('main-screen');
-        DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
-    } finally {
-        // `showAdminLogsScreen`内で個別にローディングを解除するため、ここでの一括解除は不要
-        // showLoading(false);
+
+        await updateNavAndSidebars();
+        const hash = window.location.hash || '#';
+
+        if (postLoadObserver) {
+            postLoadObserver.disconnect();
+        }
+
+        try {
+            if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
+            else if (hash.startsWith('#profile/')) {
+                const path = hash.substring(9);
+                const userId = parseInt(path, 10);
+                if (isNaN(userId)) { window.location.hash = '#'; return; }
+                const subpageMatch = path.match(/\/(.+)/);
+                const subpage = subpageMatch ? subpageMatch[1] : 'posts';
+                await showProfileScreen(userId, subpage);
+            }
+            else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
+            // ★★★ この行を新規追加 ★★★
+            else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
+            // ★★★ ここまで ★★★
+            else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
+            else if (hash === '#dm') await showDmScreen();
+            else if (hash === '#settings' && currentUser) await showSettingsScreen();
+            else if (hash === '#explore') await showExploreScreen();
+            else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
+            else if (hash === '#likes' && currentUser) await showLikesScreen();
+            else if (hash === '#stars' && currentUser) await showStarsScreen();
+            else await showMainScreen();
+        } catch (error) {
+            console.error("Routing error:", error);
+            DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
+            showScreen('main-screen');
+            DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
+        } finally {
+            // `showAdminLogsScreen`内で個別にローディングを解除するため、ここでの一括解除は不要
+            // showLoading(false);
+        }
     }
-}
     
     // --- 6. ナビゲーションとサイドバー ---
     async function loadRightSidebar() {
