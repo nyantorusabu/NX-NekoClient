@@ -89,7 +89,7 @@
         });
 
         function getUserIconUrl(user) {
-            if (!user) return 'favicon.png';
+            if (!user) return 'logo.png';
             if (user.icon_data) {
                 if (user.icon_data.startsWith('data:image')) return user.icon_data;
                 const { data } = supabase.storage.from('nyax').getPublicUrl(user.icon_data);

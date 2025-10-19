@@ -104,7 +104,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getUserIconUrl(user) {
-        if (!user) return 'favicon.png';
+        if (!user) return 'logo.png';
         
         // icon_dataが存在するかチェック
         if (user.icon_data) {
@@ -1324,7 +1324,7 @@ function openAccountSwitcherModal() {
         // iframeを使った広告描画用のHTML
         adContainer.innerHTML = `
             <div class="user-icon-link">
-                <img src="favicon.png" class="user-icon" alt="広告アイコン">
+                <img src="logo.png" class="user-icon" alt="広告アイコン">
             </div>
             <div class="post-main">
                 <div class="post-header">
