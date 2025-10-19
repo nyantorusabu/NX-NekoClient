@@ -13,7 +13,6 @@ window.addEventListener('DOMContentLoaded', () => {
     let quotingPost = null;
     let newIconDataUrl = null;
     let resetIconToDefault = false;
-    let openedMenuPostId = null;
     let currentDmChannel = null;
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
