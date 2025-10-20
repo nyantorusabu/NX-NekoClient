@@ -13,7 +13,6 @@ window.addEventListener('DOMContentLoaded', () => {
     let quotingPost = null;
     let newIconDataUrl = null;
     let resetIconToDefault = false;
-    let openedMenuPostId = null;
     let currentDmChannel = null;
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
@@ -313,53 +312,53 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- 5. ルーティングと画面管理 ---
     async function router() {
-    showLoading(true);
-    isLoadingMore = false;
+        showLoading(true);
+        isLoadingMore = false;
 
-    const existingSubTabs = document.getElementById('profile-sub-tabs-container');
-    if (existingSubTabs) {
-        existingSubTabs.remove();
-    }
-
-    await updateNavAndSidebars();
-    const hash = window.location.hash || '#';
-
-    if (postLoadObserver) {
-        postLoadObserver.disconnect();
-    }
-
-    try {
-        if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
-        else if (hash.startsWith('#profile/')) {
-            const path = hash.substring(9);
-            const userId = parseInt(path, 10);
-            if (isNaN(userId)) { window.location.hash = '#'; return; }
-            const subpageMatch = path.match(/\/(.+)/);
-            const subpage = subpageMatch ? subpageMatch[1] : 'posts';
-            await showProfileScreen(userId, subpage);
+        const existingSubTabs = document.getElementById('profile-sub-tabs-container');
+        if (existingSubTabs) {
+            existingSubTabs.remove();
         }
-        else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
-        // ★★★ この行を新規追加 ★★★
-        else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
-        // ★★★ ここまで ★★★
-        else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
-        else if (hash === '#dm') await showDmScreen();
-        else if (hash === '#settings' && currentUser) await showSettingsScreen();
-        else if (hash === '#explore') await showExploreScreen();
-        else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
-        else if (hash === '#likes' && currentUser) await showLikesScreen();
-        else if (hash === '#stars' && currentUser) await showStarsScreen();
-        else await showMainScreen();
-    } catch (error) {
-        console.error("Routing error:", error);
-        DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
-        showScreen('main-screen');
-        DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
-    } finally {
-        // `showAdminLogsScreen`内で個別にローディングを解除するため、ここでの一括解除は不要
-        // showLoading(false);
+
+        await updateNavAndSidebars();
+        const hash = window.location.hash || '#';
+
+        if (postLoadObserver) {
+            postLoadObserver.disconnect();
+        }
+
+        try {
+            if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
+            else if (hash.startsWith('#profile/')) {
+                const path = hash.substring(9);
+                const userId = parseInt(path, 10);
+                if (isNaN(userId)) { window.location.hash = '#'; return; }
+                const subpageMatch = path.match(/\/(.+)/);
+                const subpage = subpageMatch ? subpageMatch[1] : 'posts';
+                await showProfileScreen(userId, subpage);
+            }
+            else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
+            // ★★★ この行を新規追加 ★★★
+            else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
+            // ★★★ ここまで ★★★
+            else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
+            else if (hash === '#dm') await showDmScreen();
+            else if (hash === '#settings' && currentUser) await showSettingsScreen();
+            else if (hash === '#explore') await showExploreScreen();
+            else if (hash === '#notifications' && currentUser) await showNotificationsScreen();
+            else if (hash === '#likes' && currentUser) await showLikesScreen();
+            else if (hash === '#stars' && currentUser) await showStarsScreen();
+            else await showMainScreen();
+        } catch (error) {
+            console.error("Routing error:", error);
+            DOM.pageHeader.innerHTML = `<h2>エラー</h2>`;
+            showScreen('main-screen');
+            DOM.timeline.innerHTML = `<p class="error-message">ページの読み込み中にエラーが発生しました。</p>`;
+        } finally {
+            // `showAdminLogsScreen`内で個別にローディングを解除するため、ここでの一括解除は不要
+            // showLoading(false);
+        }
     }
-}
     
     // --- 6. ナビゲーションとサイドバー ---
     async function loadRightSidebar() {
@@ -547,106 +546,106 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function getAccountList() {
-    return JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
-}
-function setAccountList(list) {
-    localStorage.setItem('nyax_accounts', JSON.stringify(list));
-}
-function addAccountToList(user, session) {
-    // 既存と重複チェック
-    let accounts = getAccountList();
-    if (accounts.find(a => a.id === user.id)) return;
-    accounts.push({
-        id: user.id,
-        name: user.name,
-        icon_data: user.icon_data,
-        scid: user.scid,
-        token: session, // { access_token, refresh_token }
-    });
-    setAccountList(accounts);
-}
-function removeAccountFromList(userId) {
-    let accounts = getAccountList().filter(a => a.id !== userId);
-    setAccountList(accounts);
-}
-function updateAccountData(user) {
-    // 名前・アイコンなど変更時にリストも更新
-    let accounts = getAccountList();
-    let idx = accounts.findIndex(a => a.id === user.id);
-    if (idx !== -1) {
-        accounts[idx] = {
-            ...accounts[idx],
+        return JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
+    }
+    function setAccountList(list) {
+        localStorage.setItem('nyax_accounts', JSON.stringify(list));
+    }
+    function addAccountToList(user, session) {
+        // 既存と重複チェック
+        let accounts = getAccountList();
+        if (accounts.find(a => a.id === user.id)) return;
+        accounts.push({
+            id: user.id,
             name: user.name,
             icon_data: user.icon_data,
             scid: user.scid,
-        };
+            token: session, // { access_token, refresh_token }
+        });
         setAccountList(accounts);
     }
-}
-
-// --- AccountSwitcherモーダルの描画・操作 ---
-function openAccountSwitcherModal() {
-    const modal = document.getElementById('account-switcher-modal');
-    const content = document.getElementById('account-switcher-modal-content');
-    const accounts = getAccountList();
-    const currentId = currentUser?.id;
-
-    content.innerHTML = `
-        <button class="account-switcher-add-btn">＋ アカウント追加</button>
-        <ul class="account-switcher-list">
-            ${accounts.map(acc => `
-                <li class="account-switcher-item${acc.id === currentId ? ' active' : ''}" data-id="${acc.id}">
-                    <span class="switcher-user-info">
-                        <img class="switcher-user-icon" src="${getUserIconUrl(acc)}">
-                        <span>${escapeHTML(acc.name)}</span>
-                        <span style="color:var(--secondary-text-color); font-size:0.95em;">#${acc.id}</span>
-                    </span>
-                    <button class="switcher-delete-btn" title="このアカウントを削除">×</button>
-                </li>`).join('')}
-        </ul>
-    `;
-    modal.classList.remove('hidden');
-    modal.querySelector('.modal-close-btn').onclick = () => modal.classList.add('hidden');
-    content.querySelector('.account-switcher-add-btn').onclick = () => {
-        // 現在のセッションも記録してからlogin.htmlへ
-        if (currentUser && supabase?.auth?.getSession) {
-            supabase.auth.getSession().then(({ data }) => {
-                if (data?.session && currentUser) {
-                    addAccountToList(currentUser, data.session);
-                }
-                window.location.href = 'login.html';
-            });
-        } else {
-            window.location.href = 'login.html';
+    function removeAccountFromList(userId) {
+        let accounts = getAccountList().filter(a => a.id !== userId);
+        setAccountList(accounts);
+    }
+    function updateAccountData(user) {
+        // 名前・アイコンなど変更時にリストも更新
+        let accounts = getAccountList();
+        let idx = accounts.findIndex(a => a.id === user.id);
+        if (idx !== -1) {
+            accounts[idx] = {
+                ...accounts[idx],
+                name: user.name,
+                icon_data: user.icon_data,
+                scid: user.scid,
+            };
+            setAccountList(accounts);
         }
-    };
-    content.querySelectorAll('.account-switcher-item').forEach(item => {
-        const userId = Number(item.dataset.id);
-        item.onclick = (e) => {
-            if (e.target.classList.contains('switcher-delete-btn')) {
-                // 削除
-                if (confirm('このアカウントをリストから削除しますか？')) {
-                    removeAccountFromList(userId);
-                    if (userId === currentId) {
-                        supabase.auth.signOut().then(() => window.location.reload());
-                    } else {
-                        openAccountSwitcherModal();
+    }
+
+    // --- AccountSwitcherモーダルの描画・操作 ---
+    function openAccountSwitcherModal() {
+        const modal = document.getElementById('account-switcher-modal');
+        const content = document.getElementById('account-switcher-modal-content');
+        const accounts = getAccountList();
+        const currentId = currentUser?.id;
+
+        content.innerHTML = `
+            <button class="account-switcher-add-btn">＋ アカウント追加</button>
+            <ul class="account-switcher-list">
+                ${accounts.map(acc => `
+                    <li class="account-switcher-item${acc.id === currentId ? ' active' : ''}" data-id="${acc.id}">
+                        <span class="switcher-user-info">
+                            <img class="switcher-user-icon" src="${getUserIconUrl(acc)}">
+                            <span>${escapeHTML(acc.name)}</span>
+                            <span style="color:var(--secondary-text-color); font-size:0.95em;">#${acc.id}</span>
+                        </span>
+                        <button class="switcher-delete-btn" title="このアカウントを削除">×</button>
+                    </li>`).join('')}
+            </ul>
+        `;
+        modal.classList.remove('hidden');
+        modal.querySelector('.modal-close-btn').onclick = () => modal.classList.add('hidden');
+        content.querySelector('.account-switcher-add-btn').onclick = () => {
+            // 現在のセッションも記録してからlogin.htmlへ
+            if (currentUser && supabase?.auth?.getSession) {
+                supabase.auth.getSession().then(({ data }) => {
+                    if (data?.session && currentUser) {
+                        addAccountToList(currentUser, data.session);
                     }
-                }
-            } else if (userId !== currentId) {
-                // 切り替え
-                const acc = accounts.find(a => a.id === userId);
-                if (acc && acc.token) {
-                    // アカウント切り替え処理
-                    supabase.auth.setSession(acc.token).then(() => {
-                    document.getElementById('account-switcher-modal').classList.add('hidden');
-                    checkSession();
-                    });
-                }
+                    window.location.href = 'login.html';
+                });
+            } else {
+                window.location.href = 'login.html';
             }
         };
-    });
-}
+        content.querySelectorAll('.account-switcher-item').forEach(item => {
+            const userId = Number(item.dataset.id);
+            item.onclick = (e) => {
+                if (e.target.classList.contains('switcher-delete-btn')) {
+                    // 削除
+                    if (confirm('このアカウントをリストから削除しますか？')) {
+                        removeAccountFromList(userId);
+                        if (userId === currentId) {
+                            supabase.auth.signOut().then(() => window.location.reload());
+                        } else {
+                            openAccountSwitcherModal();
+                        }
+                    }
+                } else if (userId !== currentId) {
+                    // 切り替え
+                    const acc = accounts.find(a => a.id === userId);
+                    if (acc && acc.token) {
+                        // アカウント切り替え処理
+                        supabase.auth.setSession(acc.token).then(() => {
+                        document.getElementById('account-switcher-modal').classList.add('hidden');
+                        checkSession();
+                        });
+                    }
+                }
+            };
+        });
+    }
 
     // --- 8. ポスト関連のUIとロジック ---
     function openPostModal(replyInfo = null) {
@@ -845,94 +844,94 @@ function openAccountSwitcherModal() {
     }
     
     async function handlePostSubmit(container) {
-    if (!currentUser) return alert("ログインが必要です。");
-    const contentEl = container.querySelector('textarea');
-    const content = contentEl.value.trim();
-    if (!content && selectedFiles.length === 0 && !quotingPost) return alert('内容を入力するか、ファイルを添付してください。');
+        if (!currentUser) return alert("ログインが必要です。");
+        const contentEl = container.querySelector('textarea');
+        const content = contentEl.value.trim();
+        if (!content && selectedFiles.length === 0 && !quotingPost) return alert('内容を入力するか、ファイルを添付してください。');
 
-    const button = container.querySelector('#post-submit-button');
-    button.disabled = true;
-    button.textContent = '投稿中...';
-    showLoading(true);
+        const button = container.querySelector('#post-submit-button');
+        button.disabled = true;
+        button.textContent = '投稿中...';
+        showLoading(true);
 
-    let attachmentsData = [];
-    let uploadedFileIds = []; // 削除用にファイルIDを保持
+        let attachmentsData = [];
+        let uploadedFileIds = []; // 削除用にファイルIDを保持
 
-    try {
-        // 1. ファイルがあれば先にアップロード
-        if (selectedFiles.length > 0) {
-            for (const file of selectedFiles) {
-                const fileId = await uploadFileViaEdgeFunction(file);
-                uploadedFileIds.push(fileId); // 削除候補としてIDを保存
-                const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
-                attachmentsData.push({ type: fileType, id: fileId, name: file.name });
+        try {
+            // 1. ファイルがあれば先にアップロード
+            if (selectedFiles.length > 0) {
+                for (const file of selectedFiles) {
+                    const fileId = await uploadFileViaEdgeFunction(file);
+                    uploadedFileIds.push(fileId); // 削除候補としてIDを保存
+                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
+                }
             }
-        }
 
-        // 2. 新しいRPC関数を呼び出してポストをDBに保存
-        const { data: newPost, error: rpcError } = await supabase.rpc('create_post', {
-            p_content: content,
-            p_reply_id: replyingTo?.id || null,
-            p_repost_to: quotingPost?.id || null,
-            p_attachments: attachmentsData.length > 0 ? attachmentsData : null
-        }).single(); // .single()を追加して、返り値が1行であることを期待
+            // 2. 新しいRPC関数を呼び出してポストをDBに保存
+            const { data: newPost, error: rpcError } = await supabase.rpc('create_post', {
+                p_content: content,
+                p_reply_id: replyingTo?.id || null,
+                p_repost_to: quotingPost?.id || null,
+                p_attachments: attachmentsData.length > 0 ? attachmentsData : null
+            }).single(); // .single()を追加して、返り値が1行であることを期待
 
-        // 3. RPCでエラーが発生したら、ファイルを削除して処理を中断
-        if (rpcError) {
-            throw rpcError; // catchブロックに処理を移譲
-        }
-
-        // --- 通知送信ロジック (変更なし) ---
-        let repliedUserId = null;
-        if (replyingTo) {
-            const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
-            if (parentPost && parentPost.userid !== currentUser.id) {
-                repliedUserId = parentPost.userid;
-                sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
+            // 3. RPCでエラーが発生したら、ファイルを削除して処理を中断
+            if (rpcError) {
+                throw rpcError; // catchブロックに処理を移譲
             }
-        }
-        const mentionRegex = /@(\d+)/g;
-        const mentionedIds = new Set();
-        let match;
-        while ((match = mentionRegex.exec(content)) !== null) {
-            const mentionedId = parseInt(match[1]);
-            if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
-                mentionedIds.add(mentionedId);
+
+            // --- 通知送信ロジック (変更なし) ---
+            let repliedUserId = null;
+            if (replyingTo) {
+                const { data: parentPost } = await supabase.from('post').select('userid').eq('id', replyingTo.id).single();
+                if (parentPost && parentPost.userid !== currentUser.id) {
+                    repliedUserId = parentPost.userid;
+                    sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
+                }
             }
-        }
-        mentionedIds.forEach(id => {
-            sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
-        });
-        // --- 通知送信ロジックここまで ---
+            const mentionRegex = /@(\d+)/g;
+            const mentionedIds = new Set();
+            let match;
+            while ((match = mentionRegex.exec(content)) !== null) {
+                const mentionedId = parseInt(match[1]);
+                if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
+                    mentionedIds.add(mentionedId);
+                }
+            }
+            mentionedIds.forEach(id => {
+                sendNotification(id, `@${currentUser.id}さんがあなたをメンションしました。`, `#post/${newPost.id}`);
+            });
+            // --- 通知送信ロジックここまで ---
 
-        // 成功時の後処理
-        selectedFiles = [];
-        contentEl.value = '';
-        container.querySelector('.file-preview-container').innerHTML = '';
-        if (container.closest('.modal-overlay')) {
-            closePostModal();
-        }
+            // 成功時の後処理
+            selectedFiles = [];
+            contentEl.value = '';
+            container.querySelector('.file-preview-container').innerHTML = '';
+            if (container.closest('.modal-overlay')) {
+                closePostModal();
+            }
 
-        if (window.location.hash === '#' || window.location.hash === '') {
-            await router();
-        }
+            if (window.location.hash === '#' || window.location.hash === '') {
+                await router();
+            }
 
-    } catch (e) {
-        // 4. ★★★ エラー発生時のファイル自動削除 ★★★
-        console.error("ポスト送信に失敗しました:", e);
-        if (uploadedFileIds.length > 0) {
-            console.warn("投稿に失敗したため、アップロード済みファイルを削除します:", uploadedFileIds);
-            await deleteFilesViaEdgeFunction(uploadedFileIds);
+        } catch (e) {
+            // 4. ★★★ エラー発生時のファイル自動削除 ★★★
+            console.error("ポスト送信に失敗しました:", e);
+            if (uploadedFileIds.length > 0) {
+                console.warn("投稿に失敗したため、アップロード済みファイルを削除します:", uploadedFileIds);
+                await deleteFilesViaEdgeFunction(uploadedFileIds);
+            }
+            // ユーザーにエラーメッセージを表示
+            alert(`投稿に失敗しました: ${e.message}`);
+        } finally {
+            // 最後に必ずボタンの状態を元に戻す
+            button.disabled = false;
+            button.textContent = 'ポスト';
+            showLoading(false);
         }
-        // ユーザーにエラーメッセージを表示
-        alert(`投稿に失敗しました: ${e.message}`);
-    } finally {
-        // 最後に必ずボタンの状態を元に戻す
-        button.disabled = false;
-        button.textContent = 'ポスト';
-        showLoading(false);
     }
-}
 
     async function uploadFileViaEdgeFunction(file) {
         const formData = new FormData();
@@ -2312,206 +2311,206 @@ function openAccountSwitcherModal() {
     }
 
     async function showSettingsScreen() {
-    if (!currentUser) return router();
-    DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
-    showScreen('settings-screen');
-    newIconDataUrl = null;
-    resetIconToDefault = false;
-    
-    document.getElementById('settings-screen').innerHTML = `
-        <form id="settings-form">
-            <label for="setting-username">ユーザー名:</label>
-            <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
-            
-            <label for="setting-icon-input">アイコン:</label>
-            <div class="setting-icon-container">
-                <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
-                <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
-            </div>
-            <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
-
-            <label for="setting-me">自己紹介:</label>
-            <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
-
-            <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
-            <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                <option value="all">すべて</option>
-                <option value="foryou">おすすめ(β)</option>
-                <option value="following">フォロー中</option>
-            </select>
-            
-            <fieldset><legend>公開設定</legend>
-                <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
-                <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
-                <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
-                <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
-                <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
-            </fieldset>
-            <button type="submit">設定を保存</button>
-        </form>
-        <div class="settings-danger-zone" style="display: flex; gap: 0.5rem;">
-            <!-- ボタンはJSで動的に挿入します -->
-        </div>
-        `;
-
-    // settingsに値がない場合は 'all' をデフォルトとして扱う
-    const currentDefaultTab = currentUser.settings?.default_timeline_tab || 'all';
-    document.getElementById('setting-default-timeline').value = currentDefaultTab;
-    
-    const dangerZone = document.querySelector('.settings-danger-zone');
-    let dangerZoneHTML = `
-        <button id="settings-account-switcher-btn">アカウント切替</button>
-        <button id="settings-logout-btn">ログアウト</button>
-    `;
-
-    // 管理者の場合「アクセスログ」ボタンを追加
-    if (currentUser.admin) {
-        // ★★★ ここを修正 ★★★
-        // <a>タグに、ログアウトボタンと同じID/クラスを適用してスタイルを統一
-        dangerZoneHTML += `
-            <a href="#admin/logs" id="settings-showlog-btn">
-                アクセスログ
-            </a>
-        `;
-        // ★★★ ここまで ★★★
-    }
-    dangerZone.innerHTML = dangerZoneHTML;
-    
-    // (以降のロジックは変更なし)
-    const iconInput = document.getElementById('setting-icon-input');
-    const iconPreview = document.getElementById('setting-icon-preview');
-    
-    iconPreview.addEventListener('click', () => iconInput.click());
-    iconInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file || !file.type.startsWith('image/')) return;
-        resetIconToDefault = false;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const MAX_DIMENSION = 300;
-                let { width, height } = img;
-                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-                    if (width > height) {
-                        height = Math.round((height * MAX_DIMENSION) / width);
-                        width = MAX_DIMENSION;
-                    } else {
-                        width = Math.round((width * MAX_DIMENSION) / height);
-                        height = MAX_DIMENSION;
-                    }
-                }
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                newIconDataUrl = canvas.toDataURL(file.type);
-                iconPreview.src = newIconDataUrl;
-            };
-            img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-
-    document.getElementById('reset-icon-btn').addEventListener('click', () => {
-        resetIconToDefault = true;
+        if (!currentUser) return router();
+        DOM.pageHeader.innerHTML = `<h2 id="page-title">設定</h2>`;
+        showScreen('settings-screen');
         newIconDataUrl = null;
-        iconInput.value = '';
-        iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
-    });
+        resetIconToDefault = false;
+        
+        document.getElementById('settings-screen').innerHTML = `
+            <form id="settings-form">
+                <label for="setting-username">ユーザー名:</label>
+                <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
+                
+                <label for="setting-icon-input">アイコン:</label>
+                <div class="setting-icon-container">
+                    <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
+                    <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
+                </div>
+                <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
 
-    document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
-    document.getElementById('settings-account-switcher-btn').addEventListener('click', openAccountSwitcherModal);
-    document.getElementById('settings-logout-btn').addEventListener('click', (e) => {
-        handleLogout();
-    });
+                <label for="setting-me">自己紹介:</label>
+                <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
 
-    showLoading(false);
-}
+                <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
+                <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="all">すべて</option>
+                    <option value="foryou">おすすめ(β)</option>
+                    <option value="following">フォロー中</option>
+                </select>
+                
+                <fieldset><legend>公開設定</legend>
+                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
+                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                </fieldset>
+                <button type="submit">設定を保存</button>
+            </form>
+            <div class="settings-danger-zone" style="display: flex; gap: 0.5rem;">
+                <!-- ボタンはJSで動的に挿入します -->
+            </div>
+            `;
 
-    async function showAdminLogsScreen() {
-    DOM.pageHeader.innerHTML = `
-        <div class="header-with-back-button">
-            <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
-            <h2 id="page-title">アクセスログ</h2>
-        </div>`;
-    showScreen('admin-logs-screen');
-    const contentDiv = document.getElementById('admin-logs-content');
-    contentDiv.innerHTML = ''; // 表示前にクリア
+        // settingsに値がない場合は 'all' をデフォルトとして扱う
+        const currentDefaultTab = currentUser.settings?.default_timeline_tab || 'all';
+        document.getElementById('setting-default-timeline').value = currentDefaultTab;
+        
+        const dangerZone = document.querySelector('.settings-danger-zone');
+        let dangerZoneHTML = `
+            <button id="settings-account-switcher-btn">アカウント切替</button>
+            <button id="settings-logout-btn">ログアウト</button>
+        `;
 
-    isLoadingMore = false;
-    const LOGS_PER_PAGE = 40;
-    let currentPage = 0;
-    let hasMore = true;
-
-    // 無限スクロールのトリガー要素
-    const trigger = document.createElement('div');
-    trigger.className = 'load-more-trigger';
-    contentDiv.appendChild(trigger);
-
-    const loadMoreLogs = async () => {
-        if (isLoadingMore || !hasMore) return;
-        isLoadingMore = true;
-        trigger.innerHTML = '<div class="spinner"></div>';
-
-        const offset = currentPage * LOGS_PER_PAGE;
-        const { data, error } = await supabase.rpc('get_logs_with_masked_ip', {
-            p_limit: LOGS_PER_PAGE,
-            p_offset: offset
+        // 管理者の場合「アクセスログ」ボタンを追加
+        if (currentUser.admin) {
+            // ★★★ ここを修正 ★★★
+            // <a>タグに、ログアウトボタンと同じID/クラスを適用してスタイルを統一
+            dangerZoneHTML += `
+                <a href="#admin/logs" id="settings-showlog-btn">
+                    アクセスログ
+                </a>
+            `;
+            // ★★★ ここまで ★★★
+        }
+        dangerZone.innerHTML = dangerZoneHTML;
+        
+        // (以降のロジックは変更なし)
+        const iconInput = document.getElementById('setting-icon-input');
+        const iconPreview = document.getElementById('setting-icon-preview');
+        
+        iconPreview.addEventListener('click', () => iconInput.click());
+        iconInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            resetIconToDefault = false;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX_DIMENSION = 300;
+                    let { width, height } = img;
+                    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                        if (width > height) {
+                            height = Math.round((height * MAX_DIMENSION) / width);
+                            width = MAX_DIMENSION;
+                        } else {
+                            width = Math.round((width * MAX_DIMENSION) / height);
+                            height = MAX_DIMENSION;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    newIconDataUrl = canvas.toDataURL(file.type);
+                    iconPreview.src = newIconDataUrl;
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
         });
 
-        if (error) {
-            console.error('ログの取得に失敗:', error);
-            trigger.innerHTML = `<p class="error-message">${error.message}</p>`;
-            hasMore = false;
-            isLoadingMore = false;
-            return;
-        }
+        document.getElementById('reset-icon-btn').addEventListener('click', () => {
+            resetIconToDefault = true;
+            newIconDataUrl = null;
+            iconInput.value = '';
+            iconPreview.src = `https://trampoline.turbowarp.org/avatars/by-username/${currentUser.scid}`;
+        });
 
-        if (data && data.length > 0) {
-            data.forEach(log => {
-                const logItem = document.createElement('div');
-                logItem.className = 'widget-item'; // 通知と似たスタイルを流用
-                logItem.style.cssText = 'display: flex; flex-direction: column; gap: 0.25rem;';
+        document.getElementById('settings-form').addEventListener('submit', handleUpdateSettings);
+        document.getElementById('settings-account-switcher-btn').addEventListener('click', openAccountSwitcherModal);
+        document.getElementById('settings-logout-btn').addEventListener('click', (e) => {
+            handleLogout();
+        });
 
-                logItem.innerHTML = `
-                    <div>
-                        <strong>SCID:</strong> ${escapeHTML(log.scratch_id)} (#${log.nyax_id})
-                    </div>
-                    <div style="font-size: 0.9rem; color: var(--secondary-text-color);">
-                        ${new Date(log.log_time).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
-                    </div>
-                    <div style="font-size: 0.8rem; color: var(--secondary-text-color); font-family: monospace; word-break: break-all;">
-                        識別子: ${log.masked_ip_uuid}
-                    </div>
-                `;
-                // トリガー要素の直前に新しいログアイテムを挿入
-                contentDiv.insertBefore(logItem, trigger);
-            });
-            currentPage++;
-        }
+        showLoading(false);
+    }
 
-        if (!data || data.length < LOGS_PER_PAGE) {
-            hasMore = false;
-            trigger.innerHTML = contentDiv.children.length > 1 ? 'すべてのログを読み込みました' : 'ログはまだありません。';
-            if (postLoadObserver) postLoadObserver.disconnect();
-        } else {
-            trigger.innerHTML = '';
-        }
+    async function showAdminLogsScreen() {
+        DOM.pageHeader.innerHTML = `
+            <div class="header-with-back-button">
+                <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
+                <h2 id="page-title">アクセスログ</h2>
+            </div>`;
+        showScreen('admin-logs-screen');
+        const contentDiv = document.getElementById('admin-logs-content');
+        contentDiv.innerHTML = ''; // 表示前にクリア
+
         isLoadingMore = false;
-    };
+        const LOGS_PER_PAGE = 40;
+        let currentPage = 0;
+        let hasMore = true;
 
-    // IntersectionObserverを設定して無限スクロールを実装
-    postLoadObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-            loadMoreLogs();
-        }
-    }, { rootMargin: '200px' });
-    
-    postLoadObserver.observe(trigger);
-    showLoading(false); // 初回のローディング表示を解除
-}
+        // 無限スクロールのトリガー要素
+        const trigger = document.createElement('div');
+        trigger.className = 'load-more-trigger';
+        contentDiv.appendChild(trigger);
+
+        const loadMoreLogs = async () => {
+            if (isLoadingMore || !hasMore) return;
+            isLoadingMore = true;
+            trigger.innerHTML = '<div class="spinner"></div>';
+
+            const offset = currentPage * LOGS_PER_PAGE;
+            const { data, error } = await supabase.rpc('get_logs_with_masked_ip', {
+                p_limit: LOGS_PER_PAGE,
+                p_offset: offset
+            });
+
+            if (error) {
+                console.error('ログの取得に失敗:', error);
+                trigger.innerHTML = `<p class="error-message">${error.message}</p>`;
+                hasMore = false;
+                isLoadingMore = false;
+                return;
+            }
+
+            if (data && data.length > 0) {
+                data.forEach(log => {
+                    const logItem = document.createElement('div');
+                    logItem.className = 'widget-item'; // 通知と似たスタイルを流用
+                    logItem.style.cssText = 'display: flex; flex-direction: column; gap: 0.25rem;';
+
+                    logItem.innerHTML = `
+                        <div>
+                            <strong>SCID:</strong> ${escapeHTML(log.scratch_id)} (#${log.nyax_id})
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--secondary-text-color);">
+                            ${new Date(log.log_time).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--secondary-text-color); font-family: monospace; word-break: break-all;">
+                            識別子: ${log.masked_ip_uuid}
+                        </div>
+                    `;
+                    // トリガー要素の直前に新しいログアイテムを挿入
+                    contentDiv.insertBefore(logItem, trigger);
+                });
+                currentPage++;
+            }
+
+            if (!data || data.length < LOGS_PER_PAGE) {
+                hasMore = false;
+                trigger.innerHTML = contentDiv.children.length > 1 ? 'すべてのログを読み込みました' : 'ログはまだありません。';
+                if (postLoadObserver) postLoadObserver.disconnect();
+            } else {
+                trigger.innerHTML = '';
+            }
+            isLoadingMore = false;
+        };
+
+        // IntersectionObserverを設定して無限スクロールを実装
+        postLoadObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                loadMoreLogs();
+            }
+        }, { rootMargin: '200px' });
+        
+        postLoadObserver.observe(trigger);
+        showLoading(false); // 初回のローディング表示を解除
+    }
     
     async function loadPostsWithPagination(container, type, options = {}) {
         let localPostLoadObserver;
@@ -3048,7 +3047,7 @@ function openAccountSwitcherModal() {
         }
     };
 
-async function openEditPostModal(postId) {
+    async function openEditPostModal(postId) {
         showLoading(true);
         try {
             const { data: post, error } = await supabase.from('post').select('content, attachments').eq('id', postId).single();
@@ -3954,22 +3953,22 @@ async function openEditPostModal(postId) {
                 menuToToggle = menuButton.closest('.post-header')?.querySelector('.post-menu');
             }
 
-    if (menuToToggle) {
-        const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
-        
-        // 開いている他のメニューをすべて閉じる
-        document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
-            menu.classList.remove('is-visible');
-        });
+            if (menuToToggle) {
+                const isCurrentlyVisible = menuToToggle.classList.contains('is-visible');
+                
+                // 開いている他のメニューをすべて閉じる
+                document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
+                    menu.classList.remove('is-visible');
+                });
 
-        // ターゲットが閉じていた場合のみ開く
-        if (!isCurrentlyVisible) {
-            menuToToggle.classList.add('is-visible');
+                // ターゲットが閉じていた場合のみ開く
+                if (!isCurrentlyVisible) {
+                    menuToToggle.classList.add('is-visible');
+                }
+                // ▲▲▲ isDmMenuや位置調整のロジックをすべて削除 ▲▲▲
+            }
+            return; // メニュー開閉処理はここで終了
         }
-        // ▲▲▲ isDmMenuや位置調整のロジックをすべて削除 ▲▲▲
-    }
-    return; // メニュー開閉処理はここで終了
-}
         // --- 2. メニューの外側がクリックされた場合の処理 ---
         if (!target.closest('.post-menu')) {
             document.querySelectorAll('.post-menu.is-visible').forEach(menu => {
