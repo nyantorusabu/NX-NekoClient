@@ -893,6 +893,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストに返信しました。`, `#post/${newPost.id}`);
                 }
             }
+            if (quotingPost) {
+                repliedUserId = quotingPost.userid; // リプライと引用ポストの両立は不可能のはずなので大丈夫
+                sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストを引用しました。`, `#post/${quotingPost.id}`);
+            }
             const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
             let match;
