@@ -1681,9 +1681,8 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             
             // [最重要修正点] 新しいSQL関数で、全ての関連データを一括取得する
-            const { data: posts, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId] });
-            if (postError || !posts || posts.length === 0) throw postError || new Error('ポストの取得に失敗しました。');
-            const mainPost = posts[0];
+            const { data: post, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId] }).single();
+            if (postError || !post) throw postError || new Error('ポストの取得に失敗しました。');
             
             const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
             if (repliesError) throw repliesError;
