@@ -1312,7 +1312,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 actionsDiv.appendChild(repostBtn);
 
                 (async () => { // 遅延読み込みロジック
-                    console.log("Resolved!")
                     await metricsPromise;
 
                     const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
