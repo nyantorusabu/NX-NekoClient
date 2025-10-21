@@ -1715,10 +1715,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
 
                 // 集計値を個別Mapに展開する場合（従来互換用）
-                metricsData.forEach(c => metricsMap.set(c.post_id, c.reply_count));
-                likeCountsMap.forEach(c => metricsMap.set(c.post_id, c.like_count));
-                starCountsMap.forEach(c => metricsMap.set(c.post_id, c.star_count));
-                repostCountsMap.forEach(c => metricsMap.set(c.post_id, c.repost_count));
+                metricsData.forEach(c => {
+                    replyCountsMap.set(c.post_id, c.reply_count);
+                    likeCountsMap.set(c.post_id, c.like_count);
+                    starCountsMap.set(c.post_id, c.star_count);
+                    repostCountsMap.set(c.post_id, c.repost_count);
+                });
 
                 if (mainPost.reply_to_post) {
                     mainPost.reply_to_post.like = likeCountsMap.get(mainPost.reply_to_post.id) || 0;
