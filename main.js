@@ -1451,7 +1451,21 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function showSearchResults(query) {
-        DOM.pageHeader.innerHTML = `<h2 id="page-title">検索結果: "${escapeHTML(query)}"</h2>`;
+        DOM.pageHeader.innerHTML = `
+            <div class="header-search-bar">
+                ${ICONS.explore}
+                <input type="search" id="search-input" placeholder="検索">
+            </div>
+            <br>
+            <h2 id="page-title">検索結果: "${escapeHTML(query)}"</h2>
+        `;
+        const searchInput = document.getElementById('search-input');
+        const performSearch = () => {
+            const query = searchInput.value.trim();
+            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+        };
+        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        
         showScreen('search-results-screen');
         const contentDiv = DOM.searchResultsContent;
         contentDiv.innerHTML = '';
@@ -1462,7 +1476,22 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.appendChild(postResultsContainer);
 
         userResultsContainer.innerHTML = '<div class="spinner"></div>';
-        const { data: users, error: userError } = await supabase.from('user').select('id, name, scid, me, icon_data').or(`name.ilike.%${query}%,scid.ilike.%${query}%,me.ilike.%${query}%`).order('id', { ascending: true }).limit(10);
+        // 検索フィルターのベース
+        const filters = [
+            `name.ilike.%${query}%`,
+            `scid.ilike.%${query}%`,
+            `me.ilike.%${query}%`
+        ];
+        // query が数値の場合のみ id 条件を追加
+        if (!isNaN(Number(query))) {
+            filters.unshift(`id.eq.${query}`);
+        }
+        const { data: users, error: userError } = await supabase
+            .from('user')
+            .select('id, name, scid, me, icon_data')
+            .or(filters.join(','))
+            .order('id', { ascending: true })
+            .limit(10);
         if (userError) console.error("ユーザー検索エラー:", userError);
         userResultsContainer.innerHTML = `<h3 style="padding:1rem;">ユーザー (${users?.length || 0}件)</h3>`;
         if (users && users.length > 0) {
