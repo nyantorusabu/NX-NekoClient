@@ -1810,7 +1810,6 @@ window.addEventListener('DOMContentLoaded', () => {
             let isLoadingReplies = false;
 
             const loadMoreReplies = async () => {
-                await metricsPromise;
                 if (isLoadingReplies || !pagination.hasMore) return;
                 isLoadingReplies = true;
                 trigger.innerHTML = '<div class="spinner"></div>';
@@ -1822,11 +1821,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 for (const reply of repliesToRender) {
                     const postForRender = { 
-                        ...reply, 
-                        like: likeCountsMap.get(reply.id) || 0, 
-                        star: starCountsMap.get(reply.id) || 0,
-                        repost_count: repostCountsMap.get(reply.id) || 0
+                        ...reply,
                     };
+
+                    const reply_metrics_promise = (async () => {
+                        await metricsPromise;
+                        postForRender.like = likeCountsMap.get(reply.id) || 0;
+                        postForRender.star = starCountsMap.get(reply.id) || 0;
+                        postForRender.repost_count = repostCountsMap.get(reply.id) || 0;
+                    })();
                     
                     // [修正点] replyオブジェクトの平坦化されたプロパティから、authorオブジェクトを再構築する
                     const authorForRender = {
@@ -1849,7 +1852,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     const postEl = await renderPost(postForRender, authorForRender, { 
                         userCache: allUsersCache, 
                         replyCountsMap: replyCountsMap,
-                        isDirectReply: isDirectReply // フラグを追加
+                        isDirectReply: isDirectReply, // フラグを追加
+                        metricsPromise: reply_metrics_promise,
                     });
                     
                     if (postEl) {
