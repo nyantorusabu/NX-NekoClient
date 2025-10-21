@@ -1005,7 +1005,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         await ensureMentionedUsersCached([post.content]);
-        const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map() } = options;
+        const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map(), metricsPromise } = options;
 
         if (!post) return null;
         
@@ -1050,7 +1050,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // リポスト元が存在する場合、オリジナルポストを再帰的に描画
-            const postEl = await renderPost(originalPost, originalPost.author, { ...options, isNested: false });
+            const postEl = await renderPost(originalPost, originalPost.author, { ...options, isNested: false, metricsPromise });
             if (!postEl) return null;
 
             postEl.dataset.postId = post.id;
@@ -1289,31 +1289,42 @@ window.addEventListener('DOMContentLoaded', () => {
             
             // アクション対象が存在しない(削除済み)場合は、ボタンを描画しない
             if (actionTargetPost) {
-                const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
-                const likeCount = actionTargetPost.like || 0;
-                const starCount = actionTargetPost.star || 0;
-                const repostCount = actionTargetPost.repost_count || 0;
                 
                 const replyBtn = document.createElement('button');
                 replyBtn.className = 'reply-button';
                 replyBtn.dataset.username = escapeHTML(actionTargetPost.user?.name || author.name);
-                replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
+                replyBtn.innerHTML = `${ICONS.reply} <span>---</span>`;
                 actionsDiv.appendChild(replyBtn);
 
                 const likeBtn = document.createElement('button');
                 likeBtn.className = `like-button ${currentUser.like?.includes(actionTargetPost.id) ? 'liked' : ''}`;
-                likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
+                likeBtn.innerHTML = `${ICONS.likes} <span>---</span>`;
                 actionsDiv.appendChild(likeBtn);
                 
                 const starBtn = document.createElement('button');
                 starBtn.className = `star-button ${currentUser.star?.includes(actionTargetPost.id) ? 'starred' : ''}`;
-                starBtn.innerHTML = `${ICONS.stars} <span>${starCount}</span>`;
+                starBtn.innerHTML = `${ICONS.stars} <span>---</span>`;
                 actionsDiv.appendChild(starBtn);
                 
                 const repostBtn = document.createElement('button');
                 repostBtn.className = 'repost-button';
-                repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount}</span>`;
+                repostBtn.innerHTML = `${ICONS.repost} <span>---</span>`;
                 actionsDiv.appendChild(repostBtn);
+
+                (async () => { // 遅延読み込みロジック
+                    console.log("Resolved!")
+                    await metricsPromise;
+
+                    const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
+                    const likeCount = actionTargetPost.like || 0;
+                    const starCount = actionTargetPost.star || 0;
+                    const repostCount = actionTargetPost.repost_count || 0;
+
+                    replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
+                    likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
+                    starBtn.innerHTML = `${ICONS.stars} <span>${starCount}</span>`;
+                    repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount}</span>`;
+                })();
             }
             
             postMain.appendChild(actionsDiv);
@@ -1693,16 +1704,37 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const postIdsArray = Array.from(allPostIdsOnPage);
 
-            // 4大Get関数を1つにまとめたRPCを使用
-            const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
+            const replyCountsMap = new Map();
+            const likeCountsMap = new Map();
+            const starCountsMap = new Map();
+            const repostCountsMap = new Map();
 
-            const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+            const metricsPromise = (async () => {
+                // 4大Get関数を1つにまとめたRPCを使用
+                const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
 
-            // 集計値を個別Mapに展開する場合（従来互換用）
-            const replyCountsMap = new Map(metricsData.map(c => [c.post_id, c.reply_count]));
-            const likeCountsMap = new Map(metricsData.map(c => [c.post_id, c.like_count]));
-            const starCountsMap = new Map(metricsData.map(c => [c.post_id, c.star_count]));
-            const repostCountsMap = new Map(metricsData.map(c => [c.post_id, c.repost_count]));
+                const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+
+                // 集計値を個別Mapに展開する場合（従来互換用）
+                metricsData.forEach(c => metricsMap.set(c.post_id, c.reply_count));
+                likeCountsMap.forEach(c => metricsMap.set(c.post_id, c.like_count));
+                starCountsMap.forEach(c => metricsMap.set(c.post_id, c.star_count));
+                repostCountsMap.forEach(c => metricsMap.set(c.post_id, c.repost_count));
+
+                if (mainPost.reply_to_post) {
+                    mainPost.reply_to_post.like = likeCountsMap.get(mainPost.reply_to_post.id) || 0;
+                    mainPost.reply_to_post.star = starCountsMap.get(mainPost.reply_to_post.id) || 0;
+                    mainPost.reply_to_post.repost_count = repostCountsMap.get(mainPost.reply_to_post.id) || 0;
+                }
+                if (mainPost.reposted_post) {
+                    mainPost.reposted_post.like = likeCountsMap.get(mainPost.reposted_post.id) || 0;
+                    mainPost.reposted_post.star = starCountsMap.get(mainPost.reposted_post.id) || 0;
+                    mainPost.reposted_post.repost_count = repostCountsMap.get(mainPost.reposted_post.id) || 0;
+                }
+                mainPost.like = likeCountsMap.get(mainPost.id) || 0;
+                mainPost.star = starCountsMap.get(mainPost.id) || 0;
+                mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
+            })();
 
             // メンション収集
             const allMentionedIds = new Set();
@@ -1726,10 +1758,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
             // [修正点] 新しいデータ構造に合わせて、描画する全てのポストにカウントをマージ
             if (mainPost.reply_to_post) {
-                mainPost.reply_to_post.like = likeCountsMap.get(mainPost.reply_to_post.id) || 0;
-                mainPost.reply_to_post.star = starCountsMap.get(mainPost.reply_to_post.id) || 0;
-                mainPost.reply_to_post.repost_count = repostCountsMap.get(mainPost.reply_to_post.id) || 0;
-                const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
+                const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap, metricsPromise: metricsPromise });
                 if (parentPostEl) {
                     const parentContainer = document.createElement('div');
                     parentContainer.className = 'parent-post-container';
@@ -1737,16 +1766,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     contentDiv.appendChild(parentContainer);
                 }
             }
-            if(mainPost.reposted_post) {
-                mainPost.reposted_post.like = likeCountsMap.get(mainPost.reposted_post.id) || 0;
-                mainPost.reposted_post.star = starCountsMap.get(mainPost.reposted_post.id) || 0;
-                mainPost.reposted_post.repost_count = repostCountsMap.get(mainPost.reposted_post.id) || 0;
-            }
     
-            mainPost.like = likeCountsMap.get(mainPost.id) || 0;
-            mainPost.star = starCountsMap.get(mainPost.id) || 0;
-            mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
-            const mainPostEl = await renderPost(mainPost, mainPost.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap });
+            const mainPostEl = await renderPost(mainPost, mainPost.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap, metricsPromise: metricsPromise });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
     
             const repliesHeader = document.createElement('h3');
@@ -1790,6 +1811,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let isLoadingReplies = false;
 
             const loadMoreReplies = async () => {
+                await metricsPromise;
                 if (isLoadingReplies || !pagination.hasMore) return;
                 isLoadingReplies = true;
                 trigger.innerHTML = '<div class="spinner"></div>';
@@ -2649,33 +2671,36 @@ window.addEventListener('DOMContentLoaded', () => {
                         .map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id)
                         .filter(id => id);
                 
-                    // RPCで一括取得
-                    const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
-                    const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
-                
                     // TL表示用 Map を作成（post ID → reply_count）
                     const replyCountsMap = new Map();
-                    for (const post of posts) {
-                        const targetId = post.repost_to && !post.content && post.reposted_post
-                            ? post.reposted_post.id
-                            : post.id;
-                        const metrics = metricsMap.get(targetId) || {};
-                        replyCountsMap.set(post.id, metrics.reply_count || 0);
-                
-                        // like/star/repost は元投稿にセット
-                        const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
-                            ? post.reposted_post
-                            : post;
-                        if (targetPostForCounts) {
-                            targetPostForCounts.like = metrics.like_count || 0;
-                            targetPostForCounts.star = metrics.star_count || 0;
-                            targetPostForCounts.repost_count = metrics.repost_count || 0;
+
+                    const metricsPromise = (async () => {
+                        // RPCで一括取得
+                        const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
+                        const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+                        
+                        for (const post of posts) {
+                            const targetId = post.repost_to && !post.content && post.reposted_post
+                                ? post.reposted_post.id
+                                : post.id;
+                            const metrics = metricsMap.get(targetId) || {};
+                            replyCountsMap.set(post.id, metrics.reply_count || 0);
+                    
+                            // like/star/repost は元投稿にセット
+                            const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
+                                ? post.reposted_post
+                                : post;
+                            if (targetPostForCounts) {
+                                targetPostForCounts.like = metrics.like_count || 0;
+                                targetPostForCounts.star = metrics.star_count || 0;
+                                targetPostForCounts.repost_count = metrics.repost_count || 0;
+                            }
                         }
-                    }
+                    })();
                 
                     // 投稿レンダリング（replyCountsMapを正しく渡す）
                     for (const post of posts) {
-                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache });
+                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache, metricsPromise });
                         if (postEl) currentTrigger.before(postEl);
                     }
                 }
