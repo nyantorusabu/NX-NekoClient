@@ -663,12 +663,15 @@ window.addEventListener('DOMContentLoaded', () => {
             replyInfoDiv.classList.remove('hidden');
         }
 
-        // [修正点] 引用ポストの処理を追加
         if (quotingPost) {
+            // 引用返信の注意文
+            const QuoterepryInfoDiv = modalContainer.querySelector('#reply-info');
+            QuoterepryInfoDiv.innerHTML = `<span>注意: 引用を返信代わりに使用する行為は推奨されていません。</span>`;
+            QuoterepryInfoDiv.classList.remove('hidden');
+            // 引用先のプレビュー
             const previewContainer = modalContainer.querySelector('#quoting-preview-container');
             const nestedPost = document.createElement('div');
             nestedPost.className = 'nested-repost-container';
-            // 簡易的なプレビューを表示
             nestedPost.innerHTML = `<div class="post-header"><img src="${getUserIconUrl(quotingPost.user)}" class="user-icon" style="width:24px;height:24px;"> <span class="post-author">${escapeHTML(quotingPost.user.name)}</span></div><div class="post-content">${escapeHTML(quotingPost.content)}</div>`;
             previewContainer.appendChild(nestedPost);
         }
