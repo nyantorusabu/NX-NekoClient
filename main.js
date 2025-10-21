@@ -1712,8 +1712,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 // 4大Get関数を1つにまとめたRPCを使用
                 const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
 
-                const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
-
                 // 集計値を個別Mapに展開する場合（従来互換用）
                 metricsData.forEach(c => {
                     replyCountsMap.set(c.post_id, c.reply_count);
