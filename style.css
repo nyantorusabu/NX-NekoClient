@@ -1055,7 +1055,6 @@ input, textarea {
     justify-content: center;
     align-items: flex-start;
     z-index: 1001;
-    padding-top: 5vh;
 }
 
 .modal-content {
