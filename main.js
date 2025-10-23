@@ -242,7 +242,7 @@ window.addEventListener('DOMContentLoaded', () => {
             });
 
             // 3. ハッシュタグとメンションを置換
-            const hashtagRegex = /#(\S+)/g;
+            const hashtagRegex = /#([a-zA-Z0-9\u3040-\u30FF\u4E00-\u9FFF_!?.-]+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
             });
