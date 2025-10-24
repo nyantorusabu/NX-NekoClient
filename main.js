@@ -17,6 +17,8 @@ window.addEventListener('DOMContentLoaded', () => {
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
 
+    const contributors = fetch("/contributors.json").then(res => res.json());
+
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
@@ -1163,6 +1165,12 @@ window.addEventListener('DOMContentLoaded', () => {
             adminBadge.className = 'admin-badge';
             adminBadge.title = 'NyaXTeam';
             authorLink.appendChild(adminBadge);
+        } else if ((await contributors).includes(displayAuthor.id)) {
+            const contributorBadge = document.createElement('img');
+            contributorBadge.src = 'icons/contributor.png';
+            contributorBadge.className = 'contributor-badge';
+            contributorBadge.title = 'コントリビューター';
+            authorLink.appendChild(contributorBadge);
         } else if (displayAuthor.verify) {
             const verifyBadge = document.createElement('img');
             verifyBadge.src = 'icons/verify.png';
@@ -2216,7 +2224,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="profile-info">
                     <h2>
                         ${escapeHTML(user.name)}
-                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')}
+                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="コントリビューター">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(@${user.scid})` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
@@ -2754,6 +2762,8 @@ window.addEventListener('DOMContentLoaded', () => {
         trigger.className = 'load-more-trigger';
         container.appendChild(trigger);
 
+        const _contributors = await contributors;
+
         const renderUserCard = (u) => {
             const userCard = document.createElement('div');
             userCard.className = 'profile-card widget-item';
@@ -2765,7 +2775,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const badgeHTML = u.admin 
                 ? ` <img src="icons/admin.png" class="admin-badge" title="NyaXTeam">`
-                : (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '');
+                : (_contributors.includes(u.id)
+                    ? ` <img src="icons/contributor.png" class="contributor-badge" title="コントリビューター">`
+                    :  (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')
+                );
 
             userLink.innerHTML = `
                 <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">

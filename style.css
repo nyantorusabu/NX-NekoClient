@@ -546,7 +546,8 @@ input, textarea {
 }
 
 .admin-badge,
-.verify-badge {
+.verify-badge,
+.contributor-badge {
     width: 1.2em;
     height: 1.2em;
     vertical-align: text-bottom;
