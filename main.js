@@ -2707,7 +2707,22 @@ window.addEventListener('DOMContentLoaded', () => {
                                 targetPostForCounts.repost_count = metrics.repost_count || 0;
                             }
                         }
-                    })();
+                    })().catch(error => { // 読み込み失敗時のフォールバック、メトリクス欄は「?」と表示される
+                        console.error("ポストメトリクスの読み込みに失敗:", error);
+
+                        for (const post of posts) {
+                            replyCountsMap.set(post.id, "?");
+                    
+                            const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
+                                ? post.reposted_post
+                                : post;
+                            if (targetPostForCounts) {
+                                targetPostForCounts.like = "?";
+                                targetPostForCounts.star = "?";
+                                targetPostForCounts.repost_count = "?";
+                            }
+                        }
+                    });
                 
                     // 投稿レンダリング（replyCountsMapを正しく渡す）
                     for (const post of posts) {
