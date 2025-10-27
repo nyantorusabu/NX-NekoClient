@@ -315,6 +315,8 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
         isLoadingMore = false;
 
+        if (currentDmChannel) supabase.removeChannel(currentDmChannel);
+
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
         if (existingSubTabs) {
             existingSubTabs.remove();
