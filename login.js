@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const authStep1 = document.getElementById('auth-step1');
     const authStep2 = document.getElementById('auth-step2');
+    const profileLink = document.getElementById('pflink');
     const usernameInput = document.getElementById('username-input');
     const getCodeBtn = document.getElementById('get-code-btn');
     const verificationCodeElem = document.getElementById('verification-code');
@@ -34,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // ★★★ ここを修正 ★★★
                 body: JSON.stringify({ 
                     type: 'generateCode',
                     username: scratchUsername // SCIDを送信する
@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || data.error) throw new Error(data.error || 'コードの生成に失敗しました。');
 
             verificationCodeElem.textContent = data.code;
+            profileLink.href = `https://scratch.mit.edu/users/${scratchUsername}/#comments`;
             authStep1.classList.add('hidden');
             authStep2.classList.remove('hidden');
 

@@ -57,14 +57,12 @@ window.addEventListener('DOMContentLoaded', () => {
         createDmModalContent: document.getElementById('create-dm-modal-content'),
         dmManageModal: document.getElementById('dm-manage-modal'),
         dmManageModalContent: document.getElementById('dm-manage-modal-content'),
-        // ▼▼▼ この2行を追加 ▼▼▼
         editDmMessageModal: document.getElementById('edit-dm-message-modal'),
         editDmMessageModalContent: document.getElementById('edit-dm-message-modal-content'),
-        // ▲▲▲ 追加ここまで ▲▲▲
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
-        friezeOverlay: document.getElementById('frieze-overlay'), // ★★★ この行を追加
-        friezeReason: document.getElementById('frieze-reason'), // ★★★ この行を追加
+        friezeOverlay: document.getElementById('frieze-overlay'),
+        friezeReason: document.getElementById('frieze-reason'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -317,6 +315,8 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
         isLoadingMore = false;
 
+        if (currentDmChannel) supabase.removeChannel(currentDmChannel);
+
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
         if (existingSubTabs) {
             existingSubTabs.remove();
@@ -340,9 +340,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 await showProfileScreen(userId, subpage);
             }
             else if (hash.startsWith('#search/')) await showSearchResults(decodeURIComponent(hash.substring(8)));
-            // ★★★ この行を新規追加 ★★★
             else if (hash === '#admin/logs' && currentUser?.admin) await showAdminLogsScreen();
-            // ★★★ ここまで ★★★
             else if (hash.startsWith('#dm/')) await showDmScreen(hash.substring(4));
             else if (hash === '#dm') await showDmScreen();
             else if (hash === '#settings' && currentUser) await showSettingsScreen();
@@ -436,7 +434,6 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 isActive = hash.startsWith(item.hash);
             }
-            // ▼▼▼ このreturn文を、新しいHTML構造に差し替え ▼▼▼
             return `
                 <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}">
                     <div class="nav-item-icon-container">
@@ -445,21 +442,16 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <span class="nav-item-text">${item.name}</span>
                 </a>`;
-            // ▲▲▲ HTML構造は前回と同じですが、CSSとの連携で重要なので再確認 ▲▲▲
         }).join('');
-        // ▼▼▼ この行を修正 ▼▼▼
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span class="nav-item-text">ポスト</span><span class="nav-item-icon">${ICONS.send}</span></button>`;
-        // ▲▲▲ 修正ここまで ▲▲▲
         // 未ログイン時は何も表示せず、ログインしている場合のみアカウントボタンを表示する
         DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : '';
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
-        // ▼▼▼ [修正点2] preventDefaultを削除し、通常のhashchangeをトリガーさせる ▼▼▼
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
             link.onclick = (e) => {
                 // hashchangeイベントに任せるため、preventDefaultはしない
             };
         });
-        // ▲▲▲ [修正点2] ここまで ▼▼▼
         // ログアウトボタン（account-button）が存在する場合のみイベントリスナーを設定
         DOM.navMenuBottom.querySelector('#account-button')?.addEventListener('click', openAccountSwitcherModal);
         DOM.navMenuTop.querySelector('.nav-item-post')?.addEventListener('click', () => openPostModal());
@@ -493,7 +485,6 @@ window.addEventListener('DOMContentLoaded', () => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
-            // ▼▼▼ ここから追加 ▼▼▼
             const accounts = JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
             while (accounts.length) {
                 const { data: { session: _sess }, error: _sess_err } = await supabase.auth.setSession(accounts[0].token);
@@ -505,7 +496,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     return checkSession(); // 直前にセッションの確認をしたため無限ループの可能性は低い
                 }
             }
-            // ▲▲▲ ここまで追加 ▲▲▲
             currentUser = null;
             router();
             return;
@@ -654,7 +644,6 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return goToLoginPage();
         DOM.postModal.classList.remove('hidden');
         const modalContainer = DOM.postModal.querySelector('.post-form-container-modal');
-        // [修正点] 引用ポストのプレビューコンテナを追加
         modalContainer.innerHTML = createPostFormHTML() + `<div id="quoting-preview-container"></div>`;
         attachPostFormListeners(modalContainer);
 
@@ -684,7 +673,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function closePostModal() {
         DOM.postModal.classList.add('hidden');
         replyingTo = null;
-        quotingPost = null; // ★★★ この行を追加 ★★★
+        quotingPost = null;
         selectedFiles = [];
     }
     const handleCtrlEnter = (e) => {
@@ -714,7 +703,6 @@ window.addEventListener('DOMContentLoaded', () => {
         menu.appendChild(simpleRepostBtn);
         menu.appendChild(quotePostBtn);
 
-        // [修正点] 引数で渡されたボタンを直接使用する
         const button = triggerButton;
         if(button) {
             document.body.appendChild(menu);
@@ -743,7 +731,6 @@ window.addEventListener('DOMContentLoaded', () => {
         
             if (fetchError) throw fetchError;
 
-            // ★★★ 変更点: 直接のinsertをrpc呼び出しに変更 ★★★
             // content, reply_id, attachments は null を指定
             const { error: rpcError } = await supabase.rpc('create_post', {
                 p_content: null,
@@ -756,7 +743,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 // SQL関数からのエラーメッセージ（連投制限など）をユーザーに表示
                 throw rpcError;
             }
-            // ★★★ 変更点ここまで ★★★
 
             // 通知を送信
             sendNotification(
@@ -926,7 +912,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (e) {
-            // 4. ★★★ エラー発生時のファイル自動削除 ★★★
             console.error("ポスト送信に失敗しました:", e);
             if (uploadedFileIds.length > 0) {
                 console.warn("投稿に失敗したため、アップロード済みファイルを削除します:", uploadedFileIds);
@@ -1249,7 +1234,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     audio.onclick = (e) => { e.stopPropagation(); };
                     itemDiv.appendChild(audio);
                 } else {
-                    // ★★★ 修正点: download属性に頼らず、handleDownload関数を呼び出す ★★★
                     const downloadLink = document.createElement('a');
                     downloadLink.href = '#'; // ページ遷移を防ぐ
                     downloadLink.className = 'attachment-download-link';
@@ -1581,7 +1565,6 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         
         try {
-            // [修正点] バックグラウンドでの未読数クリア処理を復活
             if (currentUser.notice_count > 0) {
                 const previousCount = currentUser.notice_count;
                 currentUser.notice_count = 0; // UIを即時更新
@@ -1684,7 +1667,6 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = '<div class="spinner"></div>';
 
         try {
-            // [修正点] まず、開こうとしているポストがシンプルリポストか判定する（このロジックは変更なし）
             const { data: gatePost, error: gateError } = await supabase
                 .from('post')
                 .select('content, repost_to')
@@ -1698,7 +1680,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // [最重要修正点] 新しいSQL関数で、全ての関連データを一括取得する
             const { data: mainPost, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId] }).single();
             if (postError || !mainPost) throw postError || new Error('ポストの取得に失敗しました。');
             
@@ -1763,7 +1744,6 @@ window.addEventListener('DOMContentLoaded', () => {
             
             contentDiv.innerHTML = '';
     
-            // [修正点] 新しいデータ構造に合わせて、描画する全てのポストにカウントをマージ
             if (mainPost.reply_to_post) {
                 const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap, metricsPromise: metricsPromise });
                 if (parentPostEl) {
@@ -1782,7 +1762,6 @@ window.addEventListener('DOMContentLoaded', () => {
             repliesHeader.style.cssText = 'padding: 1rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); margin-top: 1rem; margin-bottom: 0; font-size: 1.2rem;';
             contentDiv.appendChild(repliesHeader);
 
-            // [最重要修正点] 返信リストの順序を再構築する
             const repliesByParentId = new Map();
             allRepliesRaw.forEach(reply => {
                 const parentId = reply.reply_id;
@@ -1824,7 +1803,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 const from = pagination.page * REPLIES_PER_PAGE;
                 const to = from + REPLIES_PER_PAGE;
-                // [修正点] 新しく生成した正しい順序のリストからデータを取得
                 const repliesToRender = flatReplyList.slice(from, to);
 
                 for (const reply of repliesToRender) {
@@ -1839,7 +1817,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         postForRender.repost_count = repostCountsMap.get(reply.id) || 0;
                     })();
                     
-                    // [修正点] replyオブジェクトの平坦化されたプロパティから、authorオブジェクトを再構築する
                     const authorForRender = {
                         id: reply.author_id,
                         name: reply.author_name,
@@ -2076,7 +2053,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                     }
                     
-                    // [修正点] どのファイルタイプでも必ずプレビュー要素を追加する
                     previewContainer.appendChild(previewItem);
                 });
             };
@@ -2272,7 +2248,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 { key: 'stars', name: 'お気に入り' },
             ];
 
-            // [修正点] ボタン生成時にクラスを付与するよう変更
             profileTabs.innerHTML = mainTabs.map(tab => 
                 `<button class="tab-button ${tab.className || ''} ${tab.key === subpage ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
             ).join('');
@@ -2303,7 +2278,6 @@ window.addEventListener('DOMContentLoaded', () => {
         profileHeader.classList.toggle('hidden', isFollowListActive);
         profileTabs.classList.toggle('hidden', isFollowListActive);
         
-        // [修正点] サブタイトルの更新ロジックを修正
         const pageTitleMain = document.getElementById('page-title-main');
         const pageTitleSub = document.getElementById('page-title-sub');
         pageTitleMain.textContent = user.name;
@@ -2327,7 +2301,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     <button class="tab-button ${subpage === 'followers' ? 'active' : ''}" data-sub-tab="followers">フォロワー</button>
                 </div>`;
             
-            // [修正点] ヘッダーの後に挿入し、JSでtop位置を動的に設定
             DOM.pageHeader.parentNode.insertBefore(subTabsContainer, DOM.pageHeader.nextSibling);
             const headerHeight = DOM.pageHeader.offsetHeight;
             subTabsContainer.style.top = `${headerHeight}px`;
@@ -2345,11 +2318,9 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    // [修正点] optionsにidsではなくuserIdを渡す
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' });
                     break;
                 case 'replies':
-                    // [修正点] optionsにidsではなくuserIdを渡す
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'replies_only' });
                     break;
                 case 'likes': 
@@ -2433,18 +2404,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // 管理者の場合「アクセスログ」ボタンを追加
         if (currentUser.admin) {
-            // ★★★ ここを修正 ★★★
-            // <a>タグに、ログアウトボタンと同じID/クラスを適用してスタイルを統一
             dangerZoneHTML += `
                 <a href="#admin/logs" id="settings-showlog-btn">
                     アクセスログ
                 </a>
             `;
-            // ★★★ ここまで ★★★
         }
         dangerZone.innerHTML = dangerZoneHTML;
         
-        // (以降のロジックは変更なし)
         const iconInput = document.getElementById('setting-icon-input');
         const iconPreview = document.getElementById('setting-icon-preview');
         
@@ -2600,11 +2567,12 @@ window.addEventListener('DOMContentLoaded', () => {
             isLoadingMore = true;
             currentTrigger.innerHTML = '<div class="spinner"></div>';
 
+            let posterror = null;
+            
             try {
                 let posts = [];
                 let hasMoreItems = true;
 
-                // [最重要修正点] 2つの異なるページネーション方式を明確に分離
                 if ((type === 'timeline' && options.tab === 'foryou') || type === 'search') {
                     // --- ケースA: SQL関数側でページネーションを行う ---
                     const rpcName = type === 'search' ? 'search_posts' : 'get_recommended_posts';
@@ -2629,7 +2597,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     let idQuery;
 
                     if (type === 'timeline') {
-                        // [修正点] 'all'タブと'following'タブのロジックをここに集約
                         idQuery = supabase.from('post_recent').select('id').is('reply_id', null);
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
@@ -2735,25 +2702,28 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentPagination.hasMore = hasMoreItems;
 
 
-
             } catch (error) {
+                posterror = error;
                 console.error("ポストの読み込みに失敗:", error);
-                if (currentTrigger) currentTrigger.innerHTML = 'ポストの読み込みに失敗しました。';
+                currentTrigger.innerText = 'ポストの読み込みに失敗しました。';
+                console.log(currentTrigger);
                 currentPagination.hasMore = false;
                 if (localPostLoadObserver) localPostLoadObserver.disconnect();
             } finally {
                 isLoadingMore = false;
                 const finalTrigger = container.querySelector('.load-more-trigger');
                 if (!finalTrigger) return;
-                
-                const emptyMessages = { timeline: 'まだポストがありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。' };
-                const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
 
-                if (!currentPagination.hasMore) {
-                    finalTrigger.innerHTML = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
-                    if (localPostLoadObserver) localPostLoadObserver.disconnect();
-                } else if (finalTrigger.innerHTML.includes('spinner')) {
-                    finalTrigger.innerHTML = '';
+                if(!posterror) {
+                    const emptyMessages = { timeline: 'まだポストがありません。', profile_posts: 'このユーザーはまだポストしていません。', replies: 'まだ返信はありません。', search: '該当するポストはありません。', likes: 'いいねしたポストはありません。', stars: 'お気に入りに登録したポストはありません。' };
+                    const emptyMessageKey = options.subType === 'replies_only' ? 'replies' : type;
+    
+                    if (!currentPagination.hasMore) {
+                        finalTrigger.innerText = container.querySelectorAll('.post').length === 0 ? emptyMessages[emptyMessageKey] || '' : 'すべてのポストを読み込みました';
+                        if (localPostLoadObserver) localPostLoadObserver.disconnect();
+                    } else if (finalTrigger.innerHTML.includes('spinner')) {
+                        finalTrigger.innerHTML = '';
+                    }
                 }
             }
         };
@@ -2828,7 +2798,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     error = result.error;
                 }
             } else if (type === 'followers') {
-                // [修正点] フォロワー取得処理を、RPC (SQL関数呼び出し) に戻す
                 const result = await supabase
                     .rpc('get_followers', { target_user_id: options.userId })
                     .range(from, to);
@@ -2998,7 +2967,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 const fileId = await uploadFileViaEdgeFunction(new File([blob], 'icon.png', { type: blob.type }));
                 updatedData.icon_data = fileId;
             } else if (currentUser.icon_data && currentUser.icon_data.startsWith('data:image')) {
-                // ★自動移行処理★: 古いData URL形式のアイコンが設定されており、新しいアイコンが選択されていない場合
                 // Data URLをBlobに変換してアップロード
                 const blob = await (await fetch(currentUser.icon_data)).blob();
                 const fileId = await uploadFileViaEdgeFunction(new File([blob], 'icon.png', { type: blob.type }));
@@ -3043,8 +3011,6 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const { error: deleteError } = await supabase.from('post').delete().eq('id', postId);
             if (deleteError) throw deleteError;
-            
-            // [修正点] userテーブルのpost配列を更新するロジックを完全に削除
 
             router();
         } catch(e) { console.error(e); alert('削除に失敗しました。'); } 
@@ -3341,7 +3307,6 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('メンバーの削除に失敗しました。');
         } else {
             await sendSystemDmMessage(dmId, `@${currentUser.id}さんが@${userIdToRemove}さんを強制退出させました`);
-            // ▼▼▼ この行を修正 ▼▼▼
             sendNotification(userIdToRemove, `@${currentUser.id}さんによってDMから削除されました。`);
             alert('メンバーを削除しました。');
             openDmManageModal(dmId); // モーダルを再描画
@@ -3363,7 +3328,6 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('メンバーの追加に失敗しました。');
         } else {
             await sendSystemDmMessage(dmId, `@${currentUser.id}さんが@${userIdToAdd}さんを招待しました`);
-            // ▼▼▼ この行を修正 ▼▼▼
             sendNotification(userIdToAdd, `@${currentUser.id}さんがあなたをDMに招待しました。`, `#dm/${dmId}`);
             alert('メンバーを追加しました。');
             openDmManageModal(dmId); // モーダルを再描画
@@ -3707,7 +3671,6 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // ▼▼▼ この関数をまるごと追加 ▼▼▼
     window.openCreateDmModal = function() {
         DOM.createDmModalContent.innerHTML = `
             <div style="padding: 1.5rem;">
@@ -3762,7 +3725,6 @@ window.addEventListener('DOMContentLoaded', () => {
             DOM.createDmModal.classList.add('hidden');
         };
     }
-    // ▲▲▲ 追加ここまで ▲▲▲
     
     async function sendDmMessage(dmId, files = []) {
         const input = document.getElementById('dm-message-input');
@@ -3948,7 +3910,6 @@ window.addEventListener('DOMContentLoaded', () => {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post' }, async (payload) => {
                 const mainScreenEl = document.getElementById('main-screen');
                 
-                // [修正点] 投稿者が自分でない、返信でない、かつホーム画面を開いている場合のみ通知する
                 if (currentUser && payload.new.reply_id === null && payload.new.userid !== currentUser.id && mainScreenEl && !mainScreenEl.classList.contains('hidden') && currentUser.follow?.includes(payload.new.userid)) {
                     if (document.querySelector('.new-posts-indicator')) return;
                     
@@ -4037,7 +3998,6 @@ window.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
     
             let menuToToggle;
-            // ▼▼▼ この if-else ブロックを修正 ▼▼▼
             if (menuButton.classList.contains('dm-message-menu-btn')) {
                 menuToToggle = menuButton.closest('.dm-message-container')?.querySelector('.post-menu');
             } else {
@@ -4056,7 +4016,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (!isCurrentlyVisible) {
                     menuToToggle.classList.add('is-visible');
                 }
-                // ▲▲▲ isDmMenuや位置調整のロジックをすべて削除 ▲▲▲
             }
             return; // メニュー開閉処理はここで終了
         }
@@ -4121,15 +4080,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
-
-            // [修正点] 添付ファイルのクリックはrenderPost内で処理されるため、ここからは削除・コメントアウト
-            // const imageAttachment = target.closest('.attachment-item img');
-            // if (imageAttachment) { window.openImageModal(imageAttachment.src); return; }
-            
-            // [修正点] ダウンロードリンクもrenderPost内で処理されるため、ここからは削除・コメントアウト
-            // const downloadLink = target.closest('.attachment-download-link');
-            // if (downloadLink) { e.preventDefault(); window.handleDownload(downloadLink.dataset.url, downloadLink.dataset.name); return; }
-            
             if (!target.closest('a') && !target.closest('.post-menu-btn') && !target.closest('.attachment-item')) {
                 window.location.hash = `#post/${actionTargetPostId}`;
                 return;
@@ -4138,7 +4088,6 @@ window.addEventListener('DOMContentLoaded', () => {
         
         // --- 5. その他のグローバルなクリック処理 ---
 
-        // ▼▼▼ このブロックを新規追加 ▼▼▼
         const notificationItem = target.closest('.notification-item');
         if (notificationItem) {
             const notificationId = notificationItem.dataset.notificationId;
@@ -4147,7 +4096,6 @@ window.addEventListener('DOMContentLoaded', () => {
             // 削除ボタンがクリックされた場合
             if (target.closest('.notification-delete-btn')) {
                 e.stopPropagation();
-                // ▼▼▼ このブロックを修正 ▼▼▼
                 // DB関数を呼び出して通知を削除
                 supabase.rpc('delete_notification', {
                     target_user_id: currentUser.id,
@@ -4162,7 +4110,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         notificationItem.remove();
                     }
                 });
-                // ▲▲▲ 修正ここまで ▲▲▲
                 return;
             }
             
@@ -4187,7 +4134,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        // ▲▲▲ 追加ここまで ▲▲▲
         
         const timelineTab = target.closest('.timeline-tab-button');
         if (timelineTab) { switchTimelineTab(timelineTab.dataset.tab); return; }
