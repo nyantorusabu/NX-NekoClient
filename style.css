@@ -139,11 +139,9 @@ input, textarea {
     background-color: var(--primary-hover-color);
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .nav-item-post .nav-item-icon {
     display: none; /* デフォルトではアイコンを非表示 */
 }
-/* ▲▲▲ 追加ここまで ▲▲▲ */
 
 #nav-menu-bottom {
     padding-bottom: 1rem;
@@ -252,7 +250,6 @@ input, textarea {
     font-size: 1.25rem;
 }
 
-/* ▼▼▼ [修正点2] 検索バーのデザインを修正 ▼▼▼ */
 .header-search-bar {
     display: flex;
     align-items: center;
@@ -330,11 +327,9 @@ input, textarea {
     font-weight: 500;
     position: relative;
     
-    /* ▼▼▼ この3行を追記・変更 ▼▼▼ */
     display: flex;
     justify-content: center;
     align-items: center;
-    /* ▲▲▲ 追記・変更ここまで ▲▲▲ */
 }
 
 .timeline-tab-button:hover {
@@ -1359,9 +1354,13 @@ input, textarea {
     color: white;
     font-weight: 700;
     cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
+#settings-form button[type="submit"]:hover {
+    background-color: var(--primary-hover-color);
+}
+
 .settings-danger-zone {
     margin-top: 2rem;
     padding: 1.5rem 1rem;
@@ -1461,7 +1460,6 @@ input, textarea {
     height: calc(100vh - 57px); /* ヘッダー分を引く */
 }
 
-/* ★★★ DMメッセージのレイアウト問題を解決 ★★★ */
 .dm-conversation-view {
     flex-grow: 1;
     overflow-y: auto;
@@ -1482,12 +1480,10 @@ input, textarea {
     align-self: flex-end;
     position: relative; 
 }
-/* ホバー依存は削除 */
 .dm-message-container.sent .dm-message-menu-btn {
     opacity: 1;
 }
 
-/* ▼▼▼ この2つのブロックを、以下の新しい定義に完全に置き換え ▼▼▼ */
 .dm-message-menu-btn {
     position: absolute;
     top: -28px;
@@ -1566,7 +1562,6 @@ input, textarea {
     color: white;
     border-bottom-right-radius: 4px;
 }
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 .dm-message-container.sent .attachment-download-link {
     color: white;
     font-weight: 500;
@@ -1619,14 +1614,14 @@ input, textarea {
 .dm-form-actions {
     display: flex;
     align-items: center;
-    padding-bottom: 0; /* 修正: 不要なpaddingを削除 */
+    padding-bottom: 0;
 }
 
 .dm-file-preview {
     margin-top: 0.5rem;
     max-height: 110px;
     overflow-y: auto;
-    padding: 0.5rem; /* 追加: ボタンの見切れ防止 */
+    padding: 0.5rem;
 }
 
 .dm-message-form button {
@@ -1800,10 +1795,6 @@ input, textarea {
     white-space: normal;
 }
 
-/*
- * [重要] 垂直マージンの相殺問題を解決する
- * すべての要素で、上のマージンを0にし、下のマージンのみで要素間を制御する
- */
 .post-content > *:first-child, .dm-message > *:first-child {
     margin-top: 0 !important;
 }
