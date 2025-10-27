@@ -74,6 +74,7 @@ h2 {
 
 #auth-step1 button,
 #auth-step2 button {
+	border: none;
     width: 100%;
     color: white;
     background-color: var(--primary-color);
