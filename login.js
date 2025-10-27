@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || data.error) throw new Error(data.error || 'コードの生成に失敗しました。');
 
             verificationCodeElem.textContent = data.code;
-            profileLink.href = `https://scratch.mit.edu/users/${scratchUsername}/`;
+            profileLink.href = `https://scratch.mit.edu/users/${scratchUsername}/#comments`;
             authStep1.classList.add('hidden');
             authStep2.classList.remove('hidden');
 
