@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
 
-    const contributors = fetch("https://corsproxy.io/?url=https://nyax.onrender.com/contributors.json").then(res => res.json());
+    const contributors = fetch("contributors.json").then(res => res.json());
 
     let isLoadingMore = false;
     let postLoadObserver;
