@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
 
-    const contributors = fetch("/contributors.json").then(res => res.json());
+    const contributors = fetch("https://corsproxy.io/?url=https://nyax.onrender.com/contributors.json").then(res => res.json());
 
     let isLoadingMore = false;
     let postLoadObserver;
@@ -47,6 +47,7 @@ window.addEventListener('DOMContentLoaded', () => {
         mainContent: document.getElementById('main-content'),
         navMenuTop: document.getElementById('nav-menu-top'),
         navMenuBottom: document.getElementById('nav-menu-bottom'),
+        navLogo: document.getElementById('nav-logo'),
         pageHeader: document.getElementById('page-header'),
         screens: document.querySelectorAll('.screen'),
         postFormContainer: document.querySelector('.post-form-container'),
@@ -427,6 +428,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 { name: '設定', hash: '#settings', icon: ICONS.settings }
             );
         }
+
+        DOM.navLogo.innerHTML = '<img src="./logo.png" class="nav-logo-img">'
+
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
             let isActive = false;
             if (item.hash === '#') {
