@@ -1258,6 +1258,16 @@ input, textarea {
     display: flex;
 }
 
+.scidlink {
+    color: var(--secondary-text-color);
+    border: none;
+    text-decoration: none;
+}
+
+.scidlink:hover {
+    border-bottom: 1px black solid;
+}
+
 .media-grid-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr); /* 3カラム表示 */
