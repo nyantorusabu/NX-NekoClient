@@ -429,7 +429,10 @@ window.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        DOM.navLogo.innerHTML = '<img src="./logo.png" class="nav-logo-img">'
+        
+        if (window.matchMedia('(min-width:768px)').matches) {
+            DOM.navLogo.innerHTML = '<img src="./logo.png" class="nav-logo-img">'
+        }
 
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
             let isActive = false;
