@@ -52,9 +52,10 @@ input, textarea {
     display: flex;
     margin-bottom: 0px;
 }
-
-.nav-logo-img {
-    width: 1.8rem;
+@media (min-width: 768px) {
+    .nav-logo-img {
+        width: 1.8rem;
+    }
 }
 
 #nav-menu-top {
