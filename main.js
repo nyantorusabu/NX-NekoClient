@@ -1161,7 +1161,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const contributorBadge = document.createElement('img');
             contributorBadge.src = 'icons/contributor.png';
             contributorBadge.className = 'contributor-badge';
-            contributorBadge.title = 'コントリビューター';
+            contributorBadge.title = '開発協力者';
             authorLink.appendChild(contributorBadge);
         } else if (displayAuthor.verify) {
             const verifyBadge = document.createElement('img');
@@ -2207,7 +2207,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="profile-info">
                     <h2>
                         ${escapeHTML(user.name)}
-                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="コントリビューター">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
+                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
@@ -2768,7 +2768,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const badgeHTML = u.admin 
                 ? ` <img src="icons/admin.png" class="admin-badge" title="NyaXTeam">`
                 : (_contributors.includes(u.id)
-                    ? ` <img src="icons/contributor.png" class="contributor-badge" title="コントリビューター">`
+                    ? ` <img src="icons/contributor.png" class="contributor-badge" title="開発協力者">`
                     :  (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')
                 );
 
