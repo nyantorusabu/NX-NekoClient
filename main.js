@@ -1586,26 +1586,15 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
             }
 
-            const allMentionedIds = new Set();
-            (currentUser.notice || []).forEach(n => {
-                const message = typeof n === 'object' ? n.message : n;
-                const mentionRegex = /@(\d+)/g;
-                let match;
-                while ((match = mentionRegex.exec(message)) !== null) {
-                    allMentionedIds.add(parseInt(match[1]));
-                }
-            });
-            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
-            if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
-                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
-            }
-
             contentDiv.innerHTML = '';
             if (currentUser.notice?.length) {
                 const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
                 if (error) throw error;
                 currentUser.notice = latestUser.notice;
+
+            await ensureMentionedUsersCached(
+                (currentUser.notice || []).map(n => typeof n === 'object' ? n.message : n)
+            );
 
                 currentUser.notice.forEach(n_obj => {
                     const isObject = typeof n_obj === 'object' && n_obj !== null;
@@ -1724,24 +1713,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 mainPost.star = starCountsMap.get(mainPost.id) || 0;
                 mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
             })();
-
-            // メンション収集
-            const allMentionedIds = new Set();
-            const mentionRegex = /@(\d+)/g;
-            const collectMentions = (text) => {
-                if (!text) return;
-                const matches = text.matchAll(mentionRegex);
-                for (const match of matches) allMentionedIds.add(parseInt(match[1]));
-            };
-            collectMentions(mainPost.content);
-            if(mainPost.reply_to) collectMentions(mainPost.reply_to.content);
-            allRepliesRaw.forEach(reply => collectMentions(reply.content));
-            
-            const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
-            if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
-                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
-            }
             
             contentDiv.innerHTML = '';
     
