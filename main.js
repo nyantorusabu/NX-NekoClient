@@ -317,10 +317,14 @@ window.addEventListener('DOMContentLoaded', () => {
         if (single) { ids = [id]; } else { ids = id; };
         const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
         if (error || !trustData) return ICONS.trust;
-        const trl = trustData.find(id => trustData.id === id);
-        let labelsvg = ICONS.trust;
-        labelsvg.replace('TRL_Text', trl.id);
-        labelsvg.replace('TRL_Color', trl.color);
+        let lavels = [];
+        for (trl of trustData) {
+            let labelsvg = ICONS.trust;
+            labelsvg.replace('TRL_Text', trl.id);
+            labelsvg.replace('TRL_Color', trl.color);
+            lavels.push(labelsvg);
+        }
+        if (single) return lavels[0];
         return labelsvg;
     }
 
