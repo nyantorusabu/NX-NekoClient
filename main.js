@@ -325,7 +325,7 @@ window.addEventListener('DOMContentLoaded', () => {
             lavels.push(labelsvg);
         }
         if (single) return lavels[0];
-        return labelsvg;
+        return lavels;
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -2215,7 +2215,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <h2>
                         ${escapeHTML(user.name)}
                         ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
-                        ${MakeTrustLabel(user.id)}
+                        ${await MakeTrustLabel(user.id)}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
