@@ -1587,15 +1587,22 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             contentDiv.innerHTML = '';
-            if (currentUser.notice?.length) {
-                const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
-                if (error) throw error;
-                currentUser.notice = latestUser.notice;
 
+            const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
+            if (error) {
+                const noticeEl = document.createElement('div');
+                content.className = 'notification-item-content';
+                content.innerHTML = "[エラー] 通知の取得に失敗したため古い通知を表示しています。"
+                noticeEl.appendChild(content);
+                contentDiv.appendChild(noticeEl);
+            } else {
+                currentUser.notice = latestUser.notice;
+            };
             await ensureMentionedUsersCached(
                 (currentUser.notice || []).map(n => typeof n === 'object' ? n.message : n)
             );
 
+            if (currentUser.notice?.length) {
                 currentUser.notice.forEach(n_obj => {
                     const isObject = typeof n_obj === 'object' && n_obj !== null;
                     const notification = isObject ? n_obj : { id: crypto.randomUUID(), message: n_obj, open: '', click: true };
@@ -2067,16 +2074,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     const latestMessage = newPostArray[newPostArray.length - 1];
                     if (latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
 
+                    await supabase.rpc('mark_all_dm_messages_as_read', {
+                        p_dm_id: dmId,
+                        p_user_id: currentUser.id
+                    });
+
+                    if (currentUser.block.includes(latestMessage.userid)) return;
+
                     const view = document.querySelector('.dm-conversation-view');
                     if (view) {
                         const msgHTML = await renderDmMessage(latestMessage);
                         view.insertAdjacentHTML('afterbegin', msgHTML);
                         lastRenderedMessageId = latestMessage.id;
-                        
-                        await supabase.rpc('mark_all_dm_messages_as_read', {
-                            p_dm_id: dmId,
-                            p_user_id: currentUser.id
-                        });
                     }
                 }).subscribe();
 
@@ -2663,6 +2672,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 
+                    // 全投稿のcontent内のメンションをキャッシュ
+                    await ensureMentionedUsersCached(posts.map(post => post.content))
                     // 投稿レンダリング（replyCountsMapを正しく渡す）
                     for (const post of posts) {
                         const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache, metricsPromise });
