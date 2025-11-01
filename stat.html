@@ -205,18 +205,18 @@
 		// --- [新規追加] グラフデータを取得して描画する関数 ---
         async function fetchAndDisplayChart() {
             try {
-            // 新しいSQL関数を呼び出す
-            const { data, error } = await supabase.rpc('get_user_growth_data');
-            if (error) throw error;
+            	// 新しいSQL関数を呼び出す
+            	const { data, error } = await supabase.rpc('get_user_growth_data');
+            	if (error) throw error;
 
-            // Chart.jsが要求する形式にデータを加工
-            const labels = data.map(row => new Date(row.registration_day).toLocaleDateString('ja-JP'));
-            const chartData = data.map(row => row.cumulative_users);
+            	// Chart.jsが要求する形式にデータを加工
+            	const labels = data.map(row => new Date(row.registration_day).toLocaleDateString('ja-JP'));
+            	const chartData = data.map(row => row.cumulative_users);
 
-            const ctx = document.getElementById('user-growth-chart').getContext('2d');
+            	const ctx = document.getElementById('user-growth-chart').getContext('2d');
                 
-            // 既存のグラフがあれば破棄して再描画
-            if (window.myUserGrowthChart) {
+            	// 既存のグラフがあれば破棄して再描画
+            	if (window.myUserGrowthChart) {
                     window.myUserGrowthChart.destroy();
                 }
 
