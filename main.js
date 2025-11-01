@@ -1190,6 +1190,8 @@ window.addEventListener('DOMContentLoaded', () => {
             authorLink.appendChild(verifyBadge);
         }
 
+        authorLink.appendChild(await MakeTrustLabel(user.id))
+
         // 投稿日時
         const postTime = document.createElement('span');
         postTime.className = 'post-time';
@@ -2801,7 +2803,7 @@ window.addEventListener('DOMContentLoaded', () => {
             userLink.innerHTML = `
                 <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
                 <div>
-                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}</span>
+                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}${await MakeTrustLabel(user.id)}</span>
                     <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
                     <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
                 </div>`;
