@@ -1122,8 +1122,8 @@ window.addEventListener('DOMContentLoaded', () => {
             pinnedDiv.className = 'pinned-indicator';
             pinnedDiv.innerHTML = `${ICONS.pin} <span>ピン留めされたポスト</span>`;
             postMain.appendChild(pinnedDiv);
-        } else {
-        if (!isDirectReply) {
+        }
+        else if (!isDirectReply) {
             if (post.reply_to_post && post.reply_to_post.author) {
                 // (インジケーターを生成するDOM操作は変更なし)
                 const replyDiv = document.createElement('div');
