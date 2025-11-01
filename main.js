@@ -41,6 +41,7 @@ window.addEventListener('DOMContentLoaded', () => {
       copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
       repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`,
       pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg>`,
+      trust: `<svg role="img" viewBox="0 0 220 40"><rect x=".5" y="4" width="150" height="32" rx="16" ry="16" fill="rgba(0,0,0,0.18)"/><circle id="color" cx="20" cy="20" r="10" fill="TRL_Color"/><text id="text" x="40" y="21" dominant-baseline="middle" fill="#FFFFFF" font-family="Inter, Arial, Helvetica, sans-serif" font-size="14" font-weight="600">TRL_Text</text></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -309,6 +310,16 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: users } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
             if (users) users.forEach(u => allUsersCache.set(u.id, u));
         }
+    }
+
+    async function MakeTrustLabel(id) {
+        const { data: trustData, error } = await supabase.from('get_trust_ranks').select('*').eq('id', id).single();
+        if (error || !trustData) return ;
+        const trl = trustData.find(id => trustData.id === id);
+        let labelsvg = ICONS.trust;
+        labelsvg.replace('TRL_Text', trl.id);
+        labelsvg.replace('TRL_Color', trl.color);
+        return labelsvg;
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -2198,6 +2209,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <h2>
                         ${escapeHTML(user.name)}
                         ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
+                        ${MakeTrustLabel(user.id)}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
