@@ -313,7 +313,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function MakeTrustLabel(id) {
-        const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { p_user_id: id });
+        const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: id });
         if (error || !trustData) return ;
         const trl = trustData.find(id => trustData.id === id);
         let labelsvg = ICONS.trust;
