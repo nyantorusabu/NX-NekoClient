@@ -241,11 +241,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const escapedId = escapeHTML(emojiId);
                 return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
+            
+            // 3. Emoji Oneの変換
+            processed = emojione.toImage(processed);
 
-            // 3. ハッシュタグとメンションを置換
+            // 4. ハッシュタグとメンションを置換
             const hashtagRegex = /#([a-zA-Z0-9\u3040-\u30FF\u4E00-\u9FFF_!?.-]+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
-                return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
+                return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${emojione.toImage(tagName)}</a>`;
             });
             const mentionRegex = /@(\d+)/g;
             processed = processed.replace(mentionRegex, (match, userId) => {
@@ -253,20 +256,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (userCache.has(numericId)) {
                     const user = userCache.get(numericId);
                     const userName = user ? user.name : `user${numericId}`;
-                    return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
+                    return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${emojione.toImage(escapeHTML(userName))}</a>`;
                 }
                 return match;
             });
 
-            // 4. URLを<a>タグに戻す
+            // 5. URLを<a>タグに戻す
             urls.forEach((url, i) => {
                 const placeholder = `%%URL_${i}%%`;
                 const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(url)}</a>`;
                 processed = processed.replace(placeholder, link);
             });
-
-            // 5. Emoji Oneの変換
-            processed = emojione.toImage(processed);
         
             return processed.replace(/\n/g, '<br>');
         };
