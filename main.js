@@ -41,7 +41,7 @@ window.addEventListener('DOMContentLoaded', () => {
       copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
       repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`,
       pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg>`,
-      trust: `<svg role="img" viewBox="0 0 220 40"><rect x=".5" y="4" width="150" height="32" rx="16" ry="16" fill="rgba(0,0,0,0.18)"/><circle id="color" cx="20" cy="20" r="10" fill="TRL_Color"/><text id="text" x="40" y="21" dominant-baseline="middle" fill="#FFFFFF" font-family="Inter, Arial, Helvetica, sans-serif" font-size="14" font-weight="600">TRL_Text</text></svg>`,
+      trust: `<svg id="trl" role="img" viewBox="0 0 220 40"><rect x=".5" y="4" width="135" height="32" rx="16" ry="16" fill="rgba(0,0,0,0.18)"/><circle cx="20" cy="20" r="10" fill="TRL_Color"/><text x="40" y="21" dominant-baseline="middle" fill="#FFFFFF" font-family="Inter, Arial, Helvetica, sans-serif" font-size="14" font-weight="600">TRL_Text</text></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---

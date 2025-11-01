@@ -2142,6 +2142,10 @@ input, textarea {
     cursor: pointer;
 }
 
+.trl {
+    height: 1em;
+}
+
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {
