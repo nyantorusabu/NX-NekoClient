@@ -236,7 +236,7 @@ input, textarea {
 img.emojione{
     width: 1.1rem;
     height: auto;
-    padding-right: 0.1rem;
+    padding-right: 1px;
 }
 
 .header-with-back-button {
