@@ -316,17 +316,14 @@ input, textarea {
     background-color: var(--bg-color); /* ホバー時に薄いグレーに */
 }
 
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
+
 .timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
 .timeline-tabs { display: flex; }
-/* ▼▼▼ [修正点2] ポスト送信枠の固定を解除 ▼▼▼ */
 .post-form-sticky-container {
-    /* position: sticky; を削除 */
     background-color: white; /* スクロール時に背景が透けないように */
     z-index: 8;
     border-bottom: 1px solid var(--border-color);
 }
-/* ▲▲▲ [修正点2] ここまで ▼▼▼ */
 .timeline-tab-button {
     flex-grow: 1;
     padding: 1rem;
@@ -1968,16 +1965,17 @@ input, textarea {
     }
 }
 /* リポストインジケーター */
-.repost-indicator {
+.repost-indicator,
+.pinned-indicator {
     color: var(--secondary-text-color);
     font-size: 0.9em;
     padding-bottom: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.5em;
-    /* [修正点] width指定を削除 */
 }
-.repost-indicator svg {
+.repost-indicator svg,
+.pinned-indicator svg {
     width: 1em;
     height: 1em;
     stroke: currentColor;
