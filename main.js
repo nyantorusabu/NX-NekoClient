@@ -264,6 +264,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(url)}</a>`;
                 processed = processed.replace(placeholder, link);
             });
+
+            // 5. Emoji Oneの変換
+            processed = emojione.toImage(processed);
         
             return processed.replace(/\n/g, '<br>');
         };
