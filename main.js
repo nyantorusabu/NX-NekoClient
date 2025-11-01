@@ -146,7 +146,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     itemHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation();"></audio>`;
                 }
                 
-                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">📄 ${escapeHTML(attachment.name)}</a>`;
+                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">${emojione.toImage("📄")} ${escapeHTML(attachment.name)}</a>`;
                 itemHTML += '</div>';
                 attachmentsHTML += itemHTML;
             }
@@ -178,7 +178,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </a>
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">
-                        <a href="#profile/${user.id}" class="dm-user-link">${escapeHTML(user.name || '不明')}</a>
+                        <a href="#profile/${user.id}" class="dm-user-link">${emojione.toImage(escapeHTML(user.name || '不明'))}</a>
                         ・${time}
                     </div>
                     <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
@@ -241,11 +241,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const escapedId = escapeHTML(emojiId);
                 return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
+            
+            // 3. Emoji Oneの変換
+            processed = emojione.toImage(processed);
 
-            // 3. ハッシュタグとメンションを置換
+            // 4. ハッシュタグとメンションを置換
             const hashtagRegex = /#([a-zA-Z0-9\u3040-\u30FF\u4E00-\u9FFF_!?.-]+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
-                return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${tagName}</a>`;
+                return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${emojione.toImage(tagName)}</a>`;
             });
             const mentionRegex = /@(\d+)/g;
             processed = processed.replace(mentionRegex, (match, userId) => {
@@ -253,12 +256,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (userCache.has(numericId)) {
                     const user = userCache.get(numericId);
                     const userName = user ? user.name : `user${numericId}`;
-                    return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${escapeHTML(userName)}</a>`;
+                    return `<a href="#profile/${numericId}" onclick="event.stopPropagation()">@${emojione.toImage(escapeHTML(userName))}</a>`;
                 }
                 return match;
             });
 
-            // 4. URLを<a>タグに戻す
+            // 5. URLを<a>タグに戻す
             urls.forEach((url, i) => {
                 const placeholder = `%%URL_${i}%%`;
                 const link = `<a href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${escapeHTML(url)}</a>`;
@@ -385,7 +388,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const isFollowing = currentUser?.follow?.includes(user.id);
             const btnClass = isFollowing ? 'follow-button-following' : 'follow-button-not-following';
             const btnText = isFollowing ? 'フォロー中' : 'フォロー';
-            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="${getUserIconUrl(user)}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${escapeHTML(user.name)}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
+            return ` <div class="widget-item recommend-user"> <a href="#profile/${user.id}" class="profile-link" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:0.5rem;"> <img src="${getUserIconUrl(user)}" style="width:40px;height:40px;border-radius:50%;" alt="${user.name}'s icon"> <div> <span>${emojione.toImage(escapeHTML(user.name))}</span> <small style="color:var(--secondary-text-color); display:block;">#${user.id}</small> </div> </a> ${currentUser && currentUser.id !== user.id ? `<button class="${btnClass}" data-user-id="${user.id}">${btnText}</button>` : ''} </div>`;
         }).join('');
         if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = `<div class="sidebar-widget">${recHTML}</div>`;
         DOM.rightSidebar.recommendations?.querySelectorAll('.recommend-user button').forEach(button => {
@@ -452,7 +455,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }).join('');
         if(currentUser) DOM.navMenuTop.innerHTML += `<button class="nav-item nav-item-post"><span class="nav-item-text">ポスト</span><span class="nav-item-icon">${ICONS.send}</span></button>`;
         // 未ログイン時は何も表示せず、ログインしている場合のみアカウントボタンを表示する
-        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${escapeHTML(currentUser.name)}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : '';
+        DOM.navMenuBottom.innerHTML = currentUser ? `<button id="account-button" class="nav-item account-button"> <img src="${getUserIconUrl(currentUser)}" class="user-icon" alt="${currentUser.name}'s icon"> <div class="account-info"> <span class="name">${emojione.toImage(escapeHTML(currentUser.name))}</span> <span class="id">#${currentUser.id}</span> </div> </button>` : '';
         DOM.loginBanner.classList.toggle('hidden', !!currentUser);
         DOM.navMenuTop.querySelectorAll('a.nav-item').forEach(link => {
             link.onclick = (e) => {
@@ -596,7 +599,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <li class="account-switcher-item${acc.id === currentId ? ' active' : ''}" data-id="${acc.id}">
                         <span class="switcher-user-info">
                             <img class="switcher-user-icon" src="${getUserIconUrl(acc)}">
-                            <span>${escapeHTML(acc.name)}</span>
+                            <span>${emojione.toImage(escapeHTML(acc.name))}</span>
                             <span style="color:var(--secondary-text-color); font-size:0.95em;">#${acc.id}</span>
                         </span>
                         <button class="switcher-delete-btn" title="このアカウントを削除">×</button>
@@ -670,7 +673,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const previewContainer = modalContainer.querySelector('#quoting-preview-container');
             const nestedPost = document.createElement('div');
             nestedPost.className = 'nested-repost-container';
-            nestedPost.innerHTML = `<div class="post-header"><img src="${getUserIconUrl(quotingPost.user)}" class="user-icon" style="width:24px;height:24px;"> <span class="post-author">${escapeHTML(quotingPost.user.name)}</span></div><div class="post-content">${escapeHTML(quotingPost.content)}</div>`;
+            nestedPost.innerHTML = `<div class="post-header"><img src="${getUserIconUrl(quotingPost.user)}" class="user-icon" style="width:24px;height:24px;"> <span class="post-author">${emojione.toImage(escapeHTML(quotingPost.user.name))}</span></div><div class="post-content">${escapeHTML(quotingPost.content)}</div>`;
             previewContainer.appendChild(nestedPost);
         }
 
@@ -821,10 +824,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 };
                 reader.readAsDataURL(file);
             } else if (file.type.startsWith('audio/')) {
-                previewItem.innerHTML = `<span>🎵 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewItem.innerHTML = `<span>${emojione.toImage("🎵")} ${emojione.toImage(escapeHTML(file.name))}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 previewContainer.appendChild(previewItem);
             } else {
-                previewItem.innerHTML = `<span>📄 ${escapeHTML(file.name)}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
+                previewItem.innerHTML = `<span>${emojione.toImage("📄")} ${emojione.toImage(escapeHTML(file.name))}</span><button class="file-preview-remove" data-index="${index}">×</button>`;
                 previewContainer.appendChild(previewItem);
             }
         });
@@ -1028,6 +1031,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repostAuthorLink = document.createElement('a');
                 repostAuthorLink.href = `#profile/${authorOfRepost.id}`;
                 repostAuthorLink.textContent = authorOfRepost.name; // 安全なtextContent
+                repostAuthorLink.innerHTML = emojione.toImage(repostAuthorLink.innerHTML); // Emoji Oneの変換
                 const repostText = document.createElement('span');
                 repostText.textContent = ` さんがリポストしました`;
                 repostIndicator.appendChild(repostAuthorLink);
@@ -1058,6 +1062,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repostAuthorLink = document.createElement('a');
                 repostAuthorLink.href = `#profile/${authorOfRepost.id}`;
                 repostAuthorLink.textContent = authorOfRepost.name;
+                repostAuthorLink.innerHTML = emojione.toImage(repostAuthorLink.innerHTML); // Emoji Oneの変換
                 const repostText = document.createElement('span');
                 repostText.textContent = ` さんがリポストしました`;
                 repostIndicator.appendChild(repostAuthorLink);
@@ -1120,6 +1125,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const replyAuthorLink = document.createElement('a');
                 replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
                 replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
+                replyAuthorLink.innerHTML = emojione.toImage(replyAuthorLink.innerHTML); // Emoji Oneの変換
                 const replyText = document.createElement('span');
                 replyText.textContent = ` さんに返信`;
                 replyDiv.appendChild(replyAuthorLink);
@@ -1133,6 +1139,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const replyAuthorLink = document.createElement('a');
                 replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
                 replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
+                replyAuthorLink.innerHTML = emojione.toImage(replyAuthorLink.innerHTML); // Emoji Oneの変換
                 const replyText = document.createElement('span');
                 replyText.textContent = ` さんに返信`;
                 replyDiv.appendChild(replyAuthorLink);
@@ -1148,6 +1155,7 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.href = `#profile/${displayAuthor.id}`;
         authorLink.className = 'post-author';
         authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
+        authorLink.innerHTML = emojione.toImage(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
 
         // 管理者・認証済みバッジ
@@ -1470,7 +1478,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <input type="search" id="search-input" placeholder="検索">
             </div>
             <br>
-            <h2 id="page-title">検索結果: "${escapeHTML(query)}"</h2>
+            <h2 id="page-title">検索結果: "${emojione.toImage(escapeHTML(query))}"</h2>
         `;
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
@@ -1514,7 +1522,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 userLink.href = `#profile/${u.id}`;
                 userLink.className = 'profile-link';
                 userLink.style.cssText = 'display:flex; align-items:center; gap:0.8rem; text-decoration:none; color:inherit;';
-                userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${escapeHTML(u.name)}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p></div>`;
+                userLink.innerHTML = `<img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon"><div><span class="name" style="font-weight:700;">${emojione.toImage(escapeHTML(u.name))}</span><span class="id" style="color:var(--secondary-text-color);">#${u.id}</span><p class="me" style="margin:0.2rem 0 0;">${emojione.toImage(escapeHTML(u.me || ''))}</p></div>`;
                 userCard.appendChild(userLink);
                 userResultsContainer.appendChild(userCard);
             });
@@ -1926,7 +1934,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     listItemsWrapper.innerHTML = dms.map(dm => {
                         const unreadCount = unreadCountsMap.get(dm.id) || 0;
                         const titlePrefix = unreadCount > 0 ? `(${unreadCount}) ` : '';
-                        const title = escapeHTML(dm.title) || dm.member.map(id => allUsersCache.get(id)?.name || id).join(', ');
+                        const title = emojione.toImage(escapeHTML(dm.title)) || dm.member.map(id => allUsersCache.get(id)?.name || id).join(', ');
                         
                         return `
                             <div class="dm-list-item" onclick="window.location.hash='#dm/${dm.id}'">
@@ -1971,7 +1979,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="header-with-back-button">
                     <button class="header-back-btn" onclick="window.history.back()">${ICONS.back}</button>
                     <div style="flex-grow:1;">
-                        <h2 id="page-title" style="font-size: 1.1rem; margin-bottom: 0;">${escapeHTML(dm.title)}</h2>
+                        <h2 id="page-title" style="font-size: 1.1rem; margin-bottom: 0;">${emojione.toImage(escapeHTML(dm.title))}</h2>
                         <small style="color: var(--secondary-text-color);">${dm.member.length}人のメンバー</small>
                     </div>
                     <button class="dm-manage-btn" style="font-size: 1.2rem;" onclick="window.openDmManageModal('${dm.id}')">…</button>
@@ -2150,14 +2158,14 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             if (user.frieze) {
-                document.getElementById('page-title-main').textContent = user.name;
+                document.getElementById('page-title-main').innerHTML = emojione.toImage(escapeHTML(user.name));
                 document.getElementById('page-title-sub').textContent = `#${user.id}`;
                 profileHeader.innerHTML = `
                     <div class="header-top">
                         <img src="${getUserIconUrl(user)}" class="user-icon-large" alt="${user.name}'s icon">
                     </div>
                     <div class="profile-info">
-                        <h2>${escapeHTML(user.name)}</h2>
+                        <h2>${emojione.toImage(escapeHTML(user.name))}</h2>
                         <div class="user-id">#${user.id}</div>
                     </div>`;
                 const friezeNotice = document.createElement('div');
@@ -2206,7 +2214,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="profile-info">
                     <h2>
-                        ${escapeHTML(user.name)}
+                        ${emojione.toImage(escapeHTML(user.name))}
                         ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
@@ -2775,9 +2783,9 @@ window.addEventListener('DOMContentLoaded', () => {
             userLink.innerHTML = `
                 <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
                 <div>
-                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}</span>
+                    <span class="name" style="font-weight:700;">${emojione.toImage(escapeHTML(u.name))}${badgeHTML}</span>
                     <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
-                    <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
+                    <p class="me" style="margin:0.2rem 0 0;">${emojione.toImage(escapeHTML(u.me || ''))}</p>
                 </div>`;
             
             userCard.appendChild(userLink);
@@ -3215,7 +3223,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 html += `
                     <div>
                         <label for="dm-title-input" style="font-weight: bold; display: block; margin-bottom: 0.5rem;">タイトル</label>
-                        <input type="text" id="dm-title-input" value="${escapeHTML(dm.title || '')}" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <input type="text" id="dm-title-input" value="${emojione.toImage(escapeHTML(dm.title || ''))}" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
                         <button id="save-dm-title-btn" style="margin-top: 0.5rem;">タイトルを保存</button>
                     </div>
                     <div>
@@ -3223,7 +3231,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         <div id="dm-member-list">
                             ${memberDetails.map(m => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
-                                    <span>${escapeHTML(m.name)} (#${m.id}) ${m.id === dm.host_id ? '(ホスト)' : ''}</span>
+                                    <span>${emojione.toImage(escapeHTML(m.name))} (#${m.id}) ${m.id === dm.host_id ? '(ホスト)' : ''}</span>
                                     ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">削除</button>` : ''}
                                 </div>`).join('')}
                         </div>
@@ -3269,7 +3277,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         const nonMembers = users.filter(u => !dm.member.includes(u.id));
 
                         resultsContainer.innerHTML = nonMembers.length > 0
-                            ? nonMembers.map(u => `<div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}"><strong>${escapeHTML(u.name)}</strong> (#${u.id})</div>`).join('')
+                            ? nonMembers.map(u => `<div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}"><strong>${emojione.toImage(escapeHTML(u.name))}</strong> (#${u.id})</div>`).join('')
                             : `<div class="widget-item">ユーザーが見つかりません。</div>`;
                     }, 300);
                 });
@@ -3709,7 +3717,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (users && users.length > 0) {
                     resultsContainer.innerHTML = users.map(u => `
                         <div class="widget-item" style="cursor: pointer;" data-user-id="${u.id}" data-user-name="${escapeHTML(u.name)}">
-                            <strong>${escapeHTML(u.name)}</strong> (#${u.id})
+                            <strong>${emojione.toImage(escapeHTML(u.name))}</strong> (#${u.id})
                         </div>
                     `).join('');
                 } else {

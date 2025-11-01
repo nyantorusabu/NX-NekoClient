@@ -232,6 +232,12 @@ input, textarea {
     z-index: 10;
 }
 
+/* Emoji Oneの画像設定 */
+img.emojione{
+    width: 1.1rem;
+    height: auto;
+}
+
 .header-with-back-button {
     display: flex;
     align-items: center;
