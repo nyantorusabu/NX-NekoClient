@@ -323,6 +323,8 @@ window.addEventListener('DOMContentLoaded', () => {
             labelsvg.replace('TRL_Text', trl.id);
             labelsvg.replace('TRL_Color', trl.color);
             lavels.push(labelsvg);
+            console.log(trl);
+            console.log(labelsvg);
         }
         if (single) return lavels[0];
         return lavels;
