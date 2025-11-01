@@ -47,7 +47,6 @@ window.addEventListener('DOMContentLoaded', () => {
         mainContent: document.getElementById('main-content'),
         navMenuTop: document.getElementById('nav-menu-top'),
         navMenuBottom: document.getElementById('nav-menu-bottom'),
-        navLogo: document.getElementById('nav-logo'),
         pageHeader: document.getElementById('page-header'),
         screens: document.querySelectorAll('.screen'),
         postFormContainer: document.querySelector('.post-form-container'),
@@ -427,11 +426,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 { name: 'プロフィール', hash: `#profile/${currentUser.id}`, icon: ICONS.profile }, 
                 { name: '設定', hash: '#settings', icon: ICONS.settings }
             );
-        }
-
-        
-        if (window.matchMedia('(min-width:768px)').matches) {
-            DOM.navLogo.innerHTML = '<img src="./logo.png" class="nav-logo-img">'
         }
 
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
