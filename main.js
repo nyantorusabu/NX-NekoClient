@@ -317,17 +317,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (single) { ids = [id]; } else { ids = id; };
         const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
         if (error || !trustData) return ICONS.trust;
-        let lavels = [];
+        let labels = [];
+
         for (trl of trustData) {
             let labelsvg = ICONS.trust;
-            labelsvg.replace('TRL_Text', trl.id);
-            labelsvg.replace('TRL_Color', trl.color);
-            lavels.push(labelsvg);
-            console.log(trl);
-            console.log(labelsvg);
+            labelsvg = labelsvg.replace('TRL_Text', trl.id);
+            labelsvg = labelsvg.replace('TRL_Color', trl.color);
         }
-        if (single) return lavels[0];
-        return lavels;
+        if (single) return labels[0];
+        return labels;
     }
 
     // --- 5. ルーティングと画面管理 ---
