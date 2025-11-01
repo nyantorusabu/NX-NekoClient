@@ -146,7 +146,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     itemHTML += `<audio src="${publicURL}" controls onclick="event.stopPropagation();"></audio>`;
                 }
                 
-                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">📄 ${escapeHTML(attachment.name)}</a>`;
+                itemHTML += `<a href="#" class="attachment-download-link" onclick="event.preventDefault(); event.stopPropagation(); window.handleDownload('${publicURL}', '${escapeHTML(attachment.name)}')">${emojione.toImage("📄")} ${escapeHTML(attachment.name)}</a>`;
                 itemHTML += '</div>';
                 attachmentsHTML += itemHTML;
             }
@@ -178,7 +178,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </a>
                 <div class="dm-message-wrapper">
                     <div class="dm-message-meta">
-                        <a href="#profile/${user.id}" class="dm-user-link">${escapeHTML(user.name || '不明')}</a>
+                        <a href="#profile/${user.id}" class="dm-user-link">${emojione.toImage(escapeHTML(user.name || '不明'))}</a>
                         ・${time}
                     </div>
                     <div class="dm-message">${formattedContent}${attachmentsHTML}</div>
@@ -1155,6 +1155,7 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.href = `#profile/${displayAuthor.id}`;
         authorLink.className = 'post-author';
         authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
+        authorLink.innerHTML = emojione.toImage(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
 
         // 管理者・認証済みバッジ
@@ -2157,7 +2158,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             if (user.frieze) {
-                document.getElementById('page-title-main').textContent = user.name;
+                document.getElementById('page-title-main').innerHTML = emojione.toImage(escapeHTML(user.name));
                 document.getElementById('page-title-sub').textContent = `#${user.id}`;
                 profileHeader.innerHTML = `
                     <div class="header-top">
