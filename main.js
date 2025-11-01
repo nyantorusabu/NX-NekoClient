@@ -321,8 +321,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         for (trl of trustData) {
             let labelsvg = ICONS.trust;
+            console.log(labelsvg);
             labelsvg = labelsvg.replace('TRL_Text', trl.id);
+            console.log(labelsvg);
             labelsvg = labelsvg.replace('TRL_Color', trl.color);
+            console.log(labelsvg);
         }
         if (single) return labels[0];
         return labels;
