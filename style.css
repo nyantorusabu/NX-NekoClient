@@ -249,7 +249,7 @@ img.emoji{
 
 /* JSでつけるNoto Color Emoji用設定 */
 .notocoloremoji{
-    font-family: 'Noto Color Emoji', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Noto Sans JP', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .header-with-back-button {
