@@ -242,7 +242,7 @@ img.emojione{
 img.emoji{
     width: 1.1rem;
     height: auto;
-    padding-top: 3px;
+    margin-top: 2px;
     padding-right: 1px;
 }
 
