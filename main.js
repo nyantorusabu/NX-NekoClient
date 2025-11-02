@@ -2408,7 +2408,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
 
-                <label for"setting-emoji-kind">絵文字のフォント設定</label>
+                <label for"setting-emoji-kind">絵文字のフォント設定:</label>
                 <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="twemoji">Twemoji</option>
                     <option value="emojione">Emoji One</option>
