@@ -240,7 +240,7 @@ img.emojione{
 
 /* Twemojiの画像設定 */
 img.emoji{
-    display: block;
+    display: inline-block;
     width: 1.1rem;
     height: auto;
     margin-top: 3px;
