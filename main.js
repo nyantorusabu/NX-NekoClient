@@ -2402,6 +2402,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
+
+                <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="twemoji">Twemoji</option>
+                    <option value="emojione">Emoji One</option>
+                    <option value="default">デフォルト</option>
+                </select>
+                
                 <button type="submit">設定を保存</button>
             </form>
             <div class="settings-danger-zone" style="display: flex; gap: 0.5rem;">
