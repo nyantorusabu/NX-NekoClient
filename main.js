@@ -105,9 +105,12 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
-        let setting = 2; // あとで実装
-        if (setting == 1) return twemoji.parse(str);
-        else if (setting == 2) return emojione.toImage(str);
+        let setting;
+        if (localStorage.getItem("emoji")) setting = localStorage.getItem("emoji");
+        else setting = "emojione";
+        
+        if (setting == "twemoji") return twemoji.parse(str);
+        else if (setting == "emojione") return emojione.toImage(str);
         else return str;
     }
 
