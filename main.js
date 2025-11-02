@@ -2406,6 +2406,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
 
+                <label for"setting-emoji
                 <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="twemoji">Twemoji</option>
                     <option value="emojione">Emoji One</option>
@@ -2422,6 +2423,9 @@ window.addEventListener('DOMContentLoaded', () => {
         // settingsに値がない場合は 'all' をデフォルトとして扱う
         const currentDefaultTab = currentUser.settings?.default_timeline_tab || 'all';
         document.getElementById('setting-default-timeline').value = currentDefaultTab;
+
+        const emoji_kind = localStorage.getItem('emoji') || 'emojione';
+        document.getElementById('setting-emoji-kind').value = emoji_kind;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
@@ -2978,6 +2982,11 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
 
         try {
+            // localStorage関係の設定
+            const emoji_kind = form.querySelector('#setting-emoji-kind').value;
+            localStorage.setItem('emoji', emoji_kind)
+            
+            // Database関係の設定
             const updatedData = {
                 name: form.querySelector('#setting-username').value.trim(),
                 me: form.querySelector('#setting-me').value.trim(),
