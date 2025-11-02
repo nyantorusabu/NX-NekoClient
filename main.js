@@ -384,7 +384,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         const { data, error } = await query.order('time', { ascending: false }).limit(3);
 
-        const linkItems = [ { name: 'NyaXルール', link: '/rule' }, { name: '各種ランキング', link: '/ranking' }, { name: '統計', link: '/stat' }, { name: '申請フォーム', link: '/forms' }, { name: 'Emoji一覧', link: '/emoji' },  { name: 'Discord鯖', link: '/discord' } ];
+        const linkItems = [ { name: 'NyaXルール', link: 'rule' }, { name: '各種ランキング', link: 'ranking' }, { name: '統計', link: 'stat' }, { name: '申請フォーム', link: 'forms' }, { name: 'Emoji一覧', link: 'emoji' },  { name: 'Discord鯖', link: 'discord' } ];
 
         if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
@@ -406,7 +406,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         DOM.rightSidebar.links.innerHTML = linkItems.map(item => {
             return `
-            <a href="${item.link}" class="link">${item.name}</a>
+            <a href="/${item.link}" class="link ${item.link}">${item.name}</a>
             `
         }).join('');
     }

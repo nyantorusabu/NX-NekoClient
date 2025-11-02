@@ -819,6 +819,9 @@ img.emojione{
     text-decoration: none;
     color: #808090;
     padding: 1px 8px 1px 8px;
+}
+
+.link:not(.discord) {
     border-right: #808090 1.5px solid;
 }
 
