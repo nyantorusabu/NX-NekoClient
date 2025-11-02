@@ -47,14 +47,23 @@ input, textarea {
     flex-shrink: 0;
 }
 
-#nav-logo {
-    padding: 1rem;
-    display: flex;
-    margin-bottom: 0px;
-}
 @media (min-width: 768px) {
     .nav-logo-img {
         width: 1.8rem;
+    }
+    #nav-logo {
+        padding: 1rem;
+        display: flex;
+        margin-bottom: 0px;
+    }
+}
+
+@media (max-width: 769px) {
+    .nav-logo-img {
+        display: none;
+    }
+    #nav-logo {
+        display: none
     }
 }
 
@@ -801,32 +810,24 @@ img.emojione{
     flex-shrink: 0;
 }
 
-/*ここから*/
-
-.links {
-    font-size: 15px;
+#right-sidebar-links-container {
+    font-size: 14px;
     display: inline;
 }
 
 .link {
     text-decoration: none;
     color: #808090;
-    border-right: solid 1.5px;
-    padding-right: 8px;
-    padding-left: 8px;
+    padding: 1px 8px 1px 8px;
 }
 
-.link-end {
-    text-decoration: none;
-    color: #808090;
-    padding-left: 8px;
+.link:not(.discord) {
+    border-right: #808090 1.5px solid;
 }
 
-.link:hover,.link-end:hover {
+.link:hover {
     text-decoration: underline;
 }
-
-/*ここまで(コメントは消してもらって構いません)*/
 
 .sidebar-widget {
     background-color: var(--bg-color);
