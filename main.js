@@ -2412,7 +2412,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="twemoji">Twemoji</option>
                     <option value="emojione">Emoji One</option>
-                    <option value="notocoloremoji">Noto Color Emoji</option>
+                    <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
                     <option value="default">デフォルト(端末絵文字)</option>
                 </select>
                 
