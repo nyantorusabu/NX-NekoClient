@@ -2302,7 +2302,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const pageTitleMain = document.getElementById('page-title-main');
         const pageTitleSub = document.getElementById('page-title-sub');
-        pageTitleMain.textContent = user.name;
+        pageTitleMain.innerHTML = getEmoji(escapeHTML(user.name));
         if (isFollowListActive) {
             pageTitleSub.textContent = `#${user.id}`;
         } else if (subpage === 'media') {
