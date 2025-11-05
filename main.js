@@ -105,9 +105,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
-        let setting;
-        if (localStorage.getItem("emoji")) setting = localStorage.getItem("emoji");
-        else setting = "emojione";
+        let setting = currentUser.settings?.emoji || 'emojione';    
         
         if (setting == "twemoji") return twemoji.parse(str);
         else if (setting == "emojione") return emojione.toImage(str);
@@ -2427,7 +2425,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const currentDefaultTab = currentUser.settings?.default_timeline_tab || 'all';
         document.getElementById('setting-default-timeline').value = currentDefaultTab;
 
-        const emoji_kind = localStorage.getItem('emoji') || 'emojione';
+        const emoji_kind = currentUser.settings?.emoji || 'emojione';
         document.getElementById('setting-emoji-kind').value = emoji_kind;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
@@ -2985,11 +2983,6 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
 
         try {
-            // localStorage関係の設定
-            const emoji_kind = form.querySelector('#setting-emoji-kind').value;
-            localStorage.setItem('emoji', emoji_kind)
-            
-            // Database関係の設定
             const updatedData = {
                 name: form.querySelector('#setting-username').value.trim(),
                 me: form.querySelector('#setting-me').value.trim(),
@@ -2999,7 +2992,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_follower: form.querySelector('#setting-show-follower').checked,
                     show_star: form.querySelector('#setting-show-star').checked,
                     show_scid: form.querySelector('#setting-show-scid').checked,
-                    default_timeline_tab: form.querySelector('#setting-default-timeline').value
+                    default_timeline_tab: form.querySelector('#setting-default-timeline').value,
+                    emoji: form.querySelector('#setting-emoji-kind').value
                 },
             };
 
