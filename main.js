@@ -40,6 +40,8 @@ window.addEventListener('DOMContentLoaded', () => {
       reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
       copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
       repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`,
+      pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg>`,
+      trust: `<svg id="trl" role="img" viewBox="0 0 220 40"><rect x=".5" y="4" width="125" height="32" rx="16" ry="16" fill="rgba(0,0,0,0.18)"/><circle cx="20" cy="20" r="10" fill="TRL_Color"/><text x="40" y="22" dominant-baseline="middle" fill="#FFFFFF" font-family="Inter, Arial, Helvetica, sans-serif" font-size="15" font-weight="600">TRL_Text</text></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -308,6 +310,29 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: users } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
             if (users) users.forEach(u => allUsersCache.set(u.id, u));
         }
+    }
+
+    async function MakeTrustLabel(id, single = true) {
+        if (!currentUser.TrustCache) currentUser.TrustCache = [];
+        let ids = [];
+        if (single) {
+            const cache = currentUser.TrustCache.find(u => u.id === id);
+            if (cache) return cache.data;
+            ids = [id];
+        } else { ids = id; };
+        const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
+        if (error || !trustData) return ICONS.trust;
+        let labels = [];
+
+        for (trl of trustData) {
+            let labelsvg = ICONS.trust;
+            labelsvg = labelsvg.replace('TRL_Text', trl.rankid);
+            labelsvg = labelsvg.replace('TRL_Color', trl.color);
+            labels.push(labelsvg);
+            if (!currentUser.TrustCache.find(u => u.id === trl.id)) currentUser.TrustCache.push({id: trl.id, data: labelsvg});
+        }
+        if (single) return labels[0];
+        return labels;
     }
 
     // --- 5. ルーティングと画面管理 ---
@@ -993,7 +1018,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         await ensureMentionedUsersCached([post.content]);
-        const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map(), metricsPromise } = options;
+        const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map(), metricsPromise, isPinned = false} = options;
 
         if (!post) return null;
         
@@ -1104,34 +1129,40 @@ window.addEventListener('DOMContentLoaded', () => {
         const postMain = document.createElement('div');
         postMain.className = 'post-main';
         
-        // 返信先表示
-        // isDirectReplyがfalseの場合のみインジケーターを表示する
-        if (!isDirectReply) {
-            if (post.reply_to_post && post.reply_to_post.author) {
-                // (インジケーターを生成するDOM操作は変更なし)
-                const replyDiv = document.createElement('div');
-                replyDiv.className = 'replying-to';
-                const replyAuthorLink = document.createElement('a');
-                replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
-                replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
-                const replyText = document.createElement('span');
-                replyText.textContent = ` さんに返信`;
-                replyDiv.appendChild(replyAuthorLink);
-                replyDiv.appendChild(replyText);
-                postMain.appendChild(replyDiv);
-            }
-            else if (post.reply_to_user_id && post.reply_to_user_name) {
-                // (インジケーターを生成するDOM操作は変更なし)
-                const replyDiv = document.createElement('div');
-                replyDiv.className = 'replying-to';
-                const replyAuthorLink = document.createElement('a');
-                replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
-                replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
-                const replyText = document.createElement('span');
-                replyText.textContent = ` さんに返信`;
-                replyDiv.appendChild(replyAuthorLink);
-                replyDiv.appendChild(replyText);
-                postMain.appendChild(replyDiv);
+        // ピン留め表示/返信先表示
+        if (isPinned) {
+            const pinnedDiv = document.createElement('div');
+            pinnedDiv.className = 'pinned-indicator';
+            pinnedDiv.innerHTML = `${ICONS.pin} <span>ピン留めされたポスト</span>`;
+            postMain.appendChild(pinnedDiv);
+        } else {
+            if (!isDirectReply) {
+                if (post.reply_to_post && post.reply_to_post.author) {
+                    // (インジケーターを生成するDOM操作は変更なし)
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'replying-to';
+                    const replyAuthorLink = document.createElement('a');
+                    replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
+                    replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
+                    const replyText = document.createElement('span');
+                    replyText.textContent = ` さんに返信`;
+                    replyDiv.appendChild(replyAuthorLink);
+                    replyDiv.appendChild(replyText);
+                    postMain.appendChild(replyDiv);
+                }
+                else if (post.reply_to_user_id && post.reply_to_user_name) {
+                    // (インジケーターを生成するDOM操作は変更なし)
+                    const replyDiv = document.createElement('div');
+                    replyDiv.className = 'replying-to';
+                    const replyAuthorLink = document.createElement('a');
+                    replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
+                    replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
+                    const replyText = document.createElement('span');
+                    replyText.textContent = ` さんに返信`;
+                    replyDiv.appendChild(replyAuthorLink);
+                    replyDiv.appendChild(replyText);
+                    postMain.appendChild(replyDiv);
+                }
             }
         }
 
@@ -1165,6 +1196,8 @@ window.addEventListener('DOMContentLoaded', () => {
             authorLink.appendChild(verifyBadge);
         }
 
+        authorLink.insertAdjacentHTML('beforeend', await MakeTrustLabel(displayAuthor.id));
+
         // 投稿日時
         const postTime = document.createElement('span');
         postTime.className = 'post-time';
@@ -1178,6 +1211,15 @@ window.addEventListener('DOMContentLoaded', () => {
             menuBtn.innerHTML = '…';
             const menu = document.createElement('div');
             menu.className = 'post-menu';
+
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'pin-btn';
+            if (!currentUser.pin || currentUser.pin !== post.id) {
+                pinBtn.textContent = 'ピン留め';
+            } else {
+                pinBtn.textContent = 'ピン留めを解除';
+            };
+            menu.appendChild(pinBtn);
             
             if (!post.repost_to || post.content) {
                 const editBtn = document.createElement('button');
@@ -1586,27 +1628,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     });
             }
 
-            const allMentionedIds = new Set();
-            (currentUser.notice || []).forEach(n => {
-                const message = typeof n === 'object' ? n.message : n;
-                const mentionRegex = /@(\d+)/g;
-                let match;
-                while ((match = mentionRegex.exec(message)) !== null) {
-                    allMentionedIds.add(parseInt(match[1]));
-                }
-            });
-            const newIdsToFetch = [...allMentionedIds].filter(id => !allUsersCache.has(id));
-            if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
-                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
-            }
-
             contentDiv.innerHTML = '';
-            if (currentUser.notice?.length) {
-                const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
-                if (error) throw error;
-                currentUser.notice = latestUser.notice;
 
+            const { data: latestUser, error } = await supabase.from('user').select('notice').eq('id', currentUser.id).single();
+            if (error) {
+                const noticeEl = document.createElement('div');
+                content.className = 'notification-item-content';
+                content.innerHTML = "[エラー] 通知の取得に失敗したため古い通知を表示しています。"
+                noticeEl.appendChild(content);
+                contentDiv.appendChild(noticeEl);
+            } else {
+                currentUser.notice = latestUser.notice;
+            };
+            await ensureMentionedUsersCached(
+                (currentUser.notice || []).map(n => typeof n === 'object' ? n.message : n)
+            );
+
+            if (currentUser.notice?.length) {
                 currentUser.notice.forEach(n_obj => {
                     const isObject = typeof n_obj === 'object' && n_obj !== null;
                     const notification = isObject ? n_obj : { id: crypto.randomUUID(), message: n_obj, open: '', click: true };
@@ -1724,24 +1762,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 mainPost.star = starCountsMap.get(mainPost.id) || 0;
                 mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
             })();
-
-            // メンション収集
-            const allMentionedIds = new Set();
-            const mentionRegex = /@(\d+)/g;
-            const collectMentions = (text) => {
-                if (!text) return;
-                const matches = text.matchAll(mentionRegex);
-                for (const match of matches) allMentionedIds.add(parseInt(match[1]));
-            };
-            collectMentions(mainPost.content);
-            if(mainPost.reply_to) collectMentions(mainPost.reply_to.content);
-            allRepliesRaw.forEach(reply => collectMentions(reply.content));
-            
-            const newIdsToFetch = [...allMentionedIds].filter(id => id && !allUsersCache.has(id));
-            if (newIdsToFetch.length > 0) {
-                const { data: newUsers } = await supabase.from('user').select('id, name, scid, icon_data, block').in('id', newIdsToFetch);
-                if (newUsers) newUsers.forEach(u => allUsersCache.set(u.id, u));
-            }
             
             contentDiv.innerHTML = '';
     
@@ -2096,16 +2116,18 @@ window.addEventListener('DOMContentLoaded', () => {
                     const latestMessage = newPostArray[newPostArray.length - 1];
                     if (latestMessage.id === lastRenderedMessageId || latestMessage.userid === currentUser.id) return;
 
+                    await supabase.rpc('mark_all_dm_messages_as_read', {
+                        p_dm_id: dmId,
+                        p_user_id: currentUser.id
+                    });
+
+                    if (currentUser.block.includes(latestMessage.userid)) return;
+
                     const view = document.querySelector('.dm-conversation-view');
                     if (view) {
                         const msgHTML = await renderDmMessage(latestMessage);
                         view.insertAdjacentHTML('afterbegin', msgHTML);
                         lastRenderedMessageId = latestMessage.id;
-                        
-                        await supabase.rpc('mark_all_dm_messages_as_read', {
-                            p_dm_id: dmId,
-                            p_user_id: currentUser.id
-                        });
                     }
                 }).subscribe();
 
@@ -2202,6 +2224,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <h2>
                         ${escapeHTML(user.name)}
                         ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
+                        ${await MakeTrustLabel(user.id)}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
@@ -2319,7 +2342,7 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' });
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' , pinId: user.pin});
                     break;
                 case 'replies':
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'replies_only' });
@@ -2573,6 +2596,7 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 let posts = [];
                 let hasMoreItems = true;
+                let showPinPost = false;
 
                 if ((type === 'timeline' && options.tab === 'foryou') || type === 'search') {
                     // --- ケースA: SQL関数側でページネーションを行う ---
@@ -2608,7 +2632,12 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (!options.userId) { hasMoreItems = false; }
                         else {
                             idQuery = supabase.from('post').select('id').eq('userid', options.userId);
-                            if (options.subType === 'posts_only') { idQuery = idQuery.is('reply_id', null); }
+                            if (options.subType === 'posts_only') { 
+                                idQuery = idQuery.is('reply_id', null);
+                                if (options.pinId && currentPagination.page === 0) {
+                                    showPinPost = true;
+                                }
+                            }
                             else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
                         }
                     } else if (type === 'likes' || type === 'stars') {
@@ -2624,6 +2653,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         const { data: idData, error: idError } = await idQuery.order('time', { ascending: false }).range(from, to);
                         if (idError) throw idError;
                         postIdsToFetch = idData.map(p => p.id);
+                        if (showPinPost && !postIdsToFetch.includes(options.pinId)) {
+                            postIdsToFetch.push(options.pinId);
+                        }
                         if (idData.length < POSTS_PER_PAGE) { hasMoreItems = false; }
                     }
                     
@@ -2692,7 +2724,19 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     });
                 
-                    // 投稿レンダリング（replyCountsMapを正しく渡す）
+                    // 全投稿のcontent内のメンションをキャッシュ
+                    await ensureMentionedUsersCached(posts.map(post => post.content))
+
+                    // 全投稿者のTrustRankをキャッシュ
+                    await MakeTrustLabel(posts.map(post => post.userid), false);
+
+                    if (showPinPost) {
+                        const pinPost = posts.find(p => p.id === options.pinId);
+                        const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
+                        if (postEl) currentTrigger.before(postEl);
+                        posts = posts.filter(p => p.id !== options.pinId);
+                    }
+                    // 投稿レンダリング
                     for (const post of posts) {
                         const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache, metricsPromise });
                         if (postEl) currentTrigger.before(postEl);
@@ -2707,7 +2751,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 posterror = error;
                 console.error("ポストの読み込みに失敗:", error);
                 currentTrigger.innerText = 'ポストの読み込みに失敗しました。';
-                console.log(currentTrigger);
                 currentPagination.hasMore = false;
                 if (localPostLoadObserver) localPostLoadObserver.disconnect();
             } finally {
@@ -2749,8 +2792,7 @@ window.addEventListener('DOMContentLoaded', () => {
         container.appendChild(trigger);
 
         const _contributors = await contributors;
-
-        const renderUserCard = (u) => {
+        const renderUserCard = async (u) => {
             const userCard = document.createElement('div');
             userCard.className = 'profile-card widget-item';
 
@@ -2765,14 +2807,15 @@ window.addEventListener('DOMContentLoaded', () => {
                     ? ` <img src="icons/contributor.png" class="contributor-badge" title="開発協力者">`
                     :  (u.verify ? ` <img src="icons/verify.png" class="verify-badge" title="認証済み">` : '')
                 );
-
+            
             userLink.innerHTML = `
                 <img src="${getUserIconUrl(u)}" style="width:48px; height:48px; border-radius:50%;" alt="${u.name}'s icon">
                 <div>
-                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}</span>
+                    <span class="name" style="font-weight:700;">${escapeHTML(u.name)}${badgeHTML}${await MakeTrustLabel(u.id)}</span>
                     <span class="id" style="color:var(--secondary-text-color);">#${u.id}</span>
                     <p class="me" style="margin:0.2rem 0 0;">${escapeHTML(u.me || '')}</p>
                 </div>`;
+
             
             userCard.appendChild(userLink);
             return userCard;
@@ -2811,7 +2854,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (users && users.length > 0) {
-                    users.forEach(u => container.insertBefore(renderUserCard(u), trigger));
+                    await MakeTrustLabel(users.map(u => u.id), false);
+                    for (const u of users) { container.appendChild(await renderUserCard(u)) }
                     currentPagination.page++;
                     if (users.length < POSTS_PER_PAGE) {
                         currentPagination.hasMore = false;
@@ -2998,8 +3042,30 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 11. ユーザーアクション (変更なし) ---
+    window.pinPost = async (postId) => {
+        let cmessage, emessage;
+
+        if (!currentUser) return alert("ログインが必要です。");
+        if (!currentUser.pin || currentUser.pin !== postId) {
+            cmessage ='このポストをピン留めしますか?';
+            emessage ='ポストのピン留め';
+        } else {
+            cmessage ='このポストのピン留めを解除しますか?';
+            emessage ='ポストのピン留めの解除';
+        }
+        if (!confirm(cmessage)) return;
+        showLoading(true);
+        try {
+            const { data: pinId, error: fetchError } = await supabase.rpc('handle_pin', { p_post_id: postId });
+            if (fetchError) throw new Error(`ポストのピン留め処理に失敗: ${fetchError.message}`);
+            currentUser.pin = pinId
+            router();
+        } catch(e) { console.error(e); alert(`${emessage}に失敗しました。`); } 
+        finally { showLoading(false); }
+    };
     window.deletePost = async (postId) => {
-        if (!confirm('このポストを削除しますか？')) return;
+        if (!currentUser) return alert("ログインが必要です。");
+        if (!confirm('このポストを削除しますか?')) return;
         showLoading(true);
         try {
             const { data: postData, error: fetchError } = await supabase.from('post').select('attachments').eq('id', postId).single();
@@ -3034,7 +3100,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
             const isLiked = data.liked;
             currentUser.like = data.updated_likes;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
     
             countSpan.textContent = isLiked ? currentCount + 1 : currentCount - 1;
             button.classList.toggle('liked', isLiked);
@@ -3061,7 +3126,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
             const isStarred = data.starred;
             currentUser.star = data.updated_stars;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
     
             countSpan.textContent = isStarred ? currentCount + 1 : currentCount - 1;
             button.classList.toggle('starred', isStarred);
@@ -3085,7 +3149,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
             const isFollowing = data.following;
             currentUser.follow = data.updated_follows;
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
     
             updateFollowButtonState(button, isFollowing);
     
@@ -4040,18 +4103,6 @@ window.addEventListener('DOMContentLoaded', () => {
             handleDeleteDmMessage(window.location.hash.substring(4), container.dataset.messageId);
             return;
         }
-        const editButton = target.closest('.edit-btn');
-        if (editButton) {
-            const postElement = editButton.closest('.post');
-            if(postElement) openEditPostModal(postElement.dataset.postId);
-            return;
-        }
-        const deleteButton = target.closest('.delete-btn:not(.delete-dm-msg-btn)');
-        if (deleteButton) {
-            const postElement = deleteButton.closest('.post');
-            if (postElement) window.deletePost(postElement.dataset.postId);
-            return;
-        }
 
         // --- 4. ポストのアクションや本体のクリック処理 ---
         const postElement = target.closest('.post');
@@ -4061,6 +4112,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const editButton = target.closest('.edit-btn');
             if (editButton) { openEditPostModal(timelinePostId); return; }
+
+            const pinButton = target.closest('.pin-btn');
+            if (pinButton) { window.pinPost(timelinePostId); return; } 
             
             const deleteButton = target.closest('.delete-btn');
             if (deleteButton) { window.deletePost(timelinePostId); return; }

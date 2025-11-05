@@ -34,14 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json' , "Authorization": `Bearer ${tToken}`},
                 body: JSON.stringify({ 
                     type: 'generateCode',
                     username: scratchUsername // SCIDを送信する
                 })
             });
             const data = await response.json();
-            if (!response.ok || data.error) throw new Error(data.error || 'コードの生成に失敗しました。');
+            if (!response.ok || data.error) {
+                window.turnstile.reset();
+                tToken = '';
+                getCodeBtn.disabled = true;
+                throw new Error(data.error || 'コードの生成に失敗しました。');
+            }
 
             verificationCodeElem.textContent = data.code;
             profileLink.href = `https://scratch.mit.edu/users/${scratchUsername}/#comments`;
@@ -74,16 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${tToken}` },
                 body: JSON.stringify({ 
                     type: 'verifyComment', 
                     username: scratchUsername, 
                     code: verificationCodeElem.textContent,
-                    // 'new: true' は不要なので削除しました
                 })
             });
             const data = await response.json();
-            if (!response.ok || data.error) throw new Error(data.error || '認証に失敗しました。');
+            if (!response.ok || data.error) {
+                window.turnstile.reset();
+                tToken = '';
+                verifyCommentBtn.disabled = true;
+                throw new Error(data.error || '認証に失敗しました。');
+            }
 
             const { error: sessionError } = await supabase.auth.setSession({
                 access_token: data.jwt,
