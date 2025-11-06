@@ -107,10 +107,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function getEmoji(str) {
         if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
-        else setting = 'emojione'
+        else setting = 'emojione';
         
         if (setting == "twemoji"){
-            return twemoji.parse(str,{
+            // titleにshortnameを挿入(Emoji Oneの関数使用)
+            let twe_div = document.createElement('div');
+            twe_div.innerHTML = twemoji.parse(str,{
                 callback: function (icon, options) {
                     return ''.concat(
                         "https://twitter.github.io/twemoji/v/latest/svg/",
@@ -119,6 +121,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     );
                 }
             });
+            twe_div.querySelectorAll('img').forEach((value) => {
+                value.title = emojione.toShort(value.alt);
+            });
+            return twe_div.innerHTML
         }
         else if (setting == "emojione"){
             return emojione.toImage(str);
