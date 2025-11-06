@@ -106,7 +106,8 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
-        let setting = currentUser.settings?.emoji || 'emojione';    
+        if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
+        else setting = 'emojione'
         
         if (setting == "twemoji"){
             return twemoji.parse(str,{
