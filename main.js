@@ -108,8 +108,20 @@ window.addEventListener('DOMContentLoaded', () => {
     function getEmoji(str) {
         let setting = currentUser.settings?.emoji || 'emojione';    
         
-        if (setting == "twemoji") return twemoji.parse(str);
-        else if (setting == "emojione") return emojione.toImage(str);
+        if (setting == "twemoji"){
+            return twemoji.parse(str,{
+                callback: function (icon, options) {
+                    return ''.concat(
+                        "https://twitter.github.io/twemoji/v/latest/svg/",
+                        icon,
+                        ".svg"
+                    );
+                }
+            });
+        }
+        else if (setting == "emojione"){
+            return emojione.toImage(str);
+        }
         else return str;
     }
 
