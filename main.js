@@ -271,7 +271,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
-            // 3. Emoji Oneの変換
+            // 3. 絵文字を変換
             processed = getEmoji(processed);
 
             // 4. ハッシュタグとメンションを置換
@@ -362,7 +362,8 @@ window.addEventListener('DOMContentLoaded', () => {
             postLoadObserver.disconnect();
         }
 
-        document.body.classList.toggle('notocoloremoji', localStorage.getItem("emoji") == "notocoloremoji");
+        // Noto Color Emojiのクラス付与(現在稼働停止中)
+        document.body.classList.toggle('notocoloremoji', current.setting?.emoji == "notocoloremoji" || false);
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
