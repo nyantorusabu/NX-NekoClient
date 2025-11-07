@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' , "Authorization": `Bearer ${tToken}`},
+                headers: { 'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     type: 'generateCode',
                     username: scratchUsername // SCIDを送信する
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', "Authorization": `Bearer ${tToken}` },
+                headers: { 'Content-Type': 'application/json'},
                 body: JSON.stringify({ 
                     type: 'verifyComment', 
                     username: scratchUsername, 
