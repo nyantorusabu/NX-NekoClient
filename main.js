@@ -2893,7 +2893,7 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (users && users.length > 0) {
                     await MakeTrustLabel(users.map(u => u.id), false);
-                    for (const u of users) { container.appendChild(await renderUserCard(u)) }
+                    for (const u of users) { container.insertBefore(await renderUserCard(u)) }
                     currentPagination.page++;
                     if (users.length < POSTS_PER_PAGE) {
                         currentPagination.hasMore = false;
