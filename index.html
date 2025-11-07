@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
     <title>NyaX</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emojione@4.0.0/extras/css/emojione.min.css"/>
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/emojione@4.0.0/lib/js/emojione.min.js"></script>
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-JYBQTQ1HCX"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-  gtag('config', 'G-JYBQTQ1HCX');
+    gtag('config', 'G-JYBQTQ1HCX');
 </script>
 <body>
     <div class="app-container">
@@ -63,15 +67,7 @@
         <aside id="right-sidebar">
             <div id="right-sidebar-search-widget-container"></div>
             <div id="recommendations-widget-container"></div>
-            <!-- NyaXルール(重要) -->
-            <div class="links">
-                <a class="link" href="/rule">NyaXルール</a>
-                <a class="link" href="/ranking">各種ランキング</a>
-                <a class="link" href="/stat">統計</a>
-                <a class="link" href="/l/forms">申請フォーム</a>
-                <a class="link" href="/emoji">Emoji一覧</a>
-                <a class="link-end" href="/l/discord">Discord鯖</a>
-            </div>
+            <div id="right-sidebar-links-container"></div>
         </aside>
     </div>
     <div id="login-banner" class="hidden">
@@ -138,42 +134,42 @@
         </div>
     </div>
     <div id="mainjs-error-overlay" class="modal-overlay hidden" style="z-index:3001;">
-      <div style="background: white; padding: 2rem; border-radius: 16px; text-align: center; max-width: 400px; margin: 2rem auto;">
-        <h2 style="margin-top:0; color:#d9534f;">エラー</h2>
-        <div id="mainjs-error-text" style="color:#d9534f; margin:1em 0; word-break:break-all;"></div>
-        <p style="color:#888; font-size:0.96em;">NyaXに問題が発生しました</p>
-        <ul style="text-align:left; color:#888; margin:1.2em 0 1.5em 0; font-size:0.98em;">
-          <li>キャッシュや拡張機能の影響の可能性があります</li>
-          <li>キャッシュの削除や拡張機能の無効化をしても直らない場合は管理者へご連絡ください</li>
-        </ul>
-        <button onclick="location.reload()" style="padding:0.7em 1.5em; font-size:1em; border-radius:9999px; background:#1d9bf0; color:white; border:none; font-weight:700;">再読み込み</button>
-      </div>
+        <div style="background: white; padding: 2rem; border-radius: 16px; text-align: center; max-width: 400px; margin: 2rem auto;">
+            <h2 style="margin-top:0; color:#d9534f;">エラー</h2>
+            <div id="mainjs-error-text" style="color:#d9534f; margin:1em 0; word-break:break-all;"></div>
+            <p style="color:#888; font-size:0.96em;">NyaXに問題が発生しました</p>
+            <ul style="text-align:left; color:#888; margin:1.2em 0 1.5em 0; font-size:0.98em;">
+                <li>キャッシュや拡張機能の影響の可能性があります</li>
+                <li>キャッシュの削除や拡張機能の無効化をしても直らない場合は管理者へご連絡ください</li>
+            </ul>
+            <button onclick="location.reload()" style="padding:0.7em 1.5em; font-size:1em; border-radius:9999px; background:#1d9bf0; color:white; border:none; font-weight:700;">再読み込み</button>
+        </div>
     </div>
     
     <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      showMainJsError(
-        `JavaScriptエラー: ${message}<br>
-        <small>${source}:${lineno}:${colno}</small><br>
-        <pre style="text-align:left;">${(error && error.stack) ? error.stack : ''}</pre>`
-      );
-      return true;
-    };
-    window.onunhandledrejection = function(event) {
-      showMainJsError(
-        `未処理のPromise例外: ${event.reason ? (event.reason.stack || event.reason) : event}`
-      );
-      return true;
-    };
-    function showMainJsError(html) {
-      var overlay = document.getElementById('mainjs-error-overlay');
-      var text = document.getElementById('mainjs-error-text');
-      if (overlay && text) {
-        text.innerHTML = String(html);
-        overlay.classList.remove('hidden');
-      }
-    }
+        window.onerror = function(message, source, lineno, colno, error) {
+            showMainJsError(
+                `JavaScriptエラー: ${message}<br>
+                <small>${source}:${lineno}:${colno}</small><br>
+                <pre style="text-align:left;">${(error && error.stack) ? error.stack : ''}</pre>`
+            );
+            return true;
+        };
+        window.onunhandledrejection = function(event) {
+            showMainJsError(
+                `未処理のPromise例外: ${event.reason ? (event.reason.stack || event.reason) : event}`
+            );
+            return true;
+        };
+        function showMainJsError(html) {
+            var overlay = document.getElementById('mainjs-error-overlay');
+            var text = document.getElementById('mainjs-error-text');
+            if (overlay && text) {
+                text.innerHTML = String(html);
+                overlay.classList.remove('hidden');
+            }
+        }
     </script>
-<script src="main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>

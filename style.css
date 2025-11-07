@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji:wght@400&display=swap');
 
 :root {
     --primary-color: #1d9bf0;
@@ -45,6 +46,17 @@ input, textarea {
     flex-direction: column;
     justify-content: space-between;
     flex-shrink: 0;
+}
+
+#nav-logo {
+    padding: 1rem;
+    display: flex;
+    margin-bottom: 0px;
+}
+@media (min-width: 768px) {
+    .nav-logo-img {
+        width: 1.8rem;
+    }
 }
 
 #nav-menu-top {
@@ -220,6 +232,25 @@ input, textarea {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     z-index: 10;
+}
+
+/* Emoji Oneの画像設定 */
+img.emojione{
+    width: 1.1rem;
+    height: auto;
+}
+
+/* Twemojiの画像設定 */
+img.emoji{
+    display: inline-block;
+    width: 1.1rem;
+    height: auto;
+    padding-right: 1px;
+}
+
+/* JSでつけるNoto Color Emoji用設定 */
+.notocoloremoji{
+    font-family: 'Noto Sans JP', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .header-with-back-button {
@@ -785,32 +816,24 @@ input, textarea {
     flex-shrink: 0;
 }
 
-/*ここから*/
-
-.links {
-    font-size: 15px;
+#right-sidebar-links-container {
+    font-size: 14px;
     display: inline;
 }
 
 .link {
     text-decoration: none;
     color: #808090;
-    border-right: solid 1.5px;
-    padding-right: 8px;
-    padding-left: 8px;
+    padding: 1px 8px 1px 8px;
 }
 
-.link-end {
-    text-decoration: none;
-    color: #808090;
-    padding-left: 8px;
+.link:not(.discord) {
+    border-right: #808090 1.5px solid;
 }
 
-.link:hover,.link-end:hover {
+.link:hover {
     text-decoration: underline;
 }
-
-/*ここまで(コメントは消してもらって構いません)*/
 
 .sidebar-widget {
     background-color: var(--bg-color);
