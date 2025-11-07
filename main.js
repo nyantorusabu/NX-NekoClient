@@ -285,17 +285,19 @@ window.addEventListener('DOMContentLoaded', () => {
         // Markdown判定を削除し、常にprocessStandardTextを呼び出す
         return processStandardText(text);
     }
+
     async function filterBlockedPosts(posts) {
         if (!currentUser || !Array.isArray(posts)) return posts;
         const userIds = posts.map(post => post.userid || post.user?.id);
         await getUserTrustRank(userIds, false); // ポストしたユーザーのTrustRankをキャッシュ
-        return posts.filter(async post => {
+
+        const filteredPosts = await Promise.all(posts.map(async post => {
             const authorId = post.userid || post.user?.id;
-            if (!authorId) return true;
+            if (!authorId) return false;
 
             // 自分がこの投稿主をブロックしている場合は常に除外
             if (Array.isArray(currentUser.block) && currentUser.block.includes(authorId)) return false;
-    
+
             const author = allUsersCache.get(authorId);
             // 投稿主が自分をブロックしている場合
             if (author && Array.isArray(author.block) && author.block.includes(currentUser.id)) {
@@ -303,25 +305,24 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (!currentUser.admin) return false;
             }
 
-            if (currentUser.settings?.safety || 'everyone') {
+            if (currentUser.settings?.safety) {
                 if (currentUser.follow?.includes(authorId)) return true; // フォロー中のユーザーは常に表示
                 const safety = currentUser.settings.safety || 'everyone';
                 const trust = await getUserTrustRank(authorId);
                 if (safety === 'following') {
                     if (!currentUser.follow?.includes(authorId)) return false;
-                }
-                else if (safety === 'trusted') {
+                } else if (safety === 'trusted') {
                     if (!trust || trust.rank > 0) return false;
-                }
-                else if (safety === 'more-trusted') {
+                } else if (safety === 'more-trusted') {
                     if (!trust || trust.rank > 1) return false;
-                }
-                else if (safety === 'not-suspicious') {
+                } else if (safety === 'not-suspicious') {
                     if (!trust || trust.rank < 0) return true;
                 }
             }
             return true;
-        });
+        }));
+
+        return posts.filter((_, index) => filteredPosts[index]);
     }
 
     async function ensureMentionedUsersCached(texts) {
