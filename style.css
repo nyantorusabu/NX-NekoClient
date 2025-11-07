@@ -48,17 +48,6 @@ input, textarea {
     flex-shrink: 0;
 }
 
-#nav-logo {
-    padding: 1rem;
-    display: flex;
-    margin-bottom: 0px;
-}
-@media (min-width: 768px) {
-    .nav-logo-img {
-        width: 1.8rem;
-    }
-}
-
 #nav-menu-top {
     display: flex;
     flex-direction: column;
