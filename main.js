@@ -309,14 +309,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (currentUser.follow?.includes(authorId)) return true; // フォロー中のユーザーは常に表示
                 const safety = currentUser.settings.safety || 'everyone';
                 const trust = await getUserTrustRank(authorId);
+                if (!trust) return false;
                 if (safety === 'following') {
                     if (!currentUser.follow?.includes(authorId)) return false;
                 } else if (safety === 'trusted') {
-                    if (!trust || trust.rank > 0) return false;
+                    if (trust.rank < 1) return false;
                 } else if (safety === 'more-trusted') {
-                    if (!trust || trust.rank > 1) return false;
+                    if (trust.rank < 2) return false;
                 } else if (safety === 'not-suspicious') {
-                    if (!trust || trust.rank < 0) return true;
+                    if (trust.rank < 0) return false;
                 }
             }
             return true;
