@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
 
-    const contributors = fetch("contributors.json").then(res => res.json());
+    const contributors = fetch("https://corsproxy.io/?url=https://nyax.onrender.com/contributors.json").then(res => res.json());
 
     let isLoadingMore = false;
     let postLoadObserver;
@@ -106,6 +106,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
+        if (currentUser == null) return emojione.toImage(str);
         let setting = currentUser.settings?.emoji || 'emojione';    
         
         if (setting == "twemoji") return twemoji.parse(str);
