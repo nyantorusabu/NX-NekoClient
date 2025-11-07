@@ -2444,27 +2444,27 @@ window.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('settings-screen').innerHTML = `
             <form id="settings-form">
-                <label for="setting-username">ユーザー名:</label>
+                <label for="setting-username">ユーザー名</label>
                 <input type="text" id="setting-username" required value="${escapeHTML(currentUser.name)}">
                 
-                <label for="setting-icon-input">アイコン:</label>
+                <label for="setting-icon-input">アイコン</label>
                 <div class="setting-icon-container">
                     <img id="setting-icon-preview" src="${getUserIconUrl(currentUser)}" alt="icon preview" title="クリックしてファイルを選択">
                     <button type="button" id="reset-icon-btn">デフォルトに戻す</button>
                 </div>
                 <input type="file" id="setting-icon-input" accept="image/*" class="hidden">
 
-                <label for="setting-me">自己紹介:</label>
+                <label for="setting-me">自己紹介</label>
                 <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
 
-                <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
+                <label for="setting-default-timeline">ホーム画面のデフォルトタブ</label>
                 <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="all">すべて</option>
                     <option value="foryou">おすすめ(β)</option>
                     <option value="following">フォロー中</option>
                 </select>
 
-                <label for"setting-emoji-kind">絵文字のフォント設定:</label>
+                <label for"setting-emoji-kind">絵文字のフォント設定</label>
                 <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="twemoji">Twemoji</option>
                     <option value="emojione">Emoji One</option>
