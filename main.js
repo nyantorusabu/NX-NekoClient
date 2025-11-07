@@ -2053,7 +2053,7 @@ window.addEventListener('DOMContentLoaded', () => {
             `;
 
             let posts = dm.post || [];
-            posts = filterBlockedPosts(posts);
+            posts = await filterBlockedPosts(posts);
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
@@ -2754,7 +2754,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (!container.querySelector('.load-more-trigger')) return;
 
                 if (posts && posts.length > 0) {
-                    posts = filterBlockedPosts(posts);
+                    posts = await filterBlockedPosts(posts);
                 
                     if (currentPagination.page > 0) {
                         const adPostEl = createAdPostHTML();
