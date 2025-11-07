@@ -116,7 +116,7 @@ window.addEventListener('DOMContentLoaded', () => {
             twe_div.innerHTML = twemoji.parse(str,{
                 callback: function (icon, options) {
                     return ''.concat(
-                        "https://twitter.github.io/twemoji/v/latest/svg/",
+                        "https://jdecked.github.io/twemoji/v/latest/svg/",
                         icon,
                         ".svg"
                     );
