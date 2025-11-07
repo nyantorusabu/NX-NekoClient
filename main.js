@@ -285,12 +285,14 @@ window.addEventListener('DOMContentLoaded', () => {
         // Markdown判定を削除し、常にprocessStandardTextを呼び出す
         return processStandardText(text);
     }
-    function filterBlockedPosts(posts) {
+    async function filterBlockedPosts(posts) {
         if (!currentUser || !Array.isArray(posts)) return posts;
-        return posts.filter(post => {
+        const userIds = posts.map(post => post.userid || post.user?.id);
+        await getUserTrustRank(userIds, false); // ポストしたユーザーのTrustRankをキャッシュ
+        return posts.filter(async post => {
             const authorId = post.userid || post.user?.id;
             if (!authorId) return true;
-    
+
             // 自分がこの投稿主をブロックしている場合は常に除外
             if (Array.isArray(currentUser.block) && currentUser.block.includes(authorId)) return false;
     
@@ -298,10 +300,24 @@ window.addEventListener('DOMContentLoaded', () => {
             // 投稿主が自分をブロックしている場合
             if (author && Array.isArray(author.block) && author.block.includes(currentUser.id)) {
                 // 自分がadminのときだけ規制を通過
-                if (currentUser.admin) {
-                    return true;
-                } else {
-                    return false;
+                if (!currentUser.admin) return false;
+            }
+
+            if (currentUser.settings?.safety || 'everyone') {
+                if (currentUser.follow?.includes(authorId)) return true; // フォロー中のユーザーは常に表示
+                const safety = currentUser.settings.safety || 'everyone';
+                const trust = await getUserTrustRank(authorId);
+                if (safety === 'following') {
+                    if (!currentUser.follow?.includes(authorId)) return false;
+                }
+                else if (safety === 'trusted') {
+                    if (!trust || trust.rank > 0) return false;
+                }
+                else if (safety === 'more-trusted') {
+                    if (!trust || trust.rank > 1) return false;
+                }
+                else if (safety === 'not-suspicious') {
+                    if (!trust || trust.rank < 0) return true;
                 }
             }
             return true;
@@ -325,16 +341,35 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function MakeTrustLabel(id, single = true) {
+    async function getUserTrustRank(id, single = true) {
         if (!currentUser.TrustCache) currentUser.TrustCache = [];
         let ids = [];
         if (single) {
             const cache = currentUser.TrustCache.find(u => u.id === id);
-            if (cache) return cache.data;
+            if (cache) return cache;
+            ids = [id];
+        } else {
+            const cachedIds = currentUser.TrustCache.map(u => u.id);
+            ids = id.filter(i => !cachedIds.includes(i));
+        };
+        if (ids.length > 0) {
+            const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
+            if (error || !trustData) return null;
+            for (trl of trustData) {
+                if (!currentUser.TrustCache.find(u => u.id === trl.id)) currentUser.TrustCache.push(trl);
+            }
+        }
+        if (single) return currentUser.TrustCache.find(u => u.id === id);
+        return currentUser.TrustCache.filter(u => id.includes(u.id));
+    }
+
+    async function MakeTrustLabel(id, single = true) {
+        let ids = [];
+        if (single) {
             ids = [id];
         } else { ids = id; };
-        const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
-        if (error || !trustData) return ICONS.trust;
+        const trustData = await getUserTrustRank(ids, false);
+        if (!trustData || trustData == null) return ICONS.trust;
         let labels = [];
 
         for (trl of trustData) {
@@ -342,7 +377,6 @@ window.addEventListener('DOMContentLoaded', () => {
             labelsvg = labelsvg.replace('TRL_Text', trl.rankid);
             labelsvg = labelsvg.replace('TRL_Color', trl.color);
             labels.push(labelsvg);
-            if (!currentUser.TrustCache.find(u => u.id === trl.id)) currentUser.TrustCache.push({id: trl.id, data: labelsvg});
         }
         if (single) return labels[0];
         return labels;
@@ -2019,7 +2053,7 @@ window.addEventListener('DOMContentLoaded', () => {
             `;
 
             let posts = dm.post || [];
-            posts = filterBlockedPosts(posts);;
+            posts = filterBlockedPosts(posts);
             const allUserIdsInDm = new Set(dm.member);
             const mentionRegex = /@(\d+)/g;
 
@@ -2427,14 +2461,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     <option value="foryou">おすすめ(β)</option>
                     <option value="following">フォロー中</option>
                 </select>
-                
-                <fieldset><legend>公開設定</legend>
-                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
-                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ?? true ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
-                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
-                </fieldset>
 
                 <label for"setting-emoji-kind">絵文字のフォント設定:</label>
                 <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
@@ -2443,6 +2469,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
                     <option value="default">デフォルト(端末絵文字)</option>
                 </select>
+
+                <label for="setting-trust-safety">ポスト/メッセージの表示範囲</label>
+                <select id="setting-trust-safety" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="everyone"}>すべてのユーザー</option>
+                    <option value="not-suspicious"}>疑わしいユーザー以外のみ</option>
+                    <option value="trusted"}>信頼できるユーザー(Credible以上)のみ</option>
+                    <option value="more-trusted">より信頼できるユーザー(Reliable以上)のみ</option>
+                    <option value="following">フォロー中のユーザーのみ</option>
+                </select>
+                
+                <fieldset><legend>公開設定</legend>
+                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
+                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                </fieldset>
                 
                 <button type="submit">設定を保存</button>
             </form>
@@ -2457,6 +2500,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const emoji_kind = currentUser.settings?.emoji || 'emojione';
         document.getElementById('setting-emoji-kind').value = emoji_kind;
+
+        const trust_safety = currentUser.settings?.trust_safety || 'everyone';
+        document.getElementById('setting-trust-safety').value = trust_safety;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
@@ -2766,7 +2812,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     await ensureMentionedUsersCached(posts.map(post => post.content))
 
                     // 全投稿者のTrustRankをキャッシュ
-                    await MakeTrustLabel(posts.map(post => post.userid), false);
+                    await getUserTrustRank(posts.map(post => post.userid), false);
 
                     if (showPinPost) {
                         const pinPost = posts.find(p => p.id === options.pinId);
@@ -2892,7 +2938,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 trigger.innerHTML = '読み込みに失敗しました。';
             } else {
                 if (users && users.length > 0) {
-                    await MakeTrustLabel(users.map(u => u.id), false);
+                    await getUserTrustRank(users.map(u => u.id), false);
                     for (const u of users) { container.insertBefore(await renderUserCard(u)) }
                     currentPagination.page++;
                     if (users.length < POSTS_PER_PAGE) {
@@ -3027,7 +3073,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_star: form.querySelector('#setting-show-star').checked,
                     show_scid: form.querySelector('#setting-show-scid').checked,
                     default_timeline_tab: form.querySelector('#setting-default-timeline').value,
-                    emoji: form.querySelector('#setting-emoji-kind').value
+                    emoji: form.querySelector('#setting-emoji-kind').value,
+                    safety: form.querySelector('#setting-trust-safety').value
                 },
             };
 
