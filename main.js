@@ -2501,7 +2501,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const emoji_kind = currentUser.settings?.emoji || 'emojione';
         document.getElementById('setting-emoji-kind').value = emoji_kind;
 
-        const trust_safety = currentUser.settings?.trust_safety || 'everyone';
+        const trust_safety = currentUser.settings?.safety || 'everyone';
         document.getElementById('setting-trust-safety').value = trust_safety;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
