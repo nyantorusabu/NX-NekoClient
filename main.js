@@ -106,11 +106,30 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
-        if (currentUser == null) return emojione.toImage(str);
-        let setting = currentUser.settings?.emoji || 'emojione';    
+        let setting;
+        if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
+        else setting = 'emojione';
         
-        if (setting == "twemoji") return twemoji.parse(str);
-        else if (setting == "emojione") return emojione.toImage(str);
+        if (setting == "twemoji"){
+            // titleにshortnameを挿入(Emoji Oneの関数使用)
+            let twe_div = document.createElement('div');
+            twe_div.innerHTML = twemoji.parse(str,{
+                callback: function (icon, options) {
+                    return ''.concat(
+                        "https://jdecked.github.io/twemoji/v/latest/svg/",
+                        icon,
+                        ".svg"
+                    );
+                }
+            });
+            twe_div.querySelectorAll('img').forEach((value) => {
+                value.title = emojione.toShort(value.alt);
+            });
+            return twe_div.innerHTML
+        }
+        else if (setting == "emojione"){
+            return emojione.toImage(str);
+        }
         else return str;
     }
 
@@ -253,7 +272,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
-            // 3. Emoji Oneの変換
+            // 3. 絵文字を変換
             processed = getEmoji(processed);
 
             // 4. ハッシュタグとメンションを置換
@@ -344,7 +363,8 @@ window.addEventListener('DOMContentLoaded', () => {
             postLoadObserver.disconnect();
         }
 
-        document.body.classList.toggle('notocoloremoji', localStorage.getItem("emoji") == "notocoloremoji");
+        // Noto Color Emojiのクラス付与(現在稼働停止中)
+        document.body.classList.toggle('notocoloremoji', currentUser.setting?.emoji == "notocoloremoji");
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
