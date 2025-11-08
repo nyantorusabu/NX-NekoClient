@@ -475,7 +475,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         
         if (window.matchMedia('(min-width:768px)').matches) {
-            DOM.navLogo.innerHTML = '<img src="./logo.png" class="nav-logo-img">'
+            DOM.navLogo.innerHTML = '<a href="#"><img src="./logo.png" class="nav-logo-img"></a>'
         }
 
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
