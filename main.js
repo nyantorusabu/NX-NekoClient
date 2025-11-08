@@ -364,7 +364,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         // Noto Color Emojiのクラス付与(現在稼働停止中)
-        document.body.classList.toggle('notocoloremoji', currentUser.setting?.emoji == "notocoloremoji");
+        document.body.classList.toggle('notocoloremoji', currentUser?.setting?.emoji == "notocoloremoji");
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
