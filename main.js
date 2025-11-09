@@ -929,6 +929,7 @@ window.addEventListener('DOMContentLoaded', () => {
         container.querySelector('#file-input').addEventListener('change', (e) => handleFileSelection(e, container));
         container.querySelector('#post-submit-button').addEventListener('click', () => handlePostSubmit(container));
         container.querySelector('textarea').addEventListener('keydown', handleCtrlEnter);
+        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
     }
 
     function handleFileSelection(event, container) {
