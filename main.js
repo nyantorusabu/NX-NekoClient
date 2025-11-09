@@ -867,14 +867,15 @@ window.addEventListener('DOMContentLoaded', () => {
         const pic_button = container.querySelector('.emoji-pic-button');
         const pickerOptions = {
             onEmojiSelect: (emoji) => {
-                let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = ` _${emoji.id}_ `;
-                else moji = emoji.navive;
-
                 let textarea = container.querySelector('textarea');
                 const text_start = textarea.selectionStart;
                 const text_end = textarea.selectionEnd;
                 const text = textarea.value;
+                
+                let moji;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
+                else moji = emoji.navive;
+                alert(moji);
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                 textarea.focus();
@@ -3376,14 +3377,14 @@ window.addEventListener('DOMContentLoaded', () => {
             const pic_button = DOM.editPostModal.querySelector('.emoji-pic-button');
             const pickerOptions = {
                 onEmojiSelect: (emoji) => {
-                    let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = ` _${emoji.id}_ `;
-                    else moji = emoji.navive;
-    
                     let textarea = DOM.editPostModal.querySelector('textarea');
                     const text_start = textarea.selectionStart;
                     const text_end = textarea.selectionEnd;
                     const text = textarea.value;
+                    
+                    let moji;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
+                    else moji = emoji.navive;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
