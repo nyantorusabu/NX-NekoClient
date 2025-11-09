@@ -826,7 +826,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea>
                     <div class="file-preview-container"></div>
                     <div class="post-form-actions">
-                        <button type="button" class="attachment-button float-left" title="ファイルを添付">
+                        <button type="button" class="attachment-button " title="ファイルを添付">
                             ${ICONS.attachment}
                         </button>
                         <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">
@@ -3343,7 +3343,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">${ICONS.emoji}</button>
                             <input type="file" id="edit-file-input" class="hidden" multiple>
                             <div id="emoji-picker" class="hidden"></div>
-                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;" class="float-clear">保存</button>
+                            <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;" class="float-right">保存</button>
+                            <span class="float-clear"></span>
                         </div>
                     </div>
                 </div>
