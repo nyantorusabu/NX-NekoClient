@@ -857,7 +857,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 ],
                 skins: [
                     {
-                        src: `emoji/${value_.id}.svg`
+                        src: `emoji/${value_e.id}.svg`
                     }
                 ],
             });
