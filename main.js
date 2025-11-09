@@ -423,7 +423,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         // Noto Color Emojiのクラス付与(現在稼働停止中)
-        document.body.classList.toggle('notocoloremoji', currentUser.setting?.emoji == "notocoloremoji");
+        document.body.classList.toggle('notocoloremoji', currentUser?.setting?.emoji == "notocoloremoji");
 
         try {
             if (hash.startsWith('#post/')) await showPostDetail(hash.substring(6));
@@ -2838,9 +2838,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     if (showPinPost) {
                         const pinPost = posts.find(p => p.id === options.pinId);
-                        const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
-                        if (postEl) currentTrigger.before(postEl);
-                        posts = posts.filter(p => p.id !== options.pinId);
+                        if (pinPost) {
+                            const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
+                            if (postEl) currentTrigger.before(postEl);
+                            posts = posts.filter(p => p.id !== options.pinId);
+                        }
                     }
                     // 投稿レンダリング
                     for (const post of posts) {
