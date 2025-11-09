@@ -868,7 +868,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const pickerOptions = {
             onEmojiSelect: (emoji) => {
                 let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = `_${emoji.id}_`;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = ` _${emoji.id}_ `;
                 else moji = emoji.navive;
 
                 let textarea = container.querySelector('textarea');
@@ -3377,7 +3377,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const pickerOptions = {
                 onEmojiSelect: (emoji) => {
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `_${emoji.id}_`;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = ` _${emoji.id}_ `;
                     else moji = emoji.navive;
     
                     let textarea = DOM.editPostModal.querySelector('textarea');
