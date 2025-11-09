@@ -2368,11 +2368,7 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    if (user.pin) {
-                        await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' , pinId: user.pin});
-                    } else {
-                        await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' });
-                    }
+                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' , pinId: user.pin});
                     break;
                 case 'replies':
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'replies_only' });
@@ -2771,9 +2767,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     if (showPinPost) {
                         const pinPost = posts.find(p => p.id === options.pinId);
-                        const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
-                        if (postEl) currentTrigger.before(postEl);
-                        posts = posts.filter(p => p.id !== options.pinId);
+                        if (pinPost) {
+                            const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
+                            if (postEl) currentTrigger.before(postEl);
+                            posts = posts.filter(p => p.id !== options.pinId);
+                        }
                     }
                     // 投稿レンダリング
                     for (const post of posts) {
