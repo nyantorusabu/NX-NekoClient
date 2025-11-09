@@ -2963,7 +2963,7 @@ window.addEventListener('DOMContentLoaded', () => {
             } else {
                 if (users && users.length > 0) {
                     await getUserTrustRank(users.map(u => u.id), false);
-                    for (const u of users) { container.insertBefore(await renderUserCard(u)), trigger}
+                    for (const u of users) { container.insertBefore(await renderUserCard(u), trigger)}
                     currentPagination.page++;
                     if (users.length < POSTS_PER_PAGE) {
                         currentPagination.hasMore = false;
