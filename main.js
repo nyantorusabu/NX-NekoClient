@@ -918,7 +918,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (top < 8) top = buttonRect.buttom + 8;
 
                 picker.style.left = `${left}px`;
-                picker.style.top = `${top + 20}px`;
+                picker.style.top = `${top + 50}px`;
             }
         });
         // ここまでEmoji Mart
