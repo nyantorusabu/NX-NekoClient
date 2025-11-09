@@ -826,7 +826,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <textarea id="post-content" placeholder="いまどうしてる？" maxlength="280"></textarea>
                     <div class="file-preview-container"></div>
                     <div class="post-form-actions">
-                        <button type="button" class="attachment-button " title="ファイルを添付">
+                        <button type="button" class="attachment-button float-left" title="ファイルを添付">
                             ${ICONS.attachment}
                         </button>
                         <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">
@@ -875,7 +875,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 let moji;
                 if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
                 else moji = emoji.navive;
-                alert(moji);
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                 textarea.focus();
