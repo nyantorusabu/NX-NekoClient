@@ -829,7 +829,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         <button type="button" class="attachment-button float-left" title="ファイルを添付">
                             ${ICONS.attachment}
                         </button>
-                        <button type="button" class="emoji-pic-button float-left" title="ファイルを添付">
+                        <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">
                             ${ICONS.emoji}
                         </button>
                         <div id="emoji-picker" class="hidden"></div>
@@ -3340,8 +3340,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">${renderAttachments()}</div>
                         <div class="post-form-actions" style="padding-top: 1rem;">
                             <button type="button" class="attachment-button float-left" title="ファイルを追加">${ICONS.attachment}</button>
-                            <button type="button" class="emoji-pic-button float-left" title="ファイルを添付">${ICONS.emoji}</button>
+                            <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">${ICONS.emoji}</button>
                             <input type="file" id="edit-file-input" class="hidden" multiple>
+                            <div id="emoji-picker" class="hidden"></div>
                             <button id="update-post-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;" class="float-clear">保存</button>
                         </div>
                     </div>
