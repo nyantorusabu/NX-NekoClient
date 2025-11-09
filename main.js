@@ -2368,7 +2368,11 @@ window.addEventListener('DOMContentLoaded', () => {
         try {
             switch(subpage) {
                 case 'posts':
-                    await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' , pinId: user.pin});
+                    if (user.pin) {
+                        await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' , pinId: user.pin});
+                    } else {
+                        await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'posts_only' });
+                    }
                     break;
                 case 'replies':
                     await loadPostsWithPagination(contentDiv, 'profile_posts', { userId: user.id, subType: 'replies_only' });
