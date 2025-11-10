@@ -2154,7 +2154,93 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
             `;
+
+
+            // ここからEmoji Mart
+            let _custom_emoji = await custom_emoji;
+            let custom = [];
+            let value_e;
+            for (let i = 0; i < _custom_emoji.length; i++){
+                value_e = _custom_emoji[i];
+                custom.push({
+                    id: value_e.id,
+                    name: value_e.name,
+                    keywords: [
+                        value_e.id,
+                        value_e.name,
+                        "NyaXEmoji"
+                    ],
+                    skins: [
+                        {
+                            src: `emoji/${value_e.id}.svg`
+                        }
+                    ],
+                });
+            }
+    
+            const picker = container.querySelector('#emoji-picker');
+            const pic_button = container.querySelector('.emoji-pic-button');
+            const pickerOptions = {
+                onEmojiSelect: (emoji) => {
+                    let textarea = container.querySelector('textarea');
+                    const text_start = textarea.selectionStart;
+                    const text_end = textarea.selectionEnd;
+                    const text = textarea.value;
+                    
+                    let moji;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
+                    else moji = emoji.navive;
+    
+                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
+                    textarea.focus();
+                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
+    
+                    picker.classList.add('hidden');
+                },
+                theme: "light",
+                set: "native",
+                searchPosition: "none",
+                locale: "ja",
+                custom: [
+                    {
+                        id: 'nyax',
+                        name: 'NyaXEmoji',
+                        emojis: custom
+                    }
+                ],
+                categoryIcons: {
+                    nyax: {
+                        svg: ICONS.nyax_logo
+                    }
+                },
+                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+            };
+            const picker_modal = new EmojiMart.Picker(pickerOptions);
+            picker.appendChild(picker_modal);
+    
+            pic_button.addEventListener('click', () => {
+                picker.classList.toggle('hidden');
+    
+                if(!picker.classList.contains('hidden')) {
+                    const buttonRect = pic_button.getBoundingClientRect();
+                    const pickerWidth = 320;
+                    const pickerHeight = 400;
+                    let left = buttonRect.left;
+                    let top = buttonRect.top;
+    
+                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
+                    if (left < 8) left = 8;
+                    if (top < 8) top = buttonRect.buttom + 8;
+    
+                    picker.style.left = `${left}px`;
+                    picker.style.top = `${top + 50}px`;
+                }
+            });
             
+            container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
+            // ここまでEmoji Mart            
+
+
             await supabase.rpc('mark_all_dm_messages_as_read', {
                 p_dm_id: dmId,
                 p_user_id: currentUser.id
