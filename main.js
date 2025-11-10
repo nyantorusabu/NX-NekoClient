@@ -877,7 +877,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
                 else moji = emoji.navive;
                 
-                alert(moji);
+                alert(emoji);
 
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
