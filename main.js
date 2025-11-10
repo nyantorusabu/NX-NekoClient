@@ -872,15 +872,15 @@ window.addEventListener('DOMContentLoaded', () => {
         const picker = container.querySelector('#emoji-picker');
         const pic_button = container.querySelector('.emoji-pic-button');
         const pickerOptions = {
-            onEmojiSelect: (emoji_s) => {
+            onEmojiSelect: (emoji) => {
                 let textarea = container.querySelector('textarea');
                 const text_start = textarea.selectionStart;
                 const text_end = textarea.selectionEnd;
                 const text = textarea.value;
                 
                 let moji;
-                if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
-                else moji = emoji_s.native;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                else moji = emoji.native;
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                 textarea.focus();
@@ -3384,15 +3384,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const picker = DOM.editPostModal.querySelector('#emoji-picker');
             const pic_button = DOM.editPostModal.querySelector('.emoji-pic-button');
             const pickerOptions = {
-                onEmojiSelect: (emoji_s) => {
+                onEmojiSelect: (emoji) => {
                     let textarea = DOM.editPostModal.querySelector('textarea');
                     const text_start = textarea.selectionStart;
                     const text_end = textarea.selectionEnd;
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
-                    else moji = emoji_s.native;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    else moji = emoji.native;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
@@ -3876,8 +3876,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
-                    else moji = emoji.navive;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    else moji = emoji.native;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
