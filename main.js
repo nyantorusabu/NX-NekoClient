@@ -3392,7 +3392,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     let moji;
                     if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
-                    else moji = emoji_s.navive;
+                    else moji = emoji_s.native;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
