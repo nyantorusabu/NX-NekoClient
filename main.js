@@ -3824,12 +3824,96 @@ window.addEventListener('DOMContentLoaded', () => {
                         <textarea id="edit-dm-textarea" style="min-height: 100px; font-size: 1rem;">${message.content || ''}</textarea>
                         <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;"></div>
                         <div class="post-form-actions" style="padding-top: 1rem;">
-                            <button type="button" class="attachment-button" title="ファイルを追加">${ICONS.attachment}</button>
+                            <button type="button" class="attachment-button float-left" title="ファイルを追加">${ICONS.attachment}</button>
+                            <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">${ICONS.emoji}</button>
                             <input type="file" id="edit-dm-file-input" class="hidden" multiple>
+                            <div id="emoji-picker" class="hidden"></div>
                             <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
                         </div>
                     </div>
                 </div>`;
+
+            // ここからEmoji Mart
+            let _custom_emoji = await custom_emoji;
+            let custom = [];
+            let value_e;
+            for (let i = 0; i < _custom_emoji.length; i++){
+                value_e = _custom_emoji[i];
+                custom.push({
+                    id: value_e.id,
+                    name: value_e.name,
+                    keywords: [
+                        value_e.id,
+                        value_e.name,
+                        "NyaXEmoji"
+                    ],
+                    skins: [
+                        {
+                            src: `emoji/${value_e.id}.svg`
+                        }
+                    ],
+                });
+            }
+    
+            const picker = DOM.editDmMessageModal.querySelector('#emoji-picker');
+            const pic_button = DOM.editDmMessageModal.querySelector('.emoji-pic-button');
+            const pickerOptions = {
+                onEmojiSelect: (emoji) => {
+                    let moji;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `_${emoji.id}_`;
+                    else moji = emoji.navive;
+    
+                    let textarea = DOM.editDmMessageModal.querySelector('textarea');
+                    const text_start = textarea.selectionStart;
+                    const text_end = textarea.selectionEnd;
+                    const text = textarea.value;
+    
+                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
+                    textarea.focus();
+                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
+    
+                    picker.classList.add('hidden');
+                },
+                theme: "light",
+                set: "native",
+                searchPosition: "none",
+                locale: "ja",
+                custom: [
+                    {
+                        id: 'nyax',
+                        name: 'NyaXEmoji',
+                        emojis: custom
+                    }
+                ],
+                categoryIcons: {
+                    nyax: {
+                        svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0,0,86.03313,99.70458"><g transform="translate(-196.60558,-130.32065)"><g fill="currentColor" stroke="none"><path d="M196.60559,230.02523l0,-70.13795l17.47488,-0.00265l0.02074,39.64497l14.92353,-19.35604l-14.9511,-20.28628l-17.46804,0v-29.56663h18.56125l24.87297,33.70192l24.96791,-33.70192h17.63101l0,29.64857l-17.18324,0l-15.17417,19.90152l15.22948,20.56652l-0.05143,-40.54738l17.17935,0.07934l0,70.05601h-17.47906l-25.25271,-34.55634l-24.3983,34.55634z"/></g></g></svg>`
+                    }
+                },
+                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+            };
+            const picker_modal = new EmojiMart.Picker(pickerOptions);
+            picker.appendChild(picker_modal);
+    
+            pic_button.addEventListener('click', () => {
+                picker.classList.toggle('hidden');
+    
+                if(!picker.classList.contains('hidden')) {
+                    const buttonRect = pic_button.getBoundingClientRect();
+                    const pickerWidth = 320;
+                    const pickerHeight = 400;
+                    let left = buttonRect.left;
+                    let top = buttonRect.top;
+    
+                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
+                    if (left < 8) left = 8;
+                    if (top < 8) top = buttonRect.buttom + 8;
+    
+                    picker.style.left = `${left}px`;
+                    picker.style.top = `${top + 50}px`;
+                }
+            });
+            // ここまでEmoji Mart
             
             updatePreview();
 
