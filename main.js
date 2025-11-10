@@ -922,6 +922,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 picker.style.top = `${top + 50}px`;
             }
         });
+        
+        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
         // ここまでEmoji Mart
         
         container.querySelector('.attachment-button').addEventListener('click', () => {
@@ -929,8 +931,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         container.querySelector('#file-input').addEventListener('change', (e) => handleFileSelection(e, container));
         container.querySelector('#post-submit-button').addEventListener('click', () => handlePostSubmit(container));
-        container.querySelector('textarea').addEventListener('keydown', handleCtrlEnter);
-        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
+        container.querySelector('textarea').addEventListener('keydown', handleCtrlEnter)
     }
 
     function handleFileSelection(event, container) {
@@ -2146,7 +2147,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="dm-form-actions">
                         <button id="dm-attachment-btn" class="attachment-button" title="ファイルを添付">${ICONS.attachment}</button>
+                        <button id="dm-emoji-pic-btn" class="emoji-pic-button" title="絵文字を選択">${ICONS.emoji}</button>
                         <input type="file" id="dm-file-input" class="hidden" multiple>
+                        <div id="emoji-picker"></div>
                         <button id="send-dm-btn" title="送信 (Ctrl+Enter)">${ICONS.send}</button>
                     </div>
                 </div>
