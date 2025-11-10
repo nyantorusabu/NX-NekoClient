@@ -347,6 +347,11 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function isNotBlank(str) {
+        if (str.match(/\S/)) return true;
+        else return false;
+    }
+
     // --- 5. ルーティングと画面管理 ---
     async function router() {
         showLoading(true);
@@ -874,11 +879,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 const text = textarea.value;
                 
                 let moji;
-                if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji_s.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
+                if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
                 else moji = emoji_s.native;
-                
-                alert(JSON.stringify(emoji_s));
-                alert(moji);
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                 textarea.focus();
@@ -2152,7 +2154,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         <button id="dm-attachment-btn" class="attachment-button" title="ファイルを添付">${ICONS.attachment}</button>
                         <button id="dm-emoji-pic-btn" class="emoji-pic-button" title="絵文字を選択">${ICONS.emoji}</button>
                         <input type="file" id="dm-file-input" class="hidden" multiple>
-                        <div id="emoji-picker"></div>
+                        <div id="emoji-picker" class="hidden"></div>
                         <button id="send-dm-btn" title="送信 (Ctrl+Enter)">${ICONS.send}</button>
                     </div>
                 </div>
@@ -2184,15 +2186,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const picker = container.querySelector('#emoji-picker');
             const pic_button = container.querySelector('.emoji-pic-button');
             const pickerOptions = {
-                onEmojiSelect: (emoji) => {
+                onEmojiSelect: (emoji_s) => {
                     let textarea = container.querySelector('textarea');
                     const text_start = textarea.selectionStart;
                     const text_end = textarea.selectionEnd;
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
-                    else moji = emoji.navive;
+                    if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    else moji = emoji_s.navive;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
@@ -3470,15 +3472,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const picker = DOM.editPostModal.querySelector('#emoji-picker');
             const pic_button = DOM.editPostModal.querySelector('.emoji-pic-button');
             const pickerOptions = {
-                onEmojiSelect: (emoji) => {
+                onEmojiSelect: (emoji_s) => {
                     let textarea = DOM.editPostModal.querySelector('textarea');
                     const text_start = textarea.selectionStart;
                     const text_end = textarea.selectionEnd;
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
-                    else moji = emoji.navive;
+                    if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji_s.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    else moji = emoji_s.navive;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
                     textarea.focus();
