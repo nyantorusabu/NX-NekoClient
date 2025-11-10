@@ -19,6 +19,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const contributors = fetch("contributors.json").then(res => res.json());
 
+    const custom_emoji = fetch("emoji/list.json").then(res => res.json());
+
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
