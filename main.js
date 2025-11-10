@@ -867,17 +867,17 @@ window.addEventListener('DOMContentLoaded', () => {
         const picker = container.querySelector('#emoji-picker');
         const pic_button = container.querySelector('.emoji-pic-button');
         const pickerOptions = {
-            onEmojiSelect: (emoji) => {
+            onEmojiSelect: (emoji_s) => {
                 let textarea = container.querySelector('textarea');
                 const text_start = textarea.selectionStart;
                 const text_end = textarea.selectionEnd;
                 const text = textarea.value;
                 
                 let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
-                else moji = emojione.shortnameToUnicode(emoji.shortname);
+                if(emoji_s.keywords.includes("NyaXEmoji")) moji = `${text.slice(text_start - 1, text_start) == "_" ? " " : ""}_${emoji_s.id}_${text.slice(text_end, text_end + 1) == "_" ? " " : ""}`;
+                else moji = emoji_s.native;
                 
-                alert(JSON.stringify(emoji));
+                alert(JSON.stringify(emoji_s));
                 alert(moji);
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
