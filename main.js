@@ -3830,7 +3830,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">${ICONS.emoji}</button>
                             <input type="file" id="edit-dm-file-input" class="hidden" multiple>
                             <div id="emoji-picker" class="hidden"></div>
-                            <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
+                            <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;" class="float-right">保存</button>
+                            <span class="float-clear"></span>
                         </div>
                     </div>
                 </div>`;
