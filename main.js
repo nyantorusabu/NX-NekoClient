@@ -3829,11 +3829,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         <textarea id="edit-dm-textarea" style="min-height: 100px; font-size: 1rem;">${message.content || ''}</textarea>
                         <div class="file-preview-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;"></div>
                         <div class="post-form-actions" style="padding-top: 1rem;">
-                            <button type="button" class="attachment-button" title="ファイルを追加">${ICONS.attachment}</button>
-                            <button type="button" class="attachment-button" title="絵文字を選択">${ICONS.emoji}</button>
+                            <button type="button" class="attachment-button float-left" title="ファイルを追加">${ICONS.attachment}</button>
+                            <button type="button" class="emoji-pic-button float-left" title="絵文字を選択">${ICONS.emoji}</button>
                             <input type="file" id="edit-dm-file-input" class="hidden" multiple>
                             <div id="emoji-picker" class="hidden"></div>
-                            <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;">保存</button>
+                            <button id="update-dm-message-button" style="padding: 0.5rem 1.5rem; border-radius: 9999px; border: none; background-color: var(--primary-color); color: white; font-weight: 700; margin-left: auto;" class="float-right">保存</button>
                             <span class="float-clear"></span>
                         </div>
                     </div>
