@@ -2869,11 +2869,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (pinPost) {
                             const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
                             if (postEl) currentTrigger.before(postEl);
-                            posts = posts.filter(p => p.id !== options.pinId);
                         }
                     }
                     // 投稿レンダリング
                     for (const post of posts) {
+                        if (showPinPost && post.id === options.pinId) continue; // ピン留めポストはすでに表示済みのためスキップ
                         const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache, metricsPromise });
                         if (postEl) currentTrigger.before(postEl);
                     }
