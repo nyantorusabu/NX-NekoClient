@@ -2759,7 +2759,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     let idQuery;
 
                     if (type === 'timeline') {
-                        idQuery = supabase.from('post_recent').select('id').is('reply_id', null);
+                        idQuery = supabase.from('post_recent').select('id');
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
@@ -2768,7 +2768,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     } else if (type === 'profile_posts') {
                         if (!options.userId) { hasMoreItems = false; }
                         else {
-                            idQuery = supabase.from('post').select('id').eq('userid', options.userId);
+                            idQuery = supabase.from('post_profile').select('id').eq('userid', options.userId);
                             if (options.subType === 'posts_only') { 
                                 idQuery = idQuery.is('reply_id', null);
                                 if (options.pinId && currentPagination.page === 0) {
@@ -2787,7 +2787,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
 
                     if (idQuery && hasMoreItems) {
-                        const { data: idData, error: idError } = await idQuery.order('time', { ascending: false }).range(from, to);
+                        const { data: idData, error: idError } = await idQuery.range(from, to);
                         if (idError) throw idError;
                         postIdsToFetch = idData.map(p => p.id);
                         if (showPinPost && !postIdsToFetch.includes(options.pinId)) {
