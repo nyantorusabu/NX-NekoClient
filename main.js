@@ -880,7 +880,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const text = textarea.value;
                 
                 let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
                 else moji = emoji.native;
 
                 textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
@@ -3392,7 +3392,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
                     else moji = emoji.native;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
@@ -3875,7 +3875,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const text = textarea.value;
                     
                     let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${isNotBlank(text.slice(text_end, text_end + 1)) ? " " : ""}`;
+                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
                     else moji = emoji.native;
     
                     textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
