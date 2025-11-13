@@ -358,6 +358,24 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
         isLoadingMore = false;
 
+        // Theme
+        if (currentUser){
+            if (currentUser.setting?.theme == 'dark'){
+                document.body.classList.remove('light');
+                document.body.classList.add('dark');
+            }
+            else if (currentUser.setting?.theme == 'auto'){
+                document.body.classList.remove('light');
+                document.body.classList.remove('dark');
+            } else {
+                document.body.classList.add('light');
+                document.body.classList.remove('dark');
+            }
+        } else {
+            document.body.classList.add('light');
+            document.body.classList.remove('dark');
+        }
+
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
 
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
@@ -2542,6 +2560,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
                     <option value="default">デフォルト(端末絵文字)</option>
                 </select>
+
+                <label for="setting-theme">テーマ設定</label>
+                <select id="setting-theme" style="width:100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="auto">端末設定</option>
+                    <option value="light">ライト</option>
+                    <option value="dark">ダーク</option>
+                </select>
                 
                 <button type="submit">設定を保存</button>
             </form>
@@ -2556,6 +2581,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const emoji_kind = currentUser.settings?.emoji || 'emojione';
         document.getElementById('setting-emoji-kind').value = emoji_kind;
+        
+        const theme = currentUser.settings?.theme || 'light';
+        document.getElementById('setting-theme').value = emoji_kind;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
@@ -3124,7 +3152,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_star: form.querySelector('#setting-show-star').checked,
                     show_scid: form.querySelector('#setting-show-scid').checked,
                     default_timeline_tab: form.querySelector('#setting-default-timeline').value,
-                    emoji: form.querySelector('#setting-emoji-kind').value
+                    emoji: form.querySelector('#setting-emoji-kind').value,
+                    theme: form.querySelector('#setting-theme').value
                 },
             };
 
