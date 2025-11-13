@@ -24,8 +24,7 @@
     --d-text-color: #f5faff;
     --d-secondary-text-color: #a3b4c1;
 }
-
-:root{
+/*:root{
     --border-color: var(--l-border-color);
     --bg-color: var(--l-bg-color);
     --main-bg-color: var(--l-main-bg-color);
@@ -43,6 +42,11 @@
         --pg-bg-color: var(--d-pg-bg-color);
         --text-color: var(--d-text-color);
         --secondary-text-color: var(--d-secondary-text-color);
+    }
+}*/
+@media (prefers-color-scheme: dark) {
+    html{
+        --isDarkmode: True;
     }
 }
 body.light {
