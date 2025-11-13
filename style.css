@@ -509,6 +509,7 @@ img.emoji{
     width: 100%;
     min-height: 60px;
     background-color: var(--main-bg-color);
+    color: var(--text-color);
     border: none;
     padding: 0.5rem 0;
     box-sizing: border-box;
