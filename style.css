@@ -1575,7 +1575,7 @@ img.emoji{
     color: var(--primary-color);
     border: none;
     border-bottom: 1px solid var(--border-color);
-    background-color: white;
+    background-color: var(--main-bg-color);
     cursor: pointer;
     transition: background-color 0.2s;
 }
@@ -1745,7 +1745,7 @@ img.emoji{
     display: flex;
     align-items: flex-end;
     gap: 0.5rem;
-    background-color: white;
+    background-color: var(--main-bg-color);
     bottom: 0;
 }
 
@@ -1767,6 +1767,7 @@ img.emoji{
     font-size: 1rem;
     line-height: 1.2;
     background-color: var(--bg-color);
+    color: var(--text-color)
 }
 
 .dm-form-actions {
