@@ -16,6 +16,7 @@
     --l-notification-bg-color: #e8f5fd;
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
+    --l-logo-color: black;
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
@@ -25,6 +26,7 @@
     --d-notification-bg-color: #5b6063;
     --d-text-color: #f5faff;
     --d-secondary-text-color: #a3b4c1;
+    --d-logo-color: white;
 }
 /*:root{
     --border-color: var(--l-border-color);
@@ -56,6 +58,7 @@ body.light {
     --notification-bg-color: var(--l-notification-bg-color);
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
+    --logo-color: var(--l-logo-color);
 }
 body.dark {
     --border-color: var(--d-border-color);
@@ -66,6 +69,7 @@ body.dark {
     --notification-bg-color: var(--s-notification-bg-color);
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
+    --logo-color: var(--d-logo-color);
 }
 
 body {
@@ -102,6 +106,11 @@ input, textarea {
     flex-direction: column;
     /*justify-content: space-between;*/
     flex-shrink: 0;
+}
+
+.nav-logo-img svg {
+    fill: var(--logo-color);
+    stroke: var(--logo-color);
 }
 
 @media (min-width: 768px) {
