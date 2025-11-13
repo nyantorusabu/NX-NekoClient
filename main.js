@@ -27,6 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const POSTS_PER_PAGE = 15;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let emojiTheme = 'light';
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -366,22 +367,27 @@ window.addEventListener('DOMContentLoaded', () => {
             if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
+                emojiTheme = 'dark';
             }
             else if (currentUser.settings?.theme == 'auto'){
                 if (isDarkmode) {
                     document.body.classList.remove('light');
                     document.body.classList.add('dark');
+                    emojiTheme = 'dark';
                 } else {
                     document.body.classList.add('light');
                     document.body.classList.remove('dark');
+                    emojiTheme = 'light';
                 }
             } else {
                 document.body.classList.add('light');
                 document.body.classList.remove('dark');
+                emojiTheme = 'light';
             }
         } else {
             document.body.classList.add('light');
             document.body.classList.remove('dark');
+            emojiTheme = 'light';
         }
 
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
@@ -915,7 +921,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 picker.classList.add('hidden');
             },
-            theme: "light",
+            theme: emojiTheme,
             set: "native",
             searchPosition: "none",
             locale: "ja",
@@ -3438,7 +3444,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
+                theme: emojiTheme,
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
@@ -3921,7 +3927,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
+                theme: emojiTheme,
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
