@@ -13,6 +13,7 @@
     --l-main-bg-color: white;
     --l-ad-bg-color: #f7f9f9;
     --l-pg-bg-color: rgba(255, 255, 255, 0.85);
+    --l-notification-bg-color: #e8f5fd;
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
     /* ダークモード色設定 */
@@ -21,6 +22,7 @@
     --d-main-bg-color: black;
     --d-ad-bg-color: #272929;
     --d-pg-bg-color: rgba(0, 0, 0, 0.85);
+    --d-notification-bg-color: #5b6063;
     --d-text-color: #f5faff;
     --d-secondary-text-color: #a3b4c1;
 }
@@ -44,17 +46,14 @@
         --secondary-text-color: var(--d-secondary-text-color);
     }
 }*/
-@media (prefers-color-scheme: dark) {
-    html{
-        --isDarkmode: True;
-    }
-}
+
 body.light {
     --border-color: var(--l-border-color);
     --bg-color: var(--l-bg-color);
     --main-bg-color: var(--l-main-bg-color);
     --ad-bg-color: var(--l-ad-bg-color);
     --pg-bg-color: var(--l-pg-bg-color);
+    --notification-bg-color: var(--l-notification-bg-color);
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
 }
@@ -64,6 +63,7 @@ body.dark {
     --main-bg-color: var(--d-main-bg-color);
     --ad-bg-color: var(--d-ad-bg-color);
     --pg-bg-color: var(--d-pg-bg-color);
+    --notification-bg-color: var(--s-notification-bg-color);
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
 }
@@ -411,7 +411,14 @@ img.emoji{
 }
 
 
-.timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
+.timeline-tabs-sticky-container {
+    position: sticky;
+    top: 56px;
+    background-color: var(--pg-bg-color);
+    backdrop-filter: blur(12px);
+    z-index: 9;
+    border-bottom: 1px solid var(--border-color);
+}
 .timeline-tabs { display: flex; }
 .post-form-sticky-container {
     background-color: var(--main-bg-color); /* スクロール時に背景が透けないように */
@@ -971,7 +978,7 @@ img.emoji{
 }
 
 .notification-new {
-    background-color: #e8f5fd;
+    background-color: var(--notification-bg-color);
     border-left: 4px solid var(--primary-color);
     /* padding-leftをwidget-itemのpaddingと合わせる */
     padding-left: calc(1rem - 4px); 
@@ -1358,7 +1365,7 @@ img.emoji{
     position: sticky;
     /* [修正点] ヘッダーのpadding(1rem=16px * 2)とborder(1px)を考慮した正確なtop値 */
     top: calc(1rem + 1.25rem + 1rem + 1px); /* ヘッダーの実際の高さに合わせる */
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: var(--pg-bg-color);
     backdrop-filter: blur(12px);
     z-index: 9;
 }
@@ -2323,7 +2330,7 @@ img.emoji{
         height: auto;
         flex-direction: row;
         justify-content: space-around;
-        background-color: white;
+        background-color: var(--bg-color);
         border-top: 1px solid var(--border-color);
         z-index: 100;
         padding: 0;
