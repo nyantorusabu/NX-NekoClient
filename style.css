@@ -394,7 +394,7 @@ img.emoji{
     padding: 0.5rem 1rem;
     border-radius: 9999px;
     border: 1px solid var(--text-color); /* 黒い枠線 */
-    background: white;
+    background: var(--main-bg-color);
     color: var(--text-color); /* 黒い文字 */
     font-weight: 700;
     cursor: pointer;
@@ -410,7 +410,7 @@ img.emoji{
 .timeline-tabs-sticky-container { position: sticky; top: 56px; background-color: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); z-index: 9; border-bottom: 1px solid var(--border-color); }
 .timeline-tabs { display: flex; }
 .post-form-sticky-container {
-    background-color: white; /* スクロール時に背景が透けないように */
+    background-color: var(--main-bg-color); /* スクロール時に背景が透けないように */
     z-index: 8;
     border-bottom: 1px solid var(--border-color);
 }
@@ -450,7 +450,7 @@ img.emoji{
 }
 .new-posts-indicator button {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--main-bg-color);
     border: none;
     padding: 0.5rem 1rem;
     border-radius: 9999px;
@@ -505,7 +505,7 @@ img.emoji{
     border-radius: 9999px;
     border: none;
     background-color: var(--primary-color);
-    color: white;
+    color: var(--main-bg-color);
     font-weight: 700;
     cursor: pointer;
 }
