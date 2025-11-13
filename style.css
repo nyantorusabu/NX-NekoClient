@@ -108,6 +108,10 @@ input, textarea {
     flex-shrink: 0;
 }
 
+.nav-logo-img {
+    color: var(--logo-color);
+}
+
 .nav-logo-img svg {
     fill: var(--logo-color) !important;
     stroke: var(--logo-color) !important;
