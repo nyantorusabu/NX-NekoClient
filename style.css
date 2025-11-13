@@ -8,6 +8,7 @@
     --star-color: #ffad1f;
     --border-color: #eff3f4;
     --bg-color: #f7f9f9;
+    --main-bg-color: white;
     --text-color: #0f1419;
     --secondary-text-color: #536471;
 }
@@ -16,6 +17,7 @@
     :root {
         --border-color: #787a7a;
         --bg-color: #2f2121;
+        --main-bg-color: black;
         --text-color: #f5faff;
         --secondary-text-color: #a3b4c1;
     }
@@ -24,12 +26,14 @@
 body.light {
     --border-color: #eff3f4;
     --bg-color: #f7f9f9;
+    --main-bg-color: white;
     --text-color: #0f1419;
     --secondary-text-color: #536471;
 }
 body.dark {
     --border-color: #787a7a;
     --bg-color: #2f2121;
+    --main-bg-color: black;
     --text-color: #f5faff;
     --secondary-text-color: #a3b4c1;
 }
