@@ -12,6 +12,7 @@
     --l-bg-color: #f7f9f9;
     --l-main-bg-color: white;
     --l-ad-bg-color: #f7f9f9;
+    --l-pg-bg-color: rgba(255, 255, 255, 0.85);
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
     /* ダークモード色設定 */
@@ -19,6 +20,7 @@
     --d-bg-color: #2f2121;
     --d-main-bg-color: black;
     --d-ad-bg-color: #272929;
+    --d-pg-bg-color: rgba(0, 0, 0, 0.85);
     --d-text-color: #f5faff;
     --d-secondary-text-color: #a3b4c1;
 }
@@ -28,6 +30,7 @@
     --bg-color: var(--l-bg-color);
     --main-bg-color: var(--l-main-bg-color);
     --ad-bg-color: var(--l-ad-bg-color);
+    --pg-bg-color: var(--l-pg-bg-color);
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
 }
@@ -37,6 +40,7 @@
         --bg-color: var(--d-bg-color);
         --main-bg-color: var(--d-main-bg-color);
         --ad-bg-color: var(--d-ad-bg-color);
+        --pg-bg-color: var(--d-pg-bg-color);
         --text-color: var(--d-text-color);
         --secondary-text-color: var(--d-secondary-text-color);
     }
@@ -46,6 +50,7 @@ body.light {
     --bg-color: var(--l-bg-color);
     --main-bg-color: var(--l-main-bg-color);
     --ad-bg-color: var(--l-ad-bg-color);
+    --pg-bg-color: var(--l-pg-bg-color);
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
 }
@@ -54,6 +59,7 @@ body.dark {
     --bg-color: var(--d-bg-color);
     --main-bg-color: var(--d-main-bg-color);
     --ad-bg-color: var(--d-ad-bg-color);
+    --pg-bg-color: var(--d-pg-bg-color);
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
 }
@@ -186,10 +192,19 @@ input, textarea {
     stroke: none;
 }
 .nav-item[href="#settings"].active svg circle {
-    fill: white;
     stroke: none;
 }
-
+@media (prefers-color-scheme: dark) {
+    .nav-item[href="#settings"].active svg circle {
+        fill: black;
+    }
+}
+body.light .nav-item[href="#settings"].active svg circle {
+    fill: white;
+}
+body.dark .nav-item[href="#settings"].active svg circle {
+    fill: black;
+}
 .nav-item-post {
     background-color: var(--primary-color);
     color: white;
@@ -281,7 +296,7 @@ input, textarea {
 #page-header {
     position: sticky;
     top: 0;
-    background-color: rgba(255, 255, 255, 0.85);
+    background-color: var(--pg-bg-color);
     backdrop-filter: blur(12px);
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
