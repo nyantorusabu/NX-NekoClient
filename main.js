@@ -26,6 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
     const POSTS_PER_PAGE = 15;
 
+    let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
       home: `<svg viewBox="0 0 24 24"><path d="M21 9V20C21 20.5304 20.7891 21.039 20.4141 21.4141C20.039 21.7891 19.5304 22 19 22H15V12H9V22H5C4.46957 22 3.96101 21.7891 3.58594 21.4141C3.21086 21.039 3 20.5304 3 20V9L12 2L21 9Z"></path></svg>`,
@@ -359,14 +361,20 @@ window.addEventListener('DOMContentLoaded', () => {
         isLoadingMore = false;
 
         // Theme
+        isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (currentUser){
             if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
             }
             else if (currentUser.settings?.theme == 'auto'){
-                document.body.classList.remove('light');
-                document.body.classList.remove('dark');
+                if (isDarkmode) {
+                    document.body.classList.remove('light');
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.add('light');
+                    document.body.classList.remove('dark');
+                }
             } else {
                 document.body.classList.add('light');
                 document.body.classList.remove('dark');
