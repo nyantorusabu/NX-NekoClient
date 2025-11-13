@@ -360,11 +360,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // Theme
         if (currentUser){
-            if (currentUser.setting?.theme == 'dark'){
+            if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
             }
-            else if (currentUser.setting?.theme == 'auto'){
+            else if (currentUser.settings?.theme == 'auto'){
                 document.body.classList.remove('light');
                 document.body.classList.remove('dark');
             } else {
@@ -2583,7 +2583,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('setting-emoji-kind').value = emoji_kind;
         
         const theme = currentUser.settings?.theme || 'light';
-        document.getElementById('setting-theme').value = emoji_kind;
+        document.getElementById('setting-theme').value = theme;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
