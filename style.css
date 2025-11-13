@@ -1047,7 +1047,7 @@ img.emoji{
     font-size: 1rem;
 }
 
-.sidebar-search-widget  {
+.sidebar-search-widget svg {
     width: 20px;
     height: 20px;
     fill: none;
@@ -1811,13 +1811,13 @@ img.emoji{
     background-color: #e8f5fd;
 }
 
-.dm-message-form button  {
+.dm-message-form button svg {
     width: 20px;
     height: 20px;
     fill: none; /* デフォルトで塗りつぶしなし */
     stroke: currentColor;
 }
-.dm-message-form #send-dm-btn  {
+.dm-message-form #send-dm-btn svg {
     fill: none;
     stroke: white;
 }
@@ -2051,7 +2051,7 @@ img.emoji{
 .copy-btn:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
-.copy-btn  {
+.copy-btn svg {
     width: 1em;
     height: 1em;
 }
@@ -2115,8 +2115,8 @@ img.emoji{
     align-items: center;
     gap: 0.5em;
 }
-.repost-indicator ,
-.pinned-indicator  {
+.repost-indicator svg,
+.pinned-indicator svg {
     width: 1em;
     height: 1em;
     stroke: currentColor;
@@ -2136,7 +2136,7 @@ img.emoji{
     flex-basis: 48px; /* 通常のアイコン幅に合わせる */
     padding-right: 0.5rem; /* post-mainとのgapを考慮 */
 }
-.repost-indicator  {
+.repost-indicator svg {
     width: 1.5em; /* アイコンサイズを調整 */
     height: 1.5em;
     stroke: currentColor;
@@ -2321,7 +2321,7 @@ img.emoji{
     .nav-item-post .nav-item-icon {
         display: block; /* 縮小ビューではアイコンを表示 */
     }
-    .nav-item-post .nav-item-icon  {
+    .nav-item-post .nav-item-icon svg {
         fill: none;
         stroke: white;
         width: 1.5rem;
