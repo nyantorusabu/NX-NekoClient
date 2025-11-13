@@ -2,40 +2,60 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji:wght@400&display=swap');
 
 :root {
+    /* 共通色設定 */
     --primary-color: #1d9bf0;
     --primary-hover-color: #1a8cd8;
     --like-color: #f91880;
     --star-color: #ffad1f;
-    --border-color: #eff3f4;
-    --bg-color: #f7f9f9;
-    --main-bg-color: white;
-    --text-color: #0f1419;
-    --secondary-text-color: #536471;
+    /* ライトモード(デフォルト)色設定 */
+    --l-border-color: #eff3f4;
+    --l-bg-color: #f7f9f9;
+    --l-main-bg-color: white;
+    --l-ad-bg-color: #f7f9f9;
+    --l-text-color: #0f1419;
+    --l-secondary-text-color: #536471;
+    /* ダークモード色設定 */
+    --d-border-color: #282a2a;
+    --d-bg-color: #2f2121;
+    --d-main-bg-color: black;
+    --d-ad-bg-color: #272929;
+    --d-text-color: #f5faff;
+    --d-secondary-text-color: #a3b4c1;
 }
 
+:root{
+    --border-color: var(--l-border-color);
+    --bg-color: var(--l-bg-color);
+    --main-bg-color: var(--l-main-bg-color);
+    --ad-bg-color: var(--l-ad-bg-color);
+    --text-color: var(--l-text-color);
+    --secondary-text-color: var(--l-secondary-text-color);
+}
 @media (prefers-color-scheme: dark) {
     :root {
-        --border-color: #787a7a;
-        --bg-color: #2f2121;
-        --main-bg-color: black;
-        --text-color: #f5faff;
-        --secondary-text-color: #a3b4c1;
+        --border-color: var(--d-border-color);
+        --bg-color: var(--d-bg-color);
+        --main-bg-color: var(--d-main-bg-color);
+        --ad-bg-color: var(--d-ad-bg-color);
+        --text-color: var(--d-text-color);
+        --secondary-text-color: var(--d-secondary-text-color);
     }
 }
-
 body.light {
-    --border-color: #eff3f4;
-    --bg-color: #f7f9f9;
-    --main-bg-color: white;
-    --text-color: #0f1419;
-    --secondary-text-color: #536471;
+    --border-color: var(--l-border-color);
+    --bg-color: var(--l-bg-color);
+    --main-bg-color: var(--l-main-bg-color);
+    --ad-bg-color: var(--l-ad-bg-color);
+    --text-color: var(--l-text-color);
+    --secondary-text-color: var(--l-secondary-text-color);
 }
 body.dark {
-    --border-color: #787a7a;
-    --bg-color: #2f2121;
-    --main-bg-color: black;
-    --text-color: #f5faff;
-    --secondary-text-color: #a3b4c1;
+    --border-color: var(--d-border-color);
+    --bg-color: var(--d-bg-color);
+    --main-bg-color: var(--d-main-bg-color);
+    --ad-bg-color: var(--d-ad-bg-color);
+    --text-color: var(--d-text-color);
+    --secondary-text-color: var(--d-secondary-text-color);
 }
 
 body {
@@ -581,7 +601,7 @@ img.emoji{
 
 /* 広告ポスト用のスタイル */
 .ad-post {
-    background-color: #f7f9f9; /* 通常のポストと少し色を変える */
+    background-color: var(--ad-bg-color); /* 通常のポストと少し色を変える */
 }
 .ad-post .post-author {
     color: var(--secondary-text-color);
