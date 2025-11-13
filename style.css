@@ -495,6 +495,7 @@ img.emoji{
 .post-form textarea {
     width: 100%;
     min-height: 60px;
+    background-color: var(--main-bg-color);
     border: none;
     padding: 0.5rem 0;
     box-sizing: border-box;
@@ -1460,6 +1461,7 @@ img.emoji{
 #settings-form input[type="text"], #settings-form textarea {
     width: 100%;
     padding: 0.8rem;
+    background-color: var(--main-bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     font-size: 1rem;
@@ -1479,6 +1481,10 @@ img.emoji{
 
 #settings-form fieldset label {
     font-weight: 400;
+}
+
+#settings-form input[type="checkbox"], #settings-form select{
+    background-color: var(--main-bg-color);
 }
 
 #settings-form button[type="submit"] {
@@ -1741,6 +1747,7 @@ img.emoji{
     resize: none;
     border: 1px solid var(--border-color);
     border-radius: 8px;
+    background-color: var(--main-bg-color);
     padding: 0.5rem;
     font-size: 1rem;
     line-height: 1.2;
