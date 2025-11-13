@@ -516,7 +516,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         
         if (window.matchMedia('(min-width:768px)').matches) {
-            DOM.navLogo.innerHTML = '<a href="#"><img src="./logo.png" class="nav-logo-img"></a>'
+            DOM.navLogo.innerHTML = `<a href="#" class="nav-logo-img">${ICONS.nyax_logo}</a>`
         }
 
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
