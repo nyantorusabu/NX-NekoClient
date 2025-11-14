@@ -18,6 +18,7 @@
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
     --l-logo-color: black;
+    --l-loading-color: rgba(255, 255, 255, 0.8);
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
@@ -29,6 +30,7 @@
     --d-text-color: #f5faff;
     --d-secondary-text-color: #b3c4d1;
     --d-logo-color: white;
+    --d-loading-color: rgba(255, 255, 255, 0.4);
 }
 /*:root{
     --border-color: var(--l-border-color);
@@ -62,6 +64,7 @@ body.light {
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
     --logo-color: var(--l-logo-color);
+    --loding-color: var(--l-loading-color);
 }
 body.dark {
     --border-color: var(--d-border-color);
@@ -74,6 +77,7 @@ body.dark {
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
     --logo-color: var(--d-logo-color);
+    --loding-color: var(--d-loading-color);
 }
 
 body {
@@ -1944,7 +1948,7 @@ img.emoji{
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--pg-bg-color);
+    background: var(--loading-color);
     display: flex;
     justify-content: center;
     align-items: center;
