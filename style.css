@@ -13,6 +13,7 @@
     --l-main-bg-color: white;
     --l-ad-bg-color: #f7f9f9;
     --l-pg-bg-color: rgba(255, 255, 255, 0.85);
+    --l-emoji-bg-color: none;
     --l-notification-bg-color: #e8f5fd;
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
@@ -23,6 +24,7 @@
     --d-main-bg-color: black;
     --d-ad-bg-color: #272929;
     --d-pg-bg-color: rgba(0, 0, 0, 0.85);
+    --d-emoji-bg-color;
     --d-notification-bg-color: #5b6063;
     --d-text-color: #f5faff;
     --d-secondary-text-color: #b3c4d1;
@@ -55,6 +57,7 @@ body.light {
     --main-bg-color: var(--l-main-bg-color);
     --ad-bg-color: var(--l-ad-bg-color);
     --pg-bg-color: var(--l-pg-bg-color);
+    --emoji-bg-color: var(--l-emoji-bg-color);
     --notification-bg-color: var(--l-notification-bg-color);
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
@@ -66,6 +69,7 @@ body.dark {
     --main-bg-color: var(--d-main-bg-color);
     --ad-bg-color: var(--d-ad-bg-color);
     --pg-bg-color: var(--d-pg-bg-color);
+    --emoji-bg-color: var(--d-emoji-bg-color);
     --notification-bg-color: var(--s-notification-bg-color);
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
@@ -337,6 +341,10 @@ img.emoji{
 /* JSでつけるNoto Color Emoji用設定 */
 .notocoloremoji{
     font-family: 'Noto Sans JP', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.nyax-emoji {
+    background-color: var(--emoji-bg-color);
 }
 
 .header-with-back-button {
