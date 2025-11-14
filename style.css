@@ -30,7 +30,7 @@
     --d-text-color: #f5faff;
     --d-secondary-text-color: #b3c4d1;
     --d-logo-color: white;
-    --d-loading-color: rgba(255, 255, 255, 0.4);
+    --d-loading-color: rgba(255, 255, 255, 0.6);
 }
 /*:root{
     --border-color: var(--l-border-color);
