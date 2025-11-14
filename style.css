@@ -1880,6 +1880,9 @@ img.emoji{
 #create-dm-modal input,
 #dm-manage-modal input {
     box-sizing: border-box;
+
+    background-color: var(--main-bg-color);
+    color: var(--text-color);
 }
 
 /* DM管理モーダルのボタンスタイル */
