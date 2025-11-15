@@ -1509,22 +1509,22 @@ window.addEventListener('DOMContentLoaded', () => {
                 const replyBtn = document.createElement('button');
                 replyBtn.className = 'reply-button';
                 replyBtn.dataset.username = escapeHTML(actionTargetPost.user?.name || author.name);
-                replyBtn.innerHTML = `${ICONS.reply} <span>---</span>`;
+                replyBtn.innerHTML = `${ICONS.reply} <span>--- Replies</span>`;
                 actionsDiv.appendChild(replyBtn);
 
                 const likeBtn = document.createElement('button');
                 likeBtn.className = `like-button ${currentUser.like?.includes(actionTargetPost.id) ? 'liked' : ''}`;
-                likeBtn.innerHTML = `${ICONS.likes} <span>---</span>`;
+                likeBtn.innerHTML = `${ICONS.likes} <span>--- Likes</span>`;
                 actionsDiv.appendChild(likeBtn);
                 
                 const starBtn = document.createElement('button');
                 starBtn.className = `star-button ${currentUser.star?.includes(actionTargetPost.id) ? 'starred' : ''}`;
-                starBtn.innerHTML = `${ICONS.stars} <span>---</span>`;
+                starBtn.innerHTML = `${ICONS.stars} <span>--- Stars</span>`;
                 actionsDiv.appendChild(starBtn);
                 
                 const repostBtn = document.createElement('button');
                 repostBtn.className = 'repost-button';
-                repostBtn.innerHTML = `${ICONS.repost} <span>---</span>`;
+                repostBtn.innerHTML = `${ICONS.repost} <span>--- Reposts</span>`;
                 actionsDiv.appendChild(repostBtn);
 
                 (async () => { // 遅延読み込みロジック
@@ -1535,10 +1535,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     const starCount = actionTargetPost.star || 0;
                     const repostCount = actionTargetPost.repost_count || 0;
 
-                    replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
-                    likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
-                    starBtn.innerHTML = `${ICONS.stars} <span>${starCount}</span>`;
-                    repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount}</span>`;
+                    replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount} Replies</span>`;
+                    likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount} Likes</span>`;
+                    starBtn.innerHTML = `${ICONS.stars} <span>${starCount} Stars</span>`;
+                    repostBtn.innerHTML = `${ICONS.repost} <span>${repostCount} Reposts</span>`;
                 })();
             }
             
