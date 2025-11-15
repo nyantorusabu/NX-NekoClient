@@ -19,6 +19,7 @@
     --l-secondary-text-color: #536471;
     --l-logo-color: black;
     --l-loading-color: rgba(255, 255, 255, 0.8);
+    --l-widget-bg-color: #e7e8e8;
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
@@ -31,6 +32,7 @@
     --d-secondary-text-color: #b3c4d1;
     --d-logo-color: white;
     --d-loading-color: rgba(255, 255, 255, 0.6);
+    --d-widget-bg-color: #373838;
 }
 /*:root{
     --border-color: var(--l-border-color);
@@ -65,6 +67,7 @@ body.light {
     --secondary-text-color: var(--l-secondary-text-color);
     --logo-color: var(--l-logo-color);
     --loding-color: var(--l-loading-color);
+    --widget-bg-color var(--l-widget-bg-color);
 }
 body.dark {
     --border-color: var(--d-border-color);
@@ -78,6 +81,7 @@ body.dark {
     --secondary-text-color: var(--d-secondary-text-color);
     --logo-color: var(--d-logo-color);
     --loding-color: var(--d-loading-color);
+    --widget-bg-color var(--d-widget-bg-color);
 }
 
 body {
@@ -988,7 +992,7 @@ img.emoji{
 }
 
 .widget-item:hover {
-    background-color: #e7e7e8;
+    background-color: var(--widget-bg-color);
 }
 
 .notification-item {
