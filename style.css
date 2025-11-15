@@ -12,49 +12,30 @@
     --l-bg-color: #f9f9f9;
     --l-main-bg-color: white;
     --l-ad-bg-color: #f7f9f9;
-    --l-pg-bg-color: rgba(255, 255, 255, 0.85);
+    --l-pg-bg-color: rgba(255, 255, 255, 0.85); /* ページヘッダーなど */
     --l-emoji-bg-color: none;
     --l-notification-bg-color: #e8f5fd;
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
-    --l-logo-color: black;
+    --l-logo-color: black; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --l-loading-color: rgba(255, 255, 255, 0.8);
-    --l-widget-bg-color: #e7e8e8;
+    --l-widget-bg-color: #e7e8e8; /* プロフィールカードホバー時 */
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
     --d-main-bg-color: black;
     --d-ad-bg-color: #272929;
-    --d-pg-bg-color: rgba(0, 0, 0, 0.85);
-    --d-emoji-bg-color: white;
+    --d-pg-bg-color: rgba(0, 0, 0, 0.85); /* ページヘッダーなど */
+    --d-emoji-bg-color: white; /* 絵文字の後ろに表示するための白背景　*/
     --d-notification-bg-color: #5b6063;
     --d-text-color: #f5faff;
     --d-secondary-text-color: #b3c4d1;
-    --d-logo-color: white;
+    --d-logo-color: white; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --d-loading-color: rgba(255, 255, 255, 0.6);
-    --d-widget-bg-color: #373838;
+    --d-widget-bg-color: #373838; /* プロフィールカードホバー時 */
 }
-/*:root{
-    --border-color: var(--l-border-color);
-    --bg-color: var(--l-bg-color);
-    --main-bg-color: var(--l-main-bg-color);
-    --ad-bg-color: var(--l-ad-bg-color);
-    --pg-bg-color: var(--l-pg-bg-color);
-    --text-color: var(--l-text-color);
-    --secondary-text-color: var(--l-secondary-text-color);
-}
-@media (prefers-color-scheme: dark) {
-    :root {
-        --border-color: var(--d-border-color);
-        --bg-color: var(--d-bg-color);
-        --main-bg-color: var(--d-main-bg-color);
-        --ad-bg-color: var(--d-ad-bg-color);
-        --pg-bg-color: var(--d-pg-bg-color);
-        --text-color: var(--d-text-color);
-        --secondary-text-color: var(--d-secondary-text-color);
-    }
-}*/
 
+/* 変数指定(クラスはJSにて付与) */
 body.light {
     --border-color: var(--l-border-color);
     --bg-color: var(--l-bg-color);
@@ -83,6 +64,7 @@ body.dark {
     --loding-color: var(--d-loading-color);
     --widget-bg-color var(--d-widget-bg-color);
 }
+/* 変数指定終わり */
 
 body {
     font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
