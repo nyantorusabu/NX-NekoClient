@@ -2636,7 +2636,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = ''; // 表示前にクリア
 
         isLoadingMore = false;
-        const LOGS_PER_PAGE = 40;
+        const LOGS_PER_PAGE = 30;
         let currentPage = 0;
         let hasMore = true;
 
