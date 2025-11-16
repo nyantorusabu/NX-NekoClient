@@ -2287,7 +2287,7 @@ img.emoji{
     background-color: var(--primary-hover-color);
 }
 .account-switcher-item.active {
-    background: #e8f5fd;
+    background: var(--notification-bg-color);
 }
 .account-switcher-item:not(.active):hover {
     background: #f0f0f0;
