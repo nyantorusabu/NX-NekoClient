@@ -390,6 +390,7 @@ img.emoji{
     background: transparent;
     outline: none;
     font-size: 1rem;
+    color: var(--text-color);
 }
 
 #sidebar-search-input {
@@ -1043,6 +1044,7 @@ img.emoji{
     background: transparent;
     outline: none;
     font-size: 1rem;
+    color: var(--text-color);
 }
 
 .sidebar-search-widget svg {
