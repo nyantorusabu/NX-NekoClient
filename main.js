@@ -1303,7 +1303,13 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.innerHTML = getEmoji(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
         // 管理者・認証済みバッジ
-        if (displayAuthor.admin || displayAuthor.id == 9271) {
+        if (displayAuthor.id == 9271) {
+            const rainbowBadge = document.createElement('img');
+            rainbowBadge.src = 'icons/rainbow-ninsho.webp';
+            rainbowBadge.className = 'admin-badge';
+            rainbowBadge.title = '軸';
+            authorLink.appendChild(rainbowBadge);
+        } else if (displayAuthor.admin) {
             const adminBadge = document.createElement('img');
             adminBadge.src = 'icons/admin.png';
             adminBadge.className = 'admin-badge';
@@ -2339,7 +2345,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const { data: followerCountData, error: countError } = await supabase.rpc('get_follower_count', { target_user_id: userId });
             const followerCount = countError ? '?' : followerCountData;
             const userMeHtml = formatPostContent(user.me || '', allUsersCache);
-            if (user.id == 9271) { user.admin=true }
+            var rainbowNinsho = false;
+            if (user.id == 9271) { rainbowNinsho = true }
 
             profileHeader.innerHTML = `
                 <div class="header-top">
@@ -2349,7 +2356,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div class="profile-info">
                     <h2>
                         ${getEmoji(escapeHTML(user.name))}
-                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
+                        ${user.admin ? `<img src="icons/admin.png" class="admin-badge" title="NyaXTeam">` :rainbowNinsho ? `<img src="icons/rainbow-ninsho.webp" class="admin-badge" title="rainbow">` : ((await contributors).includes(user.id) ? `<img src="icons/contributor.png" class="contributor-badge" title="開発協力者">` : (user.verify ? `<img src="icons/verify.png" class="verify-badge" title="認証済み">` : ''))}
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
