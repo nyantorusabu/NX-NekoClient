@@ -1302,14 +1302,9 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
         authorLink.innerHTML = getEmoji(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
+        
         // 管理者・認証済みバッジ
-        if (displayAuthor.id == 9271) {
-            const rainbowBadge = document.createElement('img');
-            rainbowBadge.src = 'icons/rainbow-ninsho.webp';
-            rainbowBadge.className = 'admin-badge';
-            rainbowBadge.title = '軸';
-            authorLink.appendChild(rainbowBadge);
-        } else if (displayAuthor.admin) {
+        if (displayAuthor.admin) {
             const adminBadge = document.createElement('img');
             adminBadge.src = 'icons/admin.png';
             adminBadge.className = 'admin-badge';
@@ -2346,7 +2341,6 @@ window.addEventListener('DOMContentLoaded', () => {
             const followerCount = countError ? '?' : followerCountData;
             const userMeHtml = formatPostContent(user.me || '', allUsersCache);
             var rainbowNinsho = false;
-            if (user.id == 9271) { rainbowNinsho = true }
 
             profileHeader.innerHTML = `
                 <div class="header-top">
