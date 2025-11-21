@@ -1121,8 +1121,8 @@ window.addEventListener('DOMContentLoaded', () => {
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         } catch (e) {
             console.error('ダウンロードエラー:', e);
             alert('ファイルのダウンロードに失敗しました。');
