@@ -155,6 +155,16 @@ input, textarea {
     transition: background-color 0.2s;
 }
 
+#nav-logo {
+    padding: 1rem;
+    display: flex;
+    margin-bottom: 0px;
+}
+
+.nav-logo-img {
+    width: 1.8rem;
+}
+
 /* アイコンとバッジを囲むコンテナ */
 .nav-item-icon-container {
     position: relative; /* バッジの位置の基準 */
@@ -902,6 +912,14 @@ img.emoji{
     max-width: 100%;
     display: block;
     cursor: pointer;
+}
+
+.attachment-fileinfo {
+    display: block;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: #000000;
 }
 
 .attachment-download-link {
@@ -2390,5 +2408,8 @@ img.emoji{
         flex-direction: column;
         text-align: center;
         gap: 1rem;
+    }
+    #nav-logo {
+        display: none
     }
 }

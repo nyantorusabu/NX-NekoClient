@@ -276,7 +276,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
             processed = processed.replace(emojiRegex, (match, emojiId) => {
                 const escapedId = escapeHTML(emojiId);
-                return `<img src="/emoji/${escapedId}.svg" alt="${escapedId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+                return `<img src="/emoji/${escapedId}.svg" alt="_${escapedId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
             // 3. 絵文字を変換
@@ -1174,7 +1174,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     async function renderPost(post, author, options = {}) {
         await ensureMentionedUsersCached([post.content]);
-        const { isNested = false, isDirectReply = false, replyCountsMap = new Map(), userCache = new Map(), metricsPromise, isPinned = false} = options;
+        const { isNested = false, isDirectReply = false, userCache = new Map(), metricsPromise, isPinned = false} = options;
 
         if (!post) return null;
         
@@ -1334,7 +1334,7 @@ window.addEventListener('DOMContentLoaded', () => {
         authorLink.textContent = displayAuthor.name || '不明'; // 安全なtextContent
         authorLink.innerHTML = getEmoji(authorLink.innerHTML);
         postHeader.appendChild(authorLink);
-
+        
         // 管理者・認証済みバッジ
         if (displayAuthor.admin) {
             const adminBadge = document.createElement('img');
@@ -1408,47 +1408,58 @@ window.addEventListener('DOMContentLoaded', () => {
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
             attachmentsContainer.className = 'attachments-container';
-            for (const attachment of post.attachments) {
-                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
-                const publicURL = publicUrlData.publicUrl;
-                
+            if (isNested) {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'attachment-item';
 
-                if (attachment.type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = publicURL;
-                    img.alt = attachment.name;
-                    img.className = 'attachment-image';
-                    img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
-                    itemDiv.appendChild(img);
-                } else if (attachment.type === 'video') {
-                    const video = document.createElement('video');
-                    video.src = publicURL;
-                    video.controls = true;
-                    video.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(video);
-                } else if (attachment.type === 'audio') {
-                    const audio = document.createElement('audio');
-                    audio.src = publicURL;
-                    audio.controls = true;
-                    audio.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(audio);
-                } else {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = '#'; // ページ遷移を防ぐ
-                    downloadLink.className = 'attachment-download-link';
-                    downloadLink.textContent = `📄 ${attachment.name}`;
-                    
-                    // onclickイベントで、既存のダウンロード処理関数を呼び出す
-                    downloadLink.onclick = (e) => {
-                        e.preventDefault(); // href="#"のデフォルトの動作（ページトップへ移動）を防ぐ
-                        e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
-                        window.handleDownload(publicURL, attachment.name); // 正しいファイル名でダウンロードを開始
-                    };
-                    itemDiv.appendChild(downloadLink);
-                }
+                const fileinfo = document.createElement('p');
+                fileinfo.className = 'attachment-fileinfo';
+                fileinfo.textContent = `📄 ${post.attachments.length}件のファイル`;
+                itemDiv.appendChild(fileinfo);
                 attachmentsContainer.appendChild(itemDiv);
+            } else {
+                for (const attachment of post.attachments) {
+                    const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                    const publicURL = publicUrlData.publicUrl;
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'attachment-item';
+
+                    if (attachment.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = publicURL;
+                        img.alt = attachment.name;
+                        img.className = 'attachment-image';
+                        img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
+                        itemDiv.appendChild(img);
+                    } else if (attachment.type === 'video') {
+                        const video = document.createElement('video');
+                        video.src = publicURL;
+                        video.controls = true;
+                        video.onclick = (e) => { e.stopPropagation(); };
+                        itemDiv.appendChild(video);
+                    } else if (attachment.type === 'audio') {
+                        const audio = document.createElement('audio');
+                        audio.src = publicURL;
+                        audio.controls = true;
+                        audio.onclick = (e) => { e.stopPropagation(); };
+                        itemDiv.appendChild(audio);
+                    } else {
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = '#'; // ページ遷移を防ぐ
+                        downloadLink.className = 'attachment-download-link';
+                        downloadLink.textContent = `📄 ${attachment.name}`;
+                        
+                        // onclickイベントで、既存のダウンロード処理関数を呼び出す
+                        downloadLink.onclick = (e) => {
+                            e.preventDefault(); // href="#"のデフォルトの動作（ページトップへ移動）を防ぐ
+                            e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
+                            window.handleDownload(publicURL, attachment.name); // 正しいファイル名でダウンロードを開始
+                        };
+                        itemDiv.appendChild(downloadLink);
+                    }
+                    attachmentsContainer.appendChild(itemDiv);
+                }
             }
             postMain.appendChild(attachmentsContainer);
         }
@@ -1480,7 +1491,6 @@ window.addEventListener('DOMContentLoaded', () => {
             // シンプルリポストの場合、その中身(post.reposted_post)にカウントが設定されている
             const actionTargetPost = (isSimpleRepost && post.reposted_post) ? post.reposted_post : post;
             
-            // アクション対象が存在しない(削除済み)場合は、ボタンを描画しない
             if (actionTargetPost) {
                 
                 const replyBtn = document.createElement('button');
@@ -1507,9 +1517,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 (async () => { // 遅延読み込みロジック
                     await metricsPromise;
 
-                    const replyCount = replyCountsMap.get(actionTargetPost.id) || 0;
-                    const likeCount = actionTargetPost.like || 0;
-                    const starCount = actionTargetPost.star || 0;
+                    const replyCount = actionTargetPost.reply_count || 0;
+                    const likeCount = actionTargetPost.like_count || 0;
+                    const starCount = actionTargetPost.star_count || 0;
                     const repostCount = actionTargetPost.repost_count || 0;
 
                     replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
@@ -1580,16 +1590,18 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const tabsContainer = document.querySelector('.timeline-tabs');
         if (currentUser) {
-            tabsContainer.innerHTML = `
+             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
-                <button class="timeline-tab-button" data-tab="foryou">おすすめ(β)</button>
+                <button class="timeline-tab-button" data-tab="foryou">おすすめ</button>
                 <button class="timeline-tab-button" data-tab="following">フォロー中</button>
+                <button class="timeline-tab-button" data-tab="announce">お知らせ</button>
             `;
             // ユーザー設定からデフォルトタブを取得。なければ 'all' を使用
             currentTimelineTab = currentUser.settings?.default_timeline_tab || 'all';
         } else {
             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
+                <button class="timeline-tab-button" data-tab="announce">お知らせ</button>
             `;
             // 未ログインユーザーのデフォルトは「すべて」固定
             currentTimelineTab = 'all';
@@ -1889,42 +1901,37 @@ window.addEventListener('DOMContentLoaded', () => {
             
             const postIdsArray = Array.from(allPostIdsOnPage);
 
-            const replyCountsMap = new Map();
-            const likeCountsMap = new Map();
-            const starCountsMap = new Map();
-            const repostCountsMap = new Map();
+            let metrics, metricsMap;
 
             const metricsPromise = (async () => {
-                // 4大Get関数を1つにまとめたRPCを使用
                 const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
-
-                // 集計値を個別Mapに展開する場合（従来互換用）
-                metricsData.forEach(c => {
-                    replyCountsMap.set(c.post_id, c.reply_count);
-                    likeCountsMap.set(c.post_id, c.like_count);
-                    starCountsMap.set(c.post_id, c.star_count);
-                    repostCountsMap.set(c.post_id, c.repost_count);
-                });
+                metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
 
                 if (mainPost.reply_to_post) {
-                    mainPost.reply_to_post.like = likeCountsMap.get(mainPost.reply_to_post.id) || 0;
-                    mainPost.reply_to_post.star = starCountsMap.get(mainPost.reply_to_post.id) || 0;
-                    mainPost.reply_to_post.repost_count = repostCountsMap.get(mainPost.reply_to_post.id) || 0;
+                    metrics = metricsMap.get(mainPost.reply_to_post.id);
+                    mainPost.reply_to_post.reply_count = metrics.reply_count || 0;
+                    mainPost.reply_to_post.like_count = metrics.like_count || 0;
+                    mainPost.reply_to_post.star_count = metrics.star_count || 0;
+                    mainPost.reply_to_post.repost_count = metrics.repost_count || 0;
                 }
                 if (mainPost.reposted_post) {
-                    mainPost.reposted_post.like = likeCountsMap.get(mainPost.reposted_post.id) || 0;
-                    mainPost.reposted_post.star = starCountsMap.get(mainPost.reposted_post.id) || 0;
-                    mainPost.reposted_post.repost_count = repostCountsMap.get(mainPost.reposted_post.id) || 0;
+                    metrics = metricsMap.get(mainPost.reposted_post.id);
+                    mainPost.reposted_post.reply_count = metrics.reply_count || 0;
+                    mainPost.reposted_post.like_count = metrics.like_count || 0;
+                    mainPost.reposted_post.star_count = metrics.star_count || 0;
+                    mainPost.reposted_post.repost_count = metrics.repost_count || 0;
                 }
-                mainPost.like = likeCountsMap.get(mainPost.id) || 0;
-                mainPost.star = starCountsMap.get(mainPost.id) || 0;
-                mainPost.repost_count = repostCountsMap.get(mainPost.id) || 0;
+                metrics = metricsMap.get(mainPost.id)
+                mainPost.reply_count = metrics.reply_count || 0;
+                mainPost.like_count = metrics.like_count || 0;
+                mainPost.star_count = metrics.star_count || 0;
+                mainPost.repost_count = metrics.repost_count || 0;
             })();
             
             contentDiv.innerHTML = '';
     
             if (mainPost.reply_to_post) {
-                const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap, metricsPromise: metricsPromise });
+                const parentPostEl = await renderPost(mainPost.reply_to_post, mainPost.reply_to_post.author, { userCache: allUsersCache, metricsPromise });
                 if (parentPostEl) {
                     const parentContainer = document.createElement('div');
                     parentContainer.className = 'parent-post-container';
@@ -1933,7 +1940,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             }
     
-            const mainPostEl = await renderPost(mainPost, mainPost.author, { userCache: allUsersCache, replyCountsMap: replyCountsMap, metricsPromise: metricsPromise });
+            const mainPostEl = await renderPost(mainPost, mainPost.author, { userCache: allUsersCache, metricsPromise });
             if (mainPostEl) contentDiv.appendChild(mainPostEl);
     
             const repliesHeader = document.createElement('h3');
@@ -1991,9 +1998,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const reply_metrics_promise = (async () => {
                         await metricsPromise;
-                        postForRender.like = likeCountsMap.get(reply.id) || 0;
-                        postForRender.star = starCountsMap.get(reply.id) || 0;
-                        postForRender.repost_count = repostCountsMap.get(reply.id) || 0;
+                        metrics = metricsMap.get(reply.id);
+                        postForRender.reply_count = metrics.reply_count
+                        postForRender.like_count = metrics.like_count || 0;
+                        postForRender.star_count = metrics.star_count || 0;
+                        postForRender.repost_count = metrics.repost_count || 0;
                     })();
                     
                     const authorForRender = {
@@ -2015,9 +2024,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     
                     const postEl = await renderPost(postForRender, authorForRender, { 
                         userCache: allUsersCache, 
-                        replyCountsMap: replyCountsMap,
-                        isDirectReply: isDirectReply, // フラグを追加
-                        metricsPromise: reply_metrics_promise,
+                        isDirectReply,
+                        metricsPromise
                     });
                     
                     if (postEl) {
@@ -2555,7 +2563,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
                 <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="all">すべて</option>
-                    <option value="foryou">おすすめ(β)</option>
+                    <option value="foryou">おすすめ</option>
                     <option value="following">フォロー中</option>
                 </select>
                 
@@ -2678,7 +2686,7 @@ window.addEventListener('DOMContentLoaded', () => {
         contentDiv.innerHTML = ''; // 表示前にクリア
 
         isLoadingMore = false;
-        const LOGS_PER_PAGE = 40;
+        const LOGS_PER_PAGE = 30;
         let currentPage = 0;
         let hasMore = true;
 
@@ -2806,6 +2814,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
                             } else { hasMoreItems = false; }
+                        } else if (options.tab === 'announce') {
+                            idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
                         if (!options.userId) { hasMoreItems = false; }
@@ -2860,9 +2870,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     const postIdsForCounts = posts
                         .map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id)
                         .filter(id => id);
-                
-                    // TL表示用 Map を作成（post ID → reply_count）
-                    const replyCountsMap = new Map();
 
                     const metricsPromise = (async () => {
                         // RPCで一括取得
@@ -2874,15 +2881,15 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ? post.reposted_post.id
                                 : post.id;
                             const metrics = metricsMap.get(targetId) || {};
-                            replyCountsMap.set(post.id, metrics.reply_count || 0);
                     
                             // like/star/repost は元投稿にセット
                             const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
                                 ? post.reposted_post
                                 : post;
                             if (targetPostForCounts) {
-                                targetPostForCounts.like = metrics.like_count || 0;
-                                targetPostForCounts.star = metrics.star_count || 0;
+                                targetPostForCounts.like_count = metrics.like_count || 0;
+                                targetPostForCounts.star_count = metrics.star_count || 0;
+                                targetPostForCounts.reply_count = metrics.reply_count || 0;
                                 targetPostForCounts.repost_count = metrics.repost_count || 0;
                             }
                         }
@@ -2890,14 +2897,14 @@ window.addEventListener('DOMContentLoaded', () => {
                         console.error("ポストメトリクスの読み込みに失敗:", error);
 
                         for (const post of posts) {
-                            replyCountsMap.set(post.id, "?");
                     
                             const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
                                 ? post.reposted_post
                                 : post;
                             if (targetPostForCounts) {
-                                targetPostForCounts.like = "?";
-                                targetPostForCounts.star = "?";
+                                targetPostForCounts.like_count = "?";
+                                targetPostForCounts.star_count = "?";
+                                targetPostForCounts.reply_count = "?";
                                 targetPostForCounts.repost_count = "?";
                             }
                         }
@@ -2909,14 +2916,14 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (showPinPost) {
                         const pinPost = posts.find(p => p.id === options.pinId);
                         if (pinPost) {
-                            const postEl = await renderPost(pinPost, pinPost.author, { replyCountsMap, userCache: allUsersCache, metricsPromise , isPinned: true});
+                            const postEl = await renderPost(pinPost, pinPost.author, { userCache: allUsersCache, metricsPromise , isPinned: true});
                             if (postEl) currentTrigger.before(postEl);
                         }
                     }
                     // 投稿レンダリング
                     for (const post of posts) {
                         if (showPinPost && post.id === options.pinId) continue; // ピン留めポストはすでに表示済みのためスキップ
-                        const postEl = await renderPost(post, post.author, { replyCountsMap, userCache: allUsersCache, metricsPromise });
+                        const postEl = await renderPost(post, post.author, { userCache: allUsersCache, metricsPromise });
                         if (postEl) currentTrigger.before(postEl);
                     }
                 }
