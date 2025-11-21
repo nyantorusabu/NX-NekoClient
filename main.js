@@ -1373,47 +1373,58 @@ window.addEventListener('DOMContentLoaded', () => {
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
             attachmentsContainer.className = 'attachments-container';
-            for (const attachment of post.attachments) {
-                const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
-                const publicURL = publicUrlData.publicUrl;
-                
+            if (isNested) {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'attachment-item';
 
-                if (attachment.type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = publicURL;
-                    img.alt = attachment.name;
-                    img.className = 'attachment-image';
-                    img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
-                    itemDiv.appendChild(img);
-                } else if (attachment.type === 'video') {
-                    const video = document.createElement('video');
-                    video.src = publicURL;
-                    video.controls = true;
-                    video.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(video);
-                } else if (attachment.type === 'audio') {
-                    const audio = document.createElement('audio');
-                    audio.src = publicURL;
-                    audio.controls = true;
-                    audio.onclick = (e) => { e.stopPropagation(); };
-                    itemDiv.appendChild(audio);
-                } else {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = '#'; // ページ遷移を防ぐ
-                    downloadLink.className = 'attachment-download-link';
-                    downloadLink.textContent = `📄 ${attachment.name}`;
-                    
-                    // onclickイベントで、既存のダウンロード処理関数を呼び出す
-                    downloadLink.onclick = (e) => {
-                        e.preventDefault(); // href="#"のデフォルトの動作（ページトップへ移動）を防ぐ
-                        e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
-                        window.handleDownload(publicURL, attachment.name); // 正しいファイル名でダウンロードを開始
-                    };
-                    itemDiv.appendChild(downloadLink);
-                }
+                const fileinfo = document.createElement('p');
+                fileinfo.className = 'attachment-fileinfo';
+                fileinfo.textContent = `📄 ${post.attachments.length}件のファイル`;
+                itemDiv.appendChild(fileinfo);
                 attachmentsContainer.appendChild(itemDiv);
+            } else {
+                for (const attachment of post.attachments) {
+                    const { data: publicUrlData } = supabase.storage.from('nyax').getPublicUrl(attachment.id);
+                    const publicURL = publicUrlData.publicUrl;
+                    
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'attachment-item';
+
+                    if (attachment.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = publicURL;
+                        img.alt = attachment.name;
+                        img.className = 'attachment-image';
+                        img.onclick = (e) => { e.stopPropagation(); window.openImageModal(publicURL); };
+                        itemDiv.appendChild(img);
+                    } else if (attachment.type === 'video') {
+                        const video = document.createElement('video');
+                        video.src = publicURL;
+                        video.controls = true;
+                        video.onclick = (e) => { e.stopPropagation(); };
+                        itemDiv.appendChild(video);
+                    } else if (attachment.type === 'audio') {
+                        const audio = document.createElement('audio');
+                        audio.src = publicURL;
+                        audio.controls = true;
+                        audio.onclick = (e) => { e.stopPropagation(); };
+                        itemDiv.appendChild(audio);
+                    } else {
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = '#'; // ページ遷移を防ぐ
+                        downloadLink.className = 'attachment-download-link';
+                        downloadLink.textContent = `📄 ${attachment.name}`;
+                        
+                        // onclickイベントで、既存のダウンロード処理関数を呼び出す
+                        downloadLink.onclick = (e) => {
+                            e.preventDefault(); // href="#"のデフォルトの動作（ページトップへ移動）を防ぐ
+                            e.stopPropagation(); // 親要素へのイベント伝播を防ぐ
+                            window.handleDownload(publicURL, attachment.name); // 正しいファイル名でダウンロードを開始
+                        };
+                        itemDiv.appendChild(downloadLink);
+                    }
+                    attachmentsContainer.appendChild(itemDiv);
+                }
             }
             postMain.appendChild(attachmentsContainer);
         }
@@ -1449,6 +1460,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 
                 const replyBtn = document.createElement('button');
                 replyBtn.className = 'reply-button';
+                replyBtn.dataset.username = escapeHTML(actionTargetPost.user?.name || author.name);
                 replyBtn.innerHTML = `${ICONS.reply} <span>---</span>`;
                 actionsDiv.appendChild(replyBtn);
 

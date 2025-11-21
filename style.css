@@ -808,6 +808,14 @@ img.emoji{
     cursor: pointer;
 }
 
+.attachment-fileinfo {
+    display: block;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: #000000;
+}
+
 .attachment-download-link {
     display: block;
     padding: 0.5rem;
