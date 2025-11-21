@@ -110,27 +110,24 @@ window.addEventListener('DOMContentLoaded', () => {
     function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
 
     function getEmoji(str) {
-        let setting;
-        if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
-        else setting = 'emojione';
-        
-        if (setting == "twemoji"){
-            // titleにshortnameを挿入(Emoji Oneの関数使用)
-            let twe_div = document.createElement('div');
-            twe_div.innerHTML = twemoji.parse(str,{
-                callback: function (icon, options) {
-                    return `https://jdecked.github.io/twemoji/v/latest/svg/${icon}.svg`;
-                }
-            });
-            twe_div.querySelectorAll('img').forEach((value) => {
-                value.title = emojione.toShort(value.alt);
-            });
-            return twe_div.innerHTML
+        switch(currentUser?.settings?.emoji || 'emojione') {
+            case "twemoji":
+                // titleにshortnameを挿入(Emoji Oneの関数使用)
+                let twe_div = document.createElement('div');
+                twe_div.innerHTML = twemoji.parse(str,{
+                    callback: function (icon, options) {
+                        return `https://jdecked.github.io/twemoji/v/latest/svg/${icon}.svg`;
+                    }
+                });
+                twe_div.querySelectorAll('img').forEach((value) => {
+                    value.title = emojione.toShort(value.alt);
+                });
+                return twe_div.innerHTML;
+            case "emojione":
+                return emojione.toImage(str);
+            default:
+                return str;
         }
-        else if (setting == "emojione"){
-            return emojione.toImage(str);
-        }
-        else return str;
     }
 
     function getUserIconUrl(user) {
