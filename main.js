@@ -119,11 +119,7 @@ window.addEventListener('DOMContentLoaded', () => {
             let twe_div = document.createElement('div');
             twe_div.innerHTML = twemoji.parse(str,{
                 callback: function (icon, options) {
-                    return ''.concat(
-                        "https://jdecked.github.io/twemoji/v/latest/svg/",
-                        icon,
-                        ".svg"
-                    );
+                    return `https://jdecked.github.io/twemoji/v/latest/svg/${icon}.svg`;
                 }
             });
             twe_div.querySelectorAll('img').forEach((value) => {
