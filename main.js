@@ -1006,13 +1006,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. ファイルがあれば先にアップロード
-            if (selectedFiles.length > 0) {
-                for (const file of selectedFiles) {
-                    const fileId = await uploadFileViaEdgeFunction(file);
-                    uploadedFileIds.push(fileId); // 削除候補としてIDを保存
-                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
-                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
-                }
+            for (const file of selectedFiles) {
+                const fileId = await uploadFileViaEdgeFunction(file);
+                uploadedFileIds.push(fileId); // 削除候補としてIDを保存
+                const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                attachmentsData.push({ type: fileType, id: fileId, name: file.name });
             }
 
             // 2. 新しいRPC関数を呼び出してポストをDBに保存
