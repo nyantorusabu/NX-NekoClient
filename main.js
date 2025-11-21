@@ -67,8 +67,8 @@ window.addEventListener('DOMContentLoaded', () => {
         editDmMessageModalContent: document.getElementById('edit-dm-message-modal-content'),
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
-        friezeOverlay: document.getElementById('frieze-overlay'),
-        friezeReason: document.getElementById('frieze-reason'),
+        freezeOverlay: document.getElementById('freeze-overlay'),
+        freezeReason: document.getElementById('freeze-reason'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -571,8 +571,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser = data;
 
                 if (currentUser.frieze) {
-                    DOM.friezeReason.textContent = currentUser.frieze;
-                    DOM.friezeOverlay.classList.remove('hidden');
+                    DOM.freezeReason.textContent = currentUser.frieze;
+                    DOM.freezeOverlay.classList.remove('hidden');
                     return;
                 }
                 
@@ -2286,7 +2286,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
-        document.querySelector('.frieze-notice')?.remove();
+        document.querySelector('.freeze-notice')?.remove();
         document.getElementById('profile-content').innerHTML = '';
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
@@ -2310,11 +2310,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         <h2>${getEmoji(escapeHTML(user.name))}</h2>
                         <div class="user-id">#${user.id}</div>
                     </div>`;
-                const friezeNotice = document.createElement('div');
-                friezeNotice.className = 'frieze-notice';
-                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                const freezeNotice = document.createElement('div');
+                freezeNotice.className = 'freeze-notice';
+                freezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
                 profileTabs.innerHTML = '';
-                profileTabs.insertAdjacentElement('afterend', friezeNotice);
+                profileTabs.insertAdjacentElement('afterend', freezeNotice);
                 
                 showLoading(false);
                 return;
@@ -2327,15 +2327,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser.id !== user.id
             ) {
                 if (Array.isArray(currentUser.block) && currentUser.block.includes(user.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
                 if (Array.isArray(user.block) && user.block.includes(currentUser.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
             }
             if (blockNoticeHtml) {
                 // 通知を生成
-                document.querySelectorAll('.frieze-notice').forEach(el => el.remove());
+                document.querySelectorAll('.freeze-notice').forEach(el => el.remove());
                 profileTabs.insertAdjacentHTML('afterend', blockNoticeHtml);
             }
 
@@ -4534,7 +4534,7 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', router);
     
     // 全ての準備が整った後、最後にセッションチェックを開始
-    DOM.friezeOverlay.classList.add('hidden');
+    DOM.freezeOverlay.classList.add('hidden');
     DOM.connectionErrorOverlay.classList.add('hidden');
     checkSession();
 });
