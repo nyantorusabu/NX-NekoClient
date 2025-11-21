@@ -238,5 +238,193 @@
   {
     "id": "emoji",
     "name": "Emoji"
+  },
+  {
+    "id": "fat-cat",
+    "name": "デブネコ"
+  },
+  {
+    "id": "3xneko",
+    "name": "3倍ねこ"
+  },
+  {
+    "id": "nuko",
+    "name": "ぬこ"
+  },
+  {
+    "id": "ee-----",
+    "name": "Eeーーーーー"
+  },
+  {
+    "id": "sliding-cat",
+    "name": "滑ってくる猫"
+  },
+  {
+    "id": "iya",
+    "name": "不服そうな猫"
+  },
+  {
+    "id": "puwaa",
+    "name": "ぷわぁ"
+  },
+  {
+    "id": "fx-cat",
+    "name": "FXで有り金溶かしてそうな猫"
+  },
+  {
+    "id": "sprite1rasii",
+    "name": "スプライト1らしい"
+  },
+  {
+    "id": "senaka-cat",
+    "name": "男は背中で"
+  },
+  {
+    "id": "gd-get",
+    "name": "ゲッ"
+  },
+  {
+    "id": "gd-down",
+    "name": "ダン"
+  },
+  {
+    "id": "middle-finger",
+    "name": "Middle Finger"
+  },
+  {
+    "id": "tsubureru",
+    "name": "つぶれる"
+  },
+  {
+    "id": "ha",
+    "name": "は?"
+  },
+  {
+    "id": "sunglasses-cat",
+    "name": "サングラスを掛けた猫"
+  },
+  {
+    "id": "kachimote",
+    "name": "勝ちまくりモテまくり"
+  },
+  {
+    "id": "chu",
+    "name": "投げキッス"
+  },
+  {
+    "id": "kaonai",
+    "name": "顔無い"
+  },
+  {
+    "id": "aseru",
+    "name": "焦る猫"
+  },
+  {
+    "id": "namida",
+    "name": "泣いている猫"
+  },
+  {
+    "id": "xnpa-neko",
+    "name": "んぱ-ねこ"
+  },
+  {
+    "id": "nosebleed-dabaa",
+    "name": "鼻血だばー"
+  },
+  {
+    "id": "nosebleed-busyaa",
+    "name": "鼻血ﾌﾞｼｬｧｰ"
+  },
+  {
+    "id": "neko-is-liquid",
+    "name": "猫は液体"
+  },
+  {
+    "id": "offline-cat",
+    "name": "オンラインのフレンドはいません"
+  },
+  {
+    "id": "friend-cat",
+    "name": "猫と友達"
+  },
+  {
+    "id": "owee",
+    "name": "おうぇぇい"
+  },
+  {
+    "id": "doge-cat",
+    "name": "どっかで見たような気がする猫"
+  },
+  {
+    "id": "goal-cat",
+    "name": "ゴールした猫"
+  },
+  {
+    "id": "answer-cat",
+    "name": "自信満々に回答する猫"
+  },
+  {
+    "id": "love-cat",
+    "name": "ハートを手に持っている猫"
+  },
+  {
+    "id": "kill",
+    "name": "抹殺"
+  },
+  {
+    "id": "now-sleeping",
+    "name": "寝坊して今これ"
+  },
+  {
+    "id": "sliding-cat-good",
+    "name": "滑ってきて親指を立てる猫"
+  },
+  {
+    "id": "i-came",
+    "name": "私がきた"
+  },
+  {
+    "id": "knife-cat",
+    "name": "包丁を持って回転している猫"
+  },
+  {
+    "id": "smile-cat-mf",
+    "name": "笑顔でなにかのハンドサインをしている猫"
+  },
+  {
+    "id": "uxnti",
+    "name": "う◯ち!(せいかいのおと)"
+  },
+  {
+    "id": "namidabaa",
+    "name": "なみだばー"
+  },
+  {
+    "id": "nekopi-",
+    "name": "ネコピー"
+  },
+  {
+    "id": "kixyupi-nn",
+    "name": "きゅぴーん"
+  },
+  {
+    "id": "bruh",
+    "name": "BRUH."
+  },
+  {
+    "id": "sus",
+    "name": "SUS"
+  },
+  {
+    "id": "nn",
+    "name": "ん?"
+  },
+  {
+    "id": "hmm",
+    "name": "ふーむ"
+  },
+  {
+    "id": "power-type-pien",
+    "name": "パワータイプのぴえん"
   }
 ]
