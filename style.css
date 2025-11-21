@@ -72,6 +72,10 @@ input, textarea {
     transition: background-color 0.2s;
 }
 
+.nav-logo-img {
+    width: 1.8rem;
+}
+
 /* アイコンとバッジを囲むコンテナ */
 .nav-item-icon-container {
     position: relative; /* バッジの位置の基準 */
