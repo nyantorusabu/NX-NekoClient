@@ -1555,16 +1555,18 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const tabsContainer = document.querySelector('.timeline-tabs');
         if (currentUser) {
-            tabsContainer.innerHTML = `
+             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
-                <button class="timeline-tab-button" data-tab="foryou">おすすめ(β)</button>
+                <button class="timeline-tab-button" data-tab="foryou">おすすめ</button>
                 <button class="timeline-tab-button" data-tab="following">フォロー中</button>
+                <button class="timeline-tab-button" data-tab="announce">お知らせ</button>
             `;
             // ユーザー設定からデフォルトタブを取得。なければ 'all' を使用
             currentTimelineTab = currentUser.settings?.default_timeline_tab || 'all';
         } else {
             tabsContainer.innerHTML = `
                 <button class="timeline-tab-button" data-tab="all">すべて</button>
+                <button class="timeline-tab-button" data-tab="announce">お知らせ</button>
             `;
             // 未ログインユーザーのデフォルトは「すべて」固定
             currentTimelineTab = 'all';
@@ -2527,7 +2529,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 <label for="setting-default-timeline">ホーム画面のデフォルトタブ:</label>
                 <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="all">すべて</option>
-                    <option value="foryou">おすすめ(β)</option>
+                    <option value="foryou">おすすめ</option>
                     <option value="following">フォロー中</option>
                 </select>
                 
@@ -2768,6 +2770,8 @@ window.addEventListener('DOMContentLoaded', () => {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
                             } else { hasMoreItems = false; }
+                        } else if (options.tab === 'announce') {
+                            idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
                         if (!options.userId) { hasMoreItems = false; }
