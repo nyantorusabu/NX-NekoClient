@@ -2852,7 +2852,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         console.error("ポストメトリクスの読み込みに失敗:", error);
 
                         for (const post of posts) {
-                            replyCountsMap.set(post.id, "?");
                     
                             const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
                                 ? post.reposted_post
