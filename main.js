@@ -423,7 +423,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const linkItems = [ { name: 'NyaXルール', link: 'rule' }, { name: '各種ランキング', link: 'ranking' }, { name: '統計', link: 'stat' }, { name: '申請フォーム', link: 'forms' }, { name: 'Emoji一覧', link: 'emoji' },  { name: 'Discord鯖', link: 'discord' } ];
 
-        if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
+        if (error || !data || data.length === 0) {
+            if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = '';
+            return;
+        }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
         recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
