@@ -107,7 +107,12 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
 
     function getEmoji(str) {
         switch(currentUser?.settings?.emoji || 'emojione') {
@@ -403,7 +408,9 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const query = e.target.value.trim();
-                    if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+                    if (query) {
+                        window.location.hash = `#search/${encodeURIComponent(query)}`;
+                    }
                 }
             });
         }
@@ -677,8 +684,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (acc && acc.token) {
                         // アカウント切り替え処理
                         supabase.auth.setSession(acc.token).then(() => {
-                        document.getElementById('account-switcher-modal').classList.add('hidden');
-                        checkSession();
+                            document.getElementById('account-switcher-modal').classList.add('hidden');
+                            checkSession();
                         });
                     }
                 }
@@ -741,11 +748,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const simpleRepostBtn = document.createElement('button');
         simpleRepostBtn.textContent = 'リポスト';
-        simpleRepostBtn.onclick = (e) => { e.stopPropagation(); handleSimpleRepost(post.id); menu.remove(); };
+        simpleRepostBtn.onclick = (e) => {
+            e.stopPropagation();
+            handleSimpleRepost(post.id);
+            menu.remove();
+        };
 
         const quotePostBtn = document.createElement('button');
         quotePostBtn.textContent = '引用ポスト';
-        quotePostBtn.onclick = (e) => { e.stopPropagation(); quotingPost = post; openPostModal(); menu.remove(); };
+        quotePostBtn.onclick = (e) => {
+            e.stopPropagation();
+            quotingPost = post;
+            openPostModal();
+            menu.remove();
+        };
         
         menu.appendChild(simpleRepostBtn);
         menu.appendChild(quotePostBtn);
@@ -1077,7 +1093,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Edge Functionからの戻り値はdataの中にさらにdataプロパティがある場合がある
         const responseData = data.data || data;
         if (responseData.error) {
-             throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
+            throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
         }
 
         return responseData.fileId;
@@ -1573,9 +1589,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
 
         showScreen('explore-screen');
         const contentDiv = DOM.exploreContent;
@@ -1627,9 +1647,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
         
         showScreen('search-results-screen');
         const contentDiv = DOM.searchResultsContent;
@@ -2385,7 +2409,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 `<button class="tab-button ${tab.className || ''} ${tab.key === subpage ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
             ).join('');
 
-            profileTabs.querySelectorAll('.tab-button').forEach(button => { button.onclick = (e) => { e.stopPropagation(); loadProfileTabContent(user, button.dataset.tab); }; });
+            profileTabs.querySelectorAll('.tab-button').forEach(button => {
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    loadProfileTabContent(user, button.dataset.tab);
+                };
+            });
 
             await loadProfileTabContent(user, subpage);
 
@@ -2747,13 +2776,16 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
-                            } else { hasMoreItems = false; }
+                            } else {
+                                hasMoreItems = false;
+                            }
                         } else if (options.tab === 'announce') {
                             idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
-                        if (!options.userId) { hasMoreItems = false; }
-                        else {
+                        if (!options.userId) {
+                            hasMoreItems = false;
+                        } else {
                             idQuery = supabase.from('post_profile').select('id').eq('userid', options.userId);
                             if (options.subType === 'posts_only') { 
                                 idQuery = idQuery.is('reply_id', null);
@@ -2761,15 +2793,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                     showPinPost = true;
                                 }
                             }
-                            else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
+                            else if (options.subType === 'replies_only') {
+                                idQuery = idQuery.not('reply_id', 'is', null);
+                            }
                         }
                     } else if (type === 'likes' || type === 'stars') {
-                            const idList = options.ids || [];
-                            const reversedList = [...idList].reverse();
-                            postIdsToFetch = reversedList.slice(from, to + 1);
-                            if (postIdsToFetch.length < POSTS_PER_PAGE) {
-                                hasMoreItems = false;
-                            }
+                        const idList = options.ids || [];
+                        const reversedList = [...idList].reverse();
+                        postIdsToFetch = reversedList.slice(from, to + 1);
+                        if (postIdsToFetch.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
 
                     if (idQuery && hasMoreItems) {
@@ -2779,7 +2813,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (showPinPost && !postIdsToFetch.includes(options.pinId)) {
                             postIdsToFetch.push(options.pinId);
                         }
-                        if (idData.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                        if (idData.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
                     
                     if (postIdsToFetch.length > 0) {
