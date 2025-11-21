@@ -492,7 +492,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 isActive = hash.startsWith(item.hash);
             }
             return `
-                <a href="${item.hash}" class="nav-item" ${isActive ? 'active' : ''}">
+                <a href="${item.hash}" class="nav-item ${isActive ? 'active' : ''}">
                     <div class="nav-item-icon-container">
                         ${item.icon}
                         ${item.badge && item.badge > 0 ? `<span class="notification-badge">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
