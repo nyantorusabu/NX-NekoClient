@@ -1510,23 +1510,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // iframe要素を取得
         const iframe = adContainer.querySelector('iframe');
-        
-        // iframeの読み込みを待ってから、中に広告スクリプトを書き込む
-        iframe.onload = () => {
-            const iframeDoc = iframe.contentWindow.document;
-            iframeDoc.open();
-            // 広告スクリプトをiframeの中に直接書き込む
-            iframeDoc.write(`
-                <body style="margin:0; padding:0;">
-                    <!-- admax -->
-                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
-                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
-                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
-                    <!-- admax -->
-                </body>
-            `);
-            iframeDoc.close();
-        };
+
+        iframe.srcdoc = `
+            <body style="margin:0; padding:0;">
+                <!-- admax -->
+                <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
+                <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
+                <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                <!-- admax -->
+            </body>
+        `;
 
         // 広告ポスト全体のクリックイベントを止める
         adContainer.addEventListener('click', (e) => {
