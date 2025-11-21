@@ -48,26 +48,6 @@ input, textarea {
     flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-    .nav-logo-img {
-        width: 1.8rem;
-    }
-    #nav-logo {
-        padding: 1rem;
-        display: flex;
-        margin-bottom: 0px;
-    }
-}
-
-@media (max-width: 769px) {
-    .nav-logo-img {
-        display: none;
-    }
-    #nav-logo {
-        display: none
-    }
-}
-
 #nav-menu-top {
     display: flex;
     flex-direction: column;
@@ -2292,5 +2272,8 @@ img.emoji{
         flex-direction: column;
         text-align: center;
         gap: 1rem;
+    }
+    #nav-logo {
+        display: none
     }
 }
