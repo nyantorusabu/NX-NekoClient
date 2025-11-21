@@ -324,12 +324,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function ensureMentionedUsersCached(texts) {
-        const mentionRegex = /@(\d+)/g;
         const allMentionedIds = new Set();
         for (const text of texts) {
             if (!text) continue;
-            let match;
-            while ((match = mentionRegex.exec(text)) !== null) {
+            for (const match of text.matchAll(/@(\d+)/g)) {
                 allMentionedIds.add(parseInt(match[1]));
             }
         }
@@ -1024,10 +1022,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 repliedUserId = quotingPost.userid; // リプライと引用ポストの両立は不可能のはずなので大丈夫
                 sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストを引用しました。`, `#post/${quotingPost.id}`);
             }
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 const mentionedId = parseInt(match[1]);
                 if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
                     mentionedIds.add(mentionedId);
@@ -2118,13 +2114,11 @@ window.addEventListener('DOMContentLoaded', () => {
             let posts = dm.post || [];
             posts = filterBlockedPosts(posts);;
             const allUserIdsInDm = new Set(dm.member);
-            const mentionRegex = /@(\d+)/g;
 
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
-                    let match;
-                    while ((match = mentionRegex.exec(msg.content)) !== null) {
+                    for (const match of msg.content.matchAll(/@(\d+)/g)) {
                         allUserIdsInDm.add(parseInt(match[1]));
                     }
                 }
@@ -3683,8 +3677,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function sendSystemDmMessage(dmId, content) {
         const mentionRegex = /@(\d+)/g;
         const mentionedIds = new Set();
-        let match;
-        while ((match = mentionRegex.exec(content)) !== null) {
+        for (const match of content.matchAll(/@(\d+)/g)) {
             mentionedIds.add(parseInt(match[1]));
         }
         
@@ -4105,10 +4098,8 @@ window.addEventListener('DOMContentLoaded', () => {
         sendButton.disabled = true;
 
         try {
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 mentionedIds.add(parseInt(match[1]));
             }
             
