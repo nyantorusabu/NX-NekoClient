@@ -3310,7 +3310,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const isLiked = data.liked;
             currentUser.like = data.updated_likes;
     
-            countSpan.textContent = isLiked ? currentCount + 1 : currentCount - 1;
+            countSpan.textContent = (isLiked ? currentCount + 1 : currentCount - 1) + ' Likes';
             button.classList.toggle('liked', isLiked);
         } catch (e) {
             console.error('いいね更新エラー:', e);
@@ -3336,7 +3336,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const isStarred = data.starred;
             currentUser.star = data.updated_stars;
     
-            countSpan.textContent = isStarred ? currentCount + 1 : currentCount - 1;
+            countSpan.textContent = (isStarred ? currentCount + 1 : currentCount - 1) + ' Stars';
             button.classList.toggle('starred', isStarred);
         } catch (e) {
             console.error('お気に入り更新エラー:', e);
