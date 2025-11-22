@@ -903,7 +903,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             },
             categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
-            skinTonePosition: 'none'
+                skinTonePosition: 'none',
+                skin: '1'
         };
         const picker_modal = new EmojiMart.Picker(pickerOptions);
         picker.appendChild(picker_modal);
@@ -3907,7 +3908,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         svg: ICONS.nyax_logo
                     }
                 },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                skinTonePosition: 'none',
+                skin: '1'
             };
             const picker_modal = new EmojiMart.Picker(pickerOptions);
             picker.appendChild(picker_modal);
