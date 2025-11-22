@@ -902,7 +902,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     svg: ICONS.nyax_logo
                 }
             },
-            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+            skinTonePosition: 'none'
         };
         const picker_modal = new EmojiMart.Picker(pickerOptions);
         picker.appendChild(picker_modal);
