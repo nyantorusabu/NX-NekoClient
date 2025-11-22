@@ -270,7 +270,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 2. 絵文字を置換
             const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
             processed = processed.replace(emojiRegex, (match, emojiId) => {
-                return `<img src="/emoji/${emojiId}.svg" alt="${emojiId}" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+                return `<img src="/emoji/${emojiId}.svg" alt="_${emojiId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
             // 3. 絵文字を変換
@@ -2868,7 +2868,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         console.error("ポストメトリクスの読み込みに失敗:", error);
 
                         for (const post of posts) {
-                            replyCountsMap.set(post.id, "?");
                     
                             const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
                                 ? post.reposted_post
