@@ -24,18 +24,18 @@
     --l-bw: #000000;
     --l-spin: rgba(0, 0, 0, 0.1);
     /* ダークモード色設定 */
-    --d-border-color: #282a2a;
-    --d-bg-color: #212121;
-    --d-main-bg-color: #1e1e1e;
+    --d-border-color: #313335;
+    --d-bg-color: #2f3033;
+    --d-main-bg-color: #1f1f1f;
     --d-ad-bg-color: #272929;
     --d-pg-bg-color: rgba(30, 30, 30, 0.85); /* ページヘッダーなど */
-    --d-emoji-bg-color: white; /* 絵文字の後ろに表示するための白背景　*/
+    --d-emoji-bg-color: #e8eaed; /* 絵文字の後ろに表示するための白背景　*/
     --d-notification-bg-color: #5b6063;
-    --d-text-color: #f5faff;
-    --d-secondary-text-color: #b3c4d1;
-    --d-logo-color: white; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
+    --d-text-color: #e8eaed;
+    --d-secondary-text-color: #cbcbcb;
+    --d-logo-color: #FFFFFF; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --d-loading-color: rgba(255, 255, 255, 0.6);
-    --d-widget-bg-color: #373838; /* プロフィールカードホバー時 */
+    --d-widget-bg-color: #4d5156; /* プロフィールカードホバー時 */
     --d-emoji-mart: 40, 40, 40;
     --d-bw: #ffffff;
     --d-spin: rgba(255, 255, 255, 0.1);
