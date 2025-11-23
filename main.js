@@ -28,23 +28,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
-      home: `<svg viewBox="0 0 24 24"><path d="M21 9V20C21 20.5304 20.7891 21.039 20.4141 21.4141C20.039 21.7891 19.5304 22 19 22H15V12H9V22H5C4.46957 22 3.96101 21.7891 3.58594 21.4141C3.21086 21.039 3 20.5304 3 20V9L12 2L21 9Z"></path></svg>`,
-      dm: `<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
-      send: `<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`,
-      explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
-      notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
-      likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
-      stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
-      profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
-      settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
-      attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
-      back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
-      reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
-      copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
-      repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`,
-      pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg>`,
-      emoji: `<svg viewBox="0,0,17.13786,14.47712" fill="currentColor" stroke="none" stroke-width="0.5" stroke-miterlimit="10"><g transform="translate(-231.43107,-172.76144)"><path d="M239.94712,186.81929c-0.0507,0.41926 -0.49531,0.41927 -0.49531,0.41927c-3.96787,0 -8.01249,-0.68535 -8.02074,-5.61285c0.17537,-2.64023 1.74956,-4.43331 2.70713,-6.82761c0.16543,-0.41362 0.45628,-1.91295 0.94891,-2.02221c1.10065,-0.2441 2.66273,2.67451 2.86873,3.4552c0.31374,0.81649 3.15293,0.99792 3.94628,0.24025c0.52177,-0.4983 0.89896,-3.42207 1.84402,-3.42151c1.12146,0.00067 2.30001,2.5981 2.70772,3.35984c0.28978,1.21395 1.21609,1.24536 1.72418,2.54303c1.5838,4.04503 -1.95067,5.61523 -5.12606,6.89251c-1.04106,0.43359 -1.98213,0.90597 -3.10486,0.97409zM239.12209,186.23762c0.05606,-0.41004 0.49412,-0.41004 0.49412,-0.41004h0.0822c1.08582,0.00791 1.99423,-0.49911 2.97557,-0.90816c0.90613,-0.36021 4.40914,-1.62575 4.69789,-2.51803c0.91767,-2.83576 -1.39409,-3.5574 -1.85281,-5.63655c-0.29134,-0.52115 -1.70912,-2.14942 -1.64872,-2.72273c0.04683,-0.4445 -0.19827,0.87957 -0.39231,1.28221c-0.2529,0.52475 -0.45183,1.48329 -0.88714,1.87204c-1.38878,1.24023 -4.99067,0.88942 -5.58856,-0.66392c-0.06813,-0.293 -1.17064,-1.8955 -1.53788,-2.53236c-0.07769,0.34794 -0.29151,0.90382 -0.39826,1.17066c-0.29222,0.73044 -0.44273,1.50704 -0.74532,2.23256c-0.71976,1.7258 -1.74751,2.12166 -1.89035,4.25572c-0.00851,4.18415 3.41992,4.55867 6.69156,4.57862z"/><path d="M238.45934,181.66821c-0.35355,0.35356 -0.70711,0 -0.70711,0l-0.18648,-0.23974c-0.16632,-0.39918 -0.61694,-1.00924 -0.81966,-1.49844c-0.30124,0.60062 -0.60549,1.16756 -1.03983,1.70125c0,0 -0.31662,0.38698 -0.7036,0.07036c-0.38698,-0.31662 -0.07036,-0.7036 -0.07036,-0.7036c0.45322,-0.55057 0.73715,-1.14917 1.05641,-1.78332l0.14449,-0.46957c0.05931,-0.20994 0.25229,-0.36377 0.48121,-0.36377c0.18932,0 0.35406,0.10521 0.43894,0.26035l0.30916,0.54103l-0.01905,0.01088c0.47079,0.53548 0.82099,1.07173 1.14536,1.85022l-0.02949,-0.08275c0,0 0.35355,0.35356 0,0.70711z"/><path d="M244.58258,181.789c-0.47434,0.15812 -0.63245,-0.31623 -0.63245,-0.31623l-0.08204,-0.24655c-0.7487,-2.49444 -1.20387,-2.36025 -1.86474,0.13877c0,0 -0.12883,0.48311 -0.61194,0.35429c-0.48311,-0.12883 -0.35429,-0.61195 -0.35429,-0.61195c0.13898,-0.51735 0.96019,-3.11558 1.79527,-3.07868c0.83267,0.0368 1.77893,2.22608 1.99149,2.90349l0.07495,0.2244c0,0 0.15811,0.47434 -0.31623,0.63245z"/></g></svg>`,
-      nyax_logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0,0,86.03313,99.70458"><g transform="translate(-196.60558,-130.32065)"><g fill="currentColor" stroke="none"><path d="M196.60559,230.02523l0,-70.13795l17.47488,-0.00265l0.02074,39.64497l14.92353,-19.35604l-14.9511,-20.28628l-17.46804,0v-29.56663h18.56125l24.87297,33.70192l24.96791,-33.70192h17.63101l0,29.64857l-17.18324,0l-15.17417,19.90152l15.22948,20.56652l-0.05143,-40.54738l17.17935,0.07934l0,70.05601h-17.47906l-25.25271,-34.55634l-24.3983,34.55634z"/></g></g></svg>`,
+        home: `<svg viewBox="0 0 24 24"><path d="M21 9V20C21 20.5304 20.7891 21.039 20.4141 21.4141C20.039 21.7891 19.5304 22 19 22H15V12H9V22H5C4.46957 22 3.96101 21.7891 3.58594 21.4141C3.21086 21.039 3 20.5304 3 20V9L12 2L21 9Z"></path></svg>`,
+        dm: `<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`,
+        send: `<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`,
+        explore: `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+        notifications: `<svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>`,
+        likes: `<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`,
+        stars: `<svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
+        profile: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+        settings: `<svg viewBox="0 0 24 24"><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33 1.82V12a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+        attachment: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>`,
+        back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
+        reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
+        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+        repost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"></path><path d="M3 11v-1a4 4 0 0 1 4-4h14"></path><path d="M7 22l-4-4 4-4"></path><path d="M21 13v1a4 4 0 0 1-4 4H3"></path></svg>`,
+        pin: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg>`,
+        emoji: `<svg viewBox="0,0,17.13786,14.47712" fill="currentColor" stroke="none" stroke-width="0.5" stroke-miterlimit="10"><g transform="translate(-231.43107,-172.76144)"><path d="M239.94712,186.81929c-0.0507,0.41926 -0.49531,0.41927 -0.49531,0.41927c-3.96787,0 -8.01249,-0.68535 -8.02074,-5.61285c0.17537,-2.64023 1.74956,-4.43331 2.70713,-6.82761c0.16543,-0.41362 0.45628,-1.91295 0.94891,-2.02221c1.10065,-0.2441 2.66273,2.67451 2.86873,3.4552c0.31374,0.81649 3.15293,0.99792 3.94628,0.24025c0.52177,-0.4983 0.89896,-3.42207 1.84402,-3.42151c1.12146,0.00067 2.30001,2.5981 2.70772,3.35984c0.28978,1.21395 1.21609,1.24536 1.72418,2.54303c1.5838,4.04503 -1.95067,5.61523 -5.12606,6.89251c-1.04106,0.43359 -1.98213,0.90597 -3.10486,0.97409zM239.12209,186.23762c0.05606,-0.41004 0.49412,-0.41004 0.49412,-0.41004h0.0822c1.08582,0.00791 1.99423,-0.49911 2.97557,-0.90816c0.90613,-0.36021 4.40914,-1.62575 4.69789,-2.51803c0.91767,-2.83576 -1.39409,-3.5574 -1.85281,-5.63655c-0.29134,-0.52115 -1.70912,-2.14942 -1.64872,-2.72273c0.04683,-0.4445 -0.19827,0.87957 -0.39231,1.28221c-0.2529,0.52475 -0.45183,1.48329 -0.88714,1.87204c-1.38878,1.24023 -4.99067,0.88942 -5.58856,-0.66392c-0.06813,-0.293 -1.17064,-1.8955 -1.53788,-2.53236c-0.07769,0.34794 -0.29151,0.90382 -0.39826,1.17066c-0.29222,0.73044 -0.44273,1.50704 -0.74532,2.23256c-0.71976,1.7258 -1.74751,2.12166 -1.89035,4.25572c-0.00851,4.18415 3.41992,4.55867 6.69156,4.57862z"/><path d="M238.45934,181.66821c-0.35355,0.35356 -0.70711,0 -0.70711,0l-0.18648,-0.23974c-0.16632,-0.39918 -0.61694,-1.00924 -0.81966,-1.49844c-0.30124,0.60062 -0.60549,1.16756 -1.03983,1.70125c0,0 -0.31662,0.38698 -0.7036,0.07036c-0.38698,-0.31662 -0.07036,-0.7036 -0.07036,-0.7036c0.45322,-0.55057 0.73715,-1.14917 1.05641,-1.78332l0.14449,-0.46957c0.05931,-0.20994 0.25229,-0.36377 0.48121,-0.36377c0.18932,0 0.35406,0.10521 0.43894,0.26035l0.30916,0.54103l-0.01905,0.01088c0.47079,0.53548 0.82099,1.07173 1.14536,1.85022l-0.02949,-0.08275c0,0 0.35355,0.35356 0,0.70711z"/><path d="M244.58258,181.789c-0.47434,0.15812 -0.63245,-0.31623 -0.63245,-0.31623l-0.08204,-0.24655c-0.7487,-2.49444 -1.20387,-2.36025 -1.86474,0.13877c0,0 -0.12883,0.48311 -0.61194,0.35429c-0.48311,-0.12883 -0.35429,-0.61195 -0.35429,-0.61195c0.13898,-0.51735 0.96019,-3.11558 1.79527,-3.07868c0.83267,0.0368 1.77893,2.22608 1.99149,2.90349l0.07495,0.2244c0,0 0.15811,0.47434 -0.31623,0.63245z"/></g></svg>`,
+        nyax_logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0,0,86.03313,99.70458"><g transform="translate(-196.60558,-130.32065)"><g fill="currentColor" stroke="none"><path d="M196.60559,230.02523l0,-70.13795l17.47488,-0.00265l0.02074,39.64497l14.92353,-19.35604l-14.9511,-20.28628l-17.46804,0v-29.56663h18.56125l24.87297,33.70192l24.96791,-33.70192h17.63101l0,29.64857l-17.18324,0l-15.17417,19.90152l15.22948,20.56652l-0.05143,-40.54738l17.17935,0.07934l0,70.05601h-17.47906l-25.25271,-34.55634l-24.3983,34.55634z"/></g></g></svg>`,
     };
 
     // --- 3. DOM要素の取得 ---
@@ -67,8 +67,8 @@ window.addEventListener('DOMContentLoaded', () => {
         editDmMessageModalContent: document.getElementById('edit-dm-message-modal-content'),
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
-        friezeOverlay: document.getElementById('frieze-overlay'),
-        friezeReason: document.getElementById('frieze-reason'),
+        freezeOverlay: document.getElementById('freeze-overlay'),
+        freezeReason: document.getElementById('freeze-reason'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -90,7 +90,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-// --- 4. ユーティリティ関数 ---
+    // --- 4. ユーティリティ関数 ---
     function showLoading(show) {
         DOM.loadingOverlay.classList.toggle('hidden', !show);
     }
@@ -107,34 +107,32 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
 
     function getEmoji(str) {
-        let setting;
-        if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
-        else setting = 'emojione';
-        
-        if (setting == "twemoji"){
-            // titleにshortnameを挿入(Emoji Oneの関数使用)
-            let twe_div = document.createElement('div');
-            twe_div.innerHTML = twemoji.parse(str,{
-                callback: function (icon, options) {
-                    return ''.concat(
-                        "https://jdecked.github.io/twemoji/v/latest/svg/",
-                        icon,
-                        ".svg"
-                    );
-                }
-            });
-            twe_div.querySelectorAll('img').forEach((value) => {
-                value.title = emojione.toShort(value.alt);
-            });
-            return twe_div.innerHTML
+        switch(currentUser?.settings?.emoji || 'emojione') {
+            case "twemoji":
+                // titleにshortnameを挿入(Emoji Oneの関数使用)
+                let twe_div = document.createElement('div');
+                twe_div.innerHTML = twemoji.parse(str,{
+                    callback: function (icon, options) {
+                        return `https://jdecked.github.io/twemoji/v/latest/svg/${icon}.svg`;
+                    }
+                });
+                twe_div.querySelectorAll('img').forEach((value) => {
+                    value.title = emojione.toShort(value.alt);
+                });
+                return twe_div.innerHTML;
+            case "emojione":
+                return emojione.toImage(str);
+            default:
+                return str;
         }
-        else if (setting == "emojione"){
-            return emojione.toImage(str);
-        }
-        else return str;
     }
 
     function getUserIconUrl(user) {
@@ -272,8 +270,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 2. 絵文字を置換
             const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
             processed = processed.replace(emojiRegex, (match, emojiId) => {
-                const escapedId = escapeHTML(emojiId);
-                return `<img src="/emoji/${escapedId}.svg" alt="_${escapedId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+                return `<img src="/emoji/${emojiId}.svg" alt="_${emojiId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
             // 3. 絵文字を変換
@@ -332,12 +329,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function ensureMentionedUsersCached(texts) {
-        const mentionRegex = /@(\d+)/g;
         const allMentionedIds = new Set();
         for (const text of texts) {
             if (!text) continue;
-            let match;
-            while ((match = mentionRegex.exec(text)) !== null) {
+            for (const match of text.matchAll(/@(\d+)/g)) {
                 allMentionedIds.add(parseInt(match[1]));
             }
         }
@@ -413,7 +408,9 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const query = e.target.value.trim();
-                    if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+                    if (query) {
+                        window.location.hash = `#search/${encodeURIComponent(query)}`;
+                    }
                 }
             });
         }
@@ -426,7 +423,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const linkItems = [ { name: 'NyaXルール', link: 'rule' }, { name: '各種ランキング', link: 'ranking' }, { name: '統計', link: 'stat' }, { name: '申請フォーム', link: 'forms' }, { name: 'Emoji一覧', link: 'emoji' },  { name: 'Discord鯖', link: 'discord' } ];
 
-        if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
+        if (error || !data || data.length === 0) {
+            if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = '';
+            return;
+        }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
         recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
@@ -518,36 +518,36 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 7. 認証とセッション ---
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
-    if(!confirm("ログアウトしますか？")) return;
-    const userId = currentUser?.id;
-    if (!userId) return;
-    removeAccountFromList(userId);
-    const accounts = getAccountList();
-    if (accounts.length > 0) {
-        // 次のアカウントでログイン
-        supabase.auth.setSession(accounts[0].token).then(() => {
-            checkSession();
-        });
-    } else {
-        // 全部消えたら完全ログアウト
-        supabase.auth.signOut().then(() => {
-            currentUser = null;
-            if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-            window.location.hash = '#';
-            router();
-        });
+        if(!confirm("ログアウトしますか？")) return;
+        const userId = currentUser?.id;
+        if (!userId) return;
+        removeAccountFromList(userId);
+        const accounts = getAccountList();
+        if (accounts.length > 0) {
+            // 次のアカウントでログイン
+            supabase.auth.setSession(accounts[0].token).then(() => {
+                checkSession();
+            });
+        } else {
+            // 全部消えたら完全ログアウト
+            supabase.auth.signOut().then(() => {
+                currentUser = null;
+                if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+                window.location.hash = '#';
+                router();
+            });
+        }
     }
-}
     async function checkSession() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
-            const accounts = JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
+            const accounts = getAccountList();
             while (accounts.length) {
                 const { data: { session: _sess }, error: _sess_err } = await supabase.auth.setSession(accounts[0].token);
                 if (_sess_err || !_sess) {
                     accounts.splice(0, 1);
-                    localStorage.setItem('nyax_accounts', JSON.stringify(accounts));
+                    setAccountList(accounts);
                     continue;
                 } else {
                     return checkSession(); // 直前にセッションの確認をしたため無限ループの可能性は低い
@@ -574,8 +574,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser = data;
 
                 if (currentUser.frieze) {
-                    DOM.friezeReason.textContent = currentUser.frieze;
-                    DOM.friezeOverlay.classList.remove('hidden');
+                    DOM.freezeReason.textContent = currentUser.frieze;
+                    DOM.freezeOverlay.classList.remove('hidden');
                     return;
                 }
                 
@@ -687,8 +687,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (acc && acc.token) {
                         // アカウント切り替え処理
                         supabase.auth.setSession(acc.token).then(() => {
-                        document.getElementById('account-switcher-modal').classList.add('hidden');
-                        checkSession();
+                            document.getElementById('account-switcher-modal').classList.add('hidden');
+                            checkSession();
                         });
                     }
                 }
@@ -751,11 +751,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const simpleRepostBtn = document.createElement('button');
         simpleRepostBtn.textContent = 'リポスト';
-        simpleRepostBtn.onclick = (e) => { e.stopPropagation(); handleSimpleRepost(post.id); menu.remove(); };
+        simpleRepostBtn.onclick = (e) => {
+            e.stopPropagation();
+            handleSimpleRepost(post.id);
+            menu.remove();
+        };
 
         const quotePostBtn = document.createElement('button');
         quotePostBtn.textContent = '引用ポスト';
-        quotePostBtn.onclick = (e) => { e.stopPropagation(); quotingPost = post; openPostModal(); menu.remove(); };
+        quotePostBtn.onclick = (e) => {
+            e.stopPropagation();
+            quotingPost = post;
+            openPostModal();
+            menu.remove();
+        };
         
         menu.appendChild(simpleRepostBtn);
         menu.appendChild(quotePostBtn);
@@ -999,13 +1008,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. ファイルがあれば先にアップロード
-            if (selectedFiles.length > 0) {
-                for (const file of selectedFiles) {
-                    const fileId = await uploadFileViaEdgeFunction(file);
-                    uploadedFileIds.push(fileId); // 削除候補としてIDを保存
-                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
-                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
-                }
+            for (const file of selectedFiles) {
+                const fileId = await uploadFileViaEdgeFunction(file);
+                uploadedFileIds.push(fileId); // 削除候補としてIDを保存
+                const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                attachmentsData.push({ type: fileType, id: fileId, name: file.name });
             }
 
             // 2. 新しいRPC関数を呼び出してポストをDBに保存
@@ -1034,10 +1041,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 repliedUserId = quotingPost.userid; // リプライと引用ポストの両立は不可能のはずなので大丈夫
                 sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストを引用しました。`, `#post/${quotingPost.id}`);
             }
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 const mentionedId = parseInt(match[1]);
                 if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
                     mentionedIds.add(mentionedId);
@@ -1091,7 +1096,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Edge Functionからの戻り値はdataの中にさらにdataプロパティがある場合がある
         const responseData = data.data || data;
         if (responseData.error) {
-             throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
+            throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
         }
 
         return responseData.fileId;
@@ -1131,8 +1136,8 @@ window.addEventListener('DOMContentLoaded', () => {
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         } catch (e) {
             console.error('ダウンロードエラー:', e);
             alert('ファイルのダウンロードに失敗しました。');
@@ -1524,23 +1529,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // iframe要素を取得
         const iframe = adContainer.querySelector('iframe');
-        
-        // iframeの読み込みを待ってから、中に広告スクリプトを書き込む
-        iframe.onload = () => {
-            const iframeDoc = iframe.contentWindow.document;
-            iframeDoc.open();
-            // 広告スクリプトをiframeの中に直接書き込む
-            iframeDoc.write(`
-                <body style="margin:0; padding:0;">
-                    <!-- admax -->
-                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
-                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
-                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
-                    <!-- admax -->
-                </body>
-            `);
-            iframeDoc.close();
-        };
+
+        iframe.srcdoc = `
+            <body style="margin:0; padding:0;">
+                <!-- admax -->
+                <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
+                <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
+                <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                <!-- admax -->
+            </body>
+        `;
 
         // 広告ポスト全体のクリックイベントを止める
         adContainer.addEventListener('click', (e) => {
@@ -1594,9 +1592,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
 
         showScreen('explore-screen');
         const contentDiv = DOM.exploreContent;
@@ -1648,9 +1650,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
         
         showScreen('search-results-screen');
         const contentDiv = DOM.searchResultsContent;
@@ -2128,13 +2134,11 @@ window.addEventListener('DOMContentLoaded', () => {
             let posts = dm.post || [];
             posts = filterBlockedPosts(posts);;
             const allUserIdsInDm = new Set(dm.member);
-            const mentionRegex = /@(\d+)/g;
 
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
-                    let match;
-                    while ((match = mentionRegex.exec(msg.content)) !== null) {
+                    for (const match of msg.content.matchAll(/@(\d+)/g)) {
                         allUserIdsInDm.add(parseInt(match[1]));
                     }
                 }
@@ -2285,7 +2289,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
-        document.querySelector('.frieze-notice')?.remove();
+        document.querySelector('.freeze-notice')?.remove();
         document.getElementById('profile-content').innerHTML = '';
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
@@ -2309,11 +2313,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         <h2>${getEmoji(escapeHTML(user.name))}</h2>
                         <div class="user-id">#${user.id}</div>
                     </div>`;
-                const friezeNotice = document.createElement('div');
-                friezeNotice.className = 'frieze-notice';
-                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                const freezeNotice = document.createElement('div');
+                freezeNotice.className = 'freeze-notice';
+                freezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
                 profileTabs.innerHTML = '';
-                profileTabs.insertAdjacentElement('afterend', friezeNotice);
+                profileTabs.insertAdjacentElement('afterend', freezeNotice);
                 
                 showLoading(false);
                 return;
@@ -2326,15 +2330,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser.id !== user.id
             ) {
                 if (Array.isArray(currentUser.block) && currentUser.block.includes(user.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
                 if (Array.isArray(user.block) && user.block.includes(currentUser.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
             }
             if (blockNoticeHtml) {
                 // 通知を生成
-                document.querySelectorAll('.frieze-notice').forEach(el => el.remove());
+                document.querySelectorAll('.freeze-notice').forEach(el => el.remove());
                 profileTabs.insertAdjacentHTML('afterend', blockNoticeHtml);
             }
 
@@ -2408,7 +2412,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 `<button class="tab-button ${tab.className || ''} ${tab.key === subpage ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
             ).join('');
 
-            profileTabs.querySelectorAll('.tab-button').forEach(button => { button.onclick = (e) => { e.stopPropagation(); loadProfileTabContent(user, button.dataset.tab); }; });
+            profileTabs.querySelectorAll('.tab-button').forEach(button => {
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    loadProfileTabContent(user, button.dataset.tab);
+                };
+            });
 
             await loadProfileTabContent(user, subpage);
 
@@ -2770,13 +2779,16 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
-                            } else { hasMoreItems = false; }
+                            } else {
+                                hasMoreItems = false;
+                            }
                         } else if (options.tab === 'announce') {
                             idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
-                        if (!options.userId) { hasMoreItems = false; }
-                        else {
+                        if (!options.userId) {
+                            hasMoreItems = false;
+                        } else {
                             idQuery = supabase.from('post_profile').select('id').eq('userid', options.userId);
                             if (options.subType === 'posts_only') { 
                                 idQuery = idQuery.is('reply_id', null);
@@ -2784,15 +2796,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                     showPinPost = true;
                                 }
                             }
-                            else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
+                            else if (options.subType === 'replies_only') {
+                                idQuery = idQuery.not('reply_id', 'is', null);
+                            }
                         }
                     } else if (type === 'likes' || type === 'stars') {
-                            const idList = options.ids || [];
-                            const reversedList = [...idList].reverse();
-                            postIdsToFetch = reversedList.slice(from, to + 1);
-                            if (postIdsToFetch.length < POSTS_PER_PAGE) {
-                                hasMoreItems = false;
-                            }
+                        const idList = options.ids || [];
+                        const reversedList = [...idList].reverse();
+                        postIdsToFetch = reversedList.slice(from, to + 1);
+                        if (postIdsToFetch.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
 
                     if (idQuery && hasMoreItems) {
@@ -2802,7 +2816,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (showPinPost && !postIdsToFetch.includes(options.pinId)) {
                             postIdsToFetch.push(options.pinId);
                         }
-                        if (idData.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                        if (idData.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
                     
                     if (postIdsToFetch.length > 0) {
@@ -3694,8 +3710,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function sendSystemDmMessage(dmId, content) {
         const mentionRegex = /@(\d+)/g;
         const mentionedIds = new Set();
-        let match;
-        while ((match = mentionRegex.exec(content)) !== null) {
+        for (const match of content.matchAll(/@(\d+)/g)) {
             mentionedIds.add(parseInt(match[1]));
         }
         
@@ -4118,10 +4133,8 @@ window.addEventListener('DOMContentLoaded', () => {
         sendButton.disabled = true;
 
         try {
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 mentionedIds.add(parseInt(match[1]));
             }
             
@@ -4527,7 +4540,7 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', router);
     
     // 全ての準備が整った後、最後にセッションチェックを開始
-    DOM.friezeOverlay.classList.add('hidden');
+    DOM.freezeOverlay.classList.add('hidden');
     DOM.connectionErrorOverlay.classList.add('hidden');
     checkSession();
 });
