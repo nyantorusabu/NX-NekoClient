@@ -23,9 +23,9 @@
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
-    --d-main-bg-color: black;
+    --d-main-bg-color: #1e1e1e;
     --d-ad-bg-color: #272929;
-    --d-pg-bg-color: rgba(0, 0, 0, 0.85); /* ページヘッダーなど */
+    --d-pg-bg-color: rgba(30, 30, 30, 0.85); /* ページヘッダーなど */
     --d-emoji-bg-color: white; /* 絵文字の後ろに表示するための白背景　*/
     --d-notification-bg-color: #5b6063;
     --d-text-color: #f5faff;
