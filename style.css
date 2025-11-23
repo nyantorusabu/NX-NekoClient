@@ -20,6 +20,7 @@
     --l-logo-color: black; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --l-loading-color: rgba(255, 255, 255, 0.8);
     --l-widget-bg-color: #e7e8e8; /* プロフィールカードホバー時 */
+    --l-emoji-mart: 255, 255, 255;
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
@@ -33,6 +34,7 @@
     --d-logo-color: white; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --d-loading-color: rgba(255, 255, 255, 0.6);
     --d-widget-bg-color: #373838; /* プロフィールカードホバー時 */
+    --d-emoji-mart: 30, 30, 30;
 }
 
 /* 変数指定(クラスはJSにて付与) */
@@ -49,6 +51,7 @@ body.light {
     --logo-color: var(--l-logo-color);
     --loding-color: var(--l-loading-color);
     --widget-bg-color: var(--l-widget-bg-color);
+    --emoji-mart: var(--l-emoji-mart);
 }
 body.dark {
     --border-color: var(--d-border-color);
@@ -63,6 +66,7 @@ body.dark {
     --logo-color: var(--d-logo-color);
     --loding-color: var(--d-loading-color);
     --widget-bg-color: var(--d-widget-bg-color);
+    --emoji-mart: var(--d-emoji-mart);
 }
 /* 変数指定終わり */
 
@@ -626,6 +630,10 @@ img.emoji{
     z-index: 100;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     border-radius: 8px;
+}
+
+em-emoji-picker {
+    --rgb-background: var(--emoji-mart);
 }
 
 /* ▼▼▼ DMプレビューのボタンサイズを上書き ▼▼▼ */
