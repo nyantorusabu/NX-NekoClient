@@ -3732,6 +3732,8 @@ window.addEventListener('DOMContentLoaded', () => {
     async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
         const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
         const editPostTextarea = DOM.editPostModal.querySelector('#edit-post-textarea');
+        if (!newContent) return alert('内容を入力するか、ファイルを添付してください。');
+        
         editPostTextarea.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
