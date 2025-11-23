@@ -26,6 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
     const POSTS_PER_PAGE = 15;
 
+    let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
         home: `<svg viewBox="0 0 24 24"><path d="M21 9V20C21 20.5304 20.7891 21.039 20.4141 21.4141C20.039 21.7891 19.5304 22 19 22H15V12H9V22H5C4.46957 22 3.96101 21.7891 3.58594 21.4141C3.21086 21.039 3 20.5304 3 20V9L12 2L21 9Z"></path></svg>`,
@@ -353,6 +355,33 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
         isLoadingMore = false;
 
+        // Theme
+        isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (currentUser){
+            if (currentUser.settings?.theme == 'dark'){
+                document.body.classList.remove('light');
+                document.body.classList.add('dark');
+            }
+            else if (currentUser.settings?.theme == 'auto'){
+                if (isDarkmode) {
+                    document.body.classList.remove('light');
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.add('light');
+                    document.body.classList.remove('dark');
+                    emojiTheme = 'light';
+                }
+            } else {
+                document.body.classList.add('light');
+                document.body.classList.remove('dark');
+                emojiTheme = 'light';
+            }
+        } else {
+            document.body.classList.add('light');
+            document.body.classList.remove('dark');
+            emojiTheme = 'light';
+        }
+
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
 
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
@@ -482,7 +511,10 @@ window.addEventListener('DOMContentLoaded', () => {
             );
         }
 
-        DOM.navLogo.innerHTML = '<a href="#"><img src="./logo.png" class="nav-logo-img"></a>'
+        
+        if (window.matchMedia('(min-width:768px)').matches) {
+            DOM.navLogo.innerHTML = `<a href="#" class="nav-logo-img">${ICONS.nyax_logo}</a>`
+        }
 
         DOM.navMenuTop.innerHTML = menuItems.map(item => {
             let isActive = false;
@@ -895,7 +927,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 picker.classList.add('hidden');
             },
-            theme: "light",
             set: "native",
             searchPosition: "none",
             locale: "ja",
@@ -2558,6 +2589,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
                     <option value="default">デフォルト(端末絵文字)</option>
                 </select>
+
+                <label for="setting-theme">テーマ設定</label>
+                <select id="setting-theme" style="width:100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="auto">端末設定</option>
+                    <option value="light">ライト</option>
+                    <option value="dark">ダーク</option>
+                </select>
                 
                 <button type="submit">設定を保存</button>
             </form>
@@ -2572,6 +2610,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const emoji_kind = currentUser.settings?.emoji || 'emojione';
         document.getElementById('setting-emoji-kind').value = emoji_kind;
+        
+        const theme = currentUser.settings?.theme || 'light';
+        document.getElementById('setting-theme').value = theme;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
@@ -3146,7 +3187,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_star: form.querySelector('#setting-show-star').checked,
                     show_scid: form.querySelector('#setting-show-scid').checked,
                     default_timeline_tab: form.querySelector('#setting-default-timeline').value,
-                    emoji: form.querySelector('#setting-emoji-kind').value
+                    emoji: form.querySelector('#setting-emoji-kind').value,
+                    theme: form.querySelector('#setting-theme').value
                 },
             };
 
@@ -3423,7 +3465,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
@@ -3909,7 +3950,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
