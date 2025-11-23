@@ -21,6 +21,7 @@
     --l-loading-color: rgba(255, 255, 255, 0.8);
     --l-widget-bg-color: #e7e8e8; /* プロフィールカードホバー時 */
     --l-emoji-mart: 255, 255, 255;
+    --l-bw: #000000;
     /* ダークモード色設定 */
     --d-border-color: #282a2a;
     --d-bg-color: #212121;
@@ -35,6 +36,7 @@
     --d-loading-color: rgba(255, 255, 255, 0.6);
     --d-widget-bg-color: #373838; /* プロフィールカードホバー時 */
     --d-emoji-mart: 40, 40, 40;
+    --d-bw: #ffffff;
 }
 
 /* 変数指定(クラスはJSにて付与) */
@@ -52,6 +54,7 @@ body.light {
     --loding-color: var(--l-loading-color);
     --widget-bg-color: var(--l-widget-bg-color);
     --emoji-mart: var(--l-emoji-mart);
+    --bw: var(--l-bw);
 }
 body.dark {
     --border-color: var(--d-border-color);
@@ -67,6 +70,7 @@ body.dark {
     --loding-color: var(--d-loading-color);
     --widget-bg-color: var(--d-widget-bg-color);
     --emoji-mart: var(--d-emoji-mart);
+    --bw: var(--d-bw)
 }
 /* 変数指定終わり */
 
@@ -927,7 +931,7 @@ em-emoji-picker {
     padding: 0.5rem;
     font-size: 0.9rem;
     text-decoration: none;
-    color: #000000;
+    color: var(--bw);
 }
 
 .attachment-download-link {
