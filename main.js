@@ -26,6 +26,8 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
     const POSTS_PER_PAGE = 15;
 
+    let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
       home: `<svg viewBox="0 0 24 24"><path d="M21 9V20C21 20.5304 20.7891 21.039 20.4141 21.4141C20.039 21.7891 19.5304 22 19 22H15V12H9V22H5C4.46957 22 3.96101 21.7891 3.58594 21.4141C3.21086 21.039 3 20.5304 3 20V9L12 2L21 9Z"></path></svg>`,
@@ -66,8 +68,8 @@ window.addEventListener('DOMContentLoaded', () => {
         editDmMessageModalContent: document.getElementById('edit-dm-message-modal-content'),
         connectionErrorOverlay: document.getElementById('connection-error-overlay'),
         retryConnectionBtn: document.getElementById('retry-connection-btn'),
-        friezeOverlay: document.getElementById('frieze-overlay'),
-        friezeReason: document.getElementById('frieze-reason'),
+        freezeOverlay: document.getElementById('freeze-overlay'),
+        freezeReason: document.getElementById('freeze-reason'),
         imagePreviewModal: document.getElementById('image-preview-modal'),
         imagePreviewModalContent: document.getElementById('image-preview-modal-content'),
         timeline: document.getElementById('timeline'),
@@ -89,7 +91,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-// --- 4. ユーティリティ関数 ---
+    // --- 4. ユーティリティ関数 ---
     function showLoading(show) {
         DOM.loadingOverlay.classList.toggle('hidden', !show);
     }
@@ -106,34 +108,32 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function escapeHTML(str) { if (typeof str !== 'string') return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function escapeHTML(str) {
+        if (typeof str !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
 
     function getEmoji(str) {
-        let setting;
-        if (currentUser) setting = currentUser.settings?.emoji || 'emojione';
-        else setting = 'emojione';
-        
-        if (setting == "twemoji"){
-            // titleにshortnameを挿入(Emoji Oneの関数使用)
-            let twe_div = document.createElement('div');
-            twe_div.innerHTML = twemoji.parse(str,{
-                callback: function (icon, options) {
-                    return ''.concat(
-                        "https://jdecked.github.io/twemoji/v/latest/svg/",
-                        icon,
-                        ".svg"
-                    );
-                }
-            });
-            twe_div.querySelectorAll('img').forEach((value) => {
-                value.title = emojione.toShort(value.alt);
-            });
-            return twe_div.innerHTML
+        switch(currentUser?.settings?.emoji || 'emojione') {
+            case "twemoji":
+                // titleにshortnameを挿入(Emoji Oneの関数使用)
+                let twe_div = document.createElement('div');
+                twe_div.innerHTML = twemoji.parse(str,{
+                    callback: function (icon, options) {
+                        return `https://jdecked.github.io/twemoji/v/latest/svg/${icon}.svg`;
+                    }
+                });
+                twe_div.querySelectorAll('img').forEach((value) => {
+                    value.title = emojione.toShort(value.alt);
+                });
+                return twe_div.innerHTML;
+            case "emojione":
+                return emojione.toImage(str);
+            default:
+                return str;
         }
-        else if (setting == "emojione"){
-            return emojione.toImage(str);
-        }
-        else return str;
     }
 
     function getUserIconUrl(user) {
@@ -271,8 +271,7 @@ window.addEventListener('DOMContentLoaded', () => {
             // 2. 絵文字を置換
             const emojiRegex = /(?<!\w)_([a-zA-Z0-9_!?.-]+)_(?!\w)/g;
             processed = processed.replace(emojiRegex, (match, emojiId) => {
-                const escapedId = escapeHTML(emojiId);
-                return `<img src="/emoji/${escapedId}.svg" alt="_${escapedId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
+                return `<img src="/emoji/${emojiId}.svg" alt="_${emojiId}_" style="height: 1.2em; vertical-align: -0.2em; margin: 0 0.05em;" class="nyax-emoji">`;
             });
             
             // 3. 絵文字を変換
@@ -349,12 +348,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function ensureMentionedUsersCached(texts) {
-        const mentionRegex = /@(\d+)/g;
         const allMentionedIds = new Set();
         for (const text of texts) {
             if (!text) continue;
-            let match;
-            while ((match = mentionRegex.exec(text)) !== null) {
+            for (const match of text.matchAll(/@(\d+)/g)) {
                 allMentionedIds.add(parseInt(match[1]));
             }
         }
@@ -416,6 +413,33 @@ window.addEventListener('DOMContentLoaded', () => {
         showLoading(true);
         isLoadingMore = false;
 
+        // Theme
+        isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (currentUser){
+            if (currentUser.settings?.theme == 'dark'){
+                document.body.classList.remove('light');
+                document.body.classList.add('dark');
+            }
+            else if (currentUser.settings?.theme == 'auto'){
+                if (isDarkmode) {
+                    document.body.classList.remove('light');
+                    document.body.classList.add('dark');
+                } else {
+                    document.body.classList.add('light');
+                    document.body.classList.remove('dark');
+                    emojiTheme = 'light';
+                }
+            } else {
+                document.body.classList.add('light');
+                document.body.classList.remove('dark');
+                emojiTheme = 'light';
+            }
+        } else {
+            document.body.classList.add('light');
+            document.body.classList.remove('dark');
+            emojiTheme = 'light';
+        }
+
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
 
         const existingSubTabs = document.getElementById('profile-sub-tabs-container');
@@ -471,7 +495,9 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sidebar-search-input').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     const query = e.target.value.trim();
-                    if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+                    if (query) {
+                        window.location.hash = `#search/${encodeURIComponent(query)}`;
+                    }
                 }
             });
         }
@@ -484,7 +510,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const linkItems = [ { name: 'NyaXルール', link: 'rule' }, { name: '各種ランキング', link: 'ranking' }, { name: '統計', link: 'stat' }, { name: '申請フォーム', link: 'forms' }, { name: 'Emoji一覧', link: 'emoji' },  { name: 'Discord鯖', link: 'discord' } ];
 
-        if (error || !data || data.length === 0) { if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = ''; return; }
+        if (error || !data || data.length === 0) {
+            if(DOM.rightSidebar.recommendations) DOM.rightSidebar.recommendations.innerHTML = '';
+            return;
+        }
         let recHTML = '<div class="widget-title">おすすめユーザー</div>';
         recHTML += data.map(user => {
             const isFollowing = currentUser?.follow?.includes(user.id);
@@ -574,36 +603,36 @@ window.addEventListener('DOMContentLoaded', () => {
     // --- 7. 認証とセッション ---
     function goToLoginPage() { window.location.href = 'login.html'; }
     function handleLogout() {
-    if(!confirm("ログアウトしますか？")) return;
-    const userId = currentUser?.id;
-    if (!userId) return;
-    removeAccountFromList(userId);
-    const accounts = getAccountList();
-    if (accounts.length > 0) {
-        // 次のアカウントでログイン
-        supabase.auth.setSession(accounts[0].token).then(() => {
-            checkSession();
-        });
-    } else {
-        // 全部消えたら完全ログアウト
-        supabase.auth.signOut().then(() => {
-            currentUser = null;
-            if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
-            window.location.hash = '#';
-            router();
-        });
+        if(!confirm("ログアウトしますか？")) return;
+        const userId = currentUser?.id;
+        if (!userId) return;
+        removeAccountFromList(userId);
+        const accounts = getAccountList();
+        if (accounts.length > 0) {
+            // 次のアカウントでログイン
+            supabase.auth.setSession(accounts[0].token).then(() => {
+                checkSession();
+            });
+        } else {
+            // 全部消えたら完全ログアウト
+            supabase.auth.signOut().then(() => {
+                currentUser = null;
+                if (realtimeChannel) { supabase.removeChannel(realtimeChannel); realtimeChannel = null; }
+                window.location.hash = '#';
+                router();
+            });
+        }
     }
-}
     async function checkSession() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError || !session) {
-            const accounts = JSON.parse(localStorage.getItem('nyax_accounts') || '[]');
+            const accounts = getAccountList();
             while (accounts.length) {
                 const { data: { session: _sess }, error: _sess_err } = await supabase.auth.setSession(accounts[0].token);
                 if (_sess_err || !_sess) {
                     accounts.splice(0, 1);
-                    localStorage.setItem('nyax_accounts', JSON.stringify(accounts));
+                    setAccountList(accounts);
                     continue;
                 } else {
                     return checkSession(); // 直前にセッションの確認をしたため無限ループの可能性は低い
@@ -630,8 +659,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser = data;
 
                 if (currentUser.frieze) {
-                    DOM.friezeReason.textContent = currentUser.frieze;
-                    DOM.friezeOverlay.classList.remove('hidden');
+                    DOM.freezeReason.textContent = currentUser.frieze;
+                    DOM.freezeOverlay.classList.remove('hidden');
                     return;
                 }
                 
@@ -743,8 +772,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     if (acc && acc.token) {
                         // アカウント切り替え処理
                         supabase.auth.setSession(acc.token).then(() => {
-                        document.getElementById('account-switcher-modal').classList.add('hidden');
-                        checkSession();
+                            document.getElementById('account-switcher-modal').classList.add('hidden');
+                            checkSession();
                         });
                     }
                 }
@@ -807,11 +836,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const simpleRepostBtn = document.createElement('button');
         simpleRepostBtn.textContent = 'リポスト';
-        simpleRepostBtn.onclick = (e) => { e.stopPropagation(); handleSimpleRepost(post.id); menu.remove(); };
+        simpleRepostBtn.onclick = (e) => {
+            e.stopPropagation();
+            handleSimpleRepost(post.id);
+            menu.remove();
+        };
 
         const quotePostBtn = document.createElement('button');
         quotePostBtn.textContent = '引用ポスト';
-        quotePostBtn.onclick = (e) => { e.stopPropagation(); quotingPost = post; openPostModal(); menu.remove(); };
+        quotePostBtn.onclick = (e) => {
+            e.stopPropagation();
+            quotingPost = post;
+            openPostModal();
+            menu.remove();
+        };
         
         menu.appendChild(simpleRepostBtn);
         menu.appendChild(quotePostBtn);
@@ -942,7 +980,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 picker.classList.add('hidden');
             },
-            theme: "light",
             set: "native",
             searchPosition: "none",
             locale: "ja",
@@ -958,7 +995,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     svg: ICONS.nyax_logo
                 }
             },
-            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                skinTonePosition: 'none',
+                skin: '1'
         };
         const picker_modal = new EmojiMart.Picker(pickerOptions);
         picker.appendChild(picker_modal);
@@ -1053,13 +1092,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 1. ファイルがあれば先にアップロード
-            if (selectedFiles.length > 0) {
-                for (const file of selectedFiles) {
-                    const fileId = await uploadFileViaEdgeFunction(file);
-                    uploadedFileIds.push(fileId); // 削除候補としてIDを保存
-                    const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
-                    attachmentsData.push({ type: fileType, id: fileId, name: file.name });
-                }
+            for (const file of selectedFiles) {
+                const fileId = await uploadFileViaEdgeFunction(file);
+                uploadedFileIds.push(fileId); // 削除候補としてIDを保存
+                const fileType = file.type.startsWith('image/') ? 'image' : (file.type.startsWith('video/') ? 'video' : (file.type.startsWith('audio/') ? 'audio' : 'file'));
+                attachmentsData.push({ type: fileType, id: fileId, name: file.name });
             }
 
             // 2. 新しいRPC関数を呼び出してポストをDBに保存
@@ -1088,10 +1125,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 repliedUserId = quotingPost.userid; // リプライと引用ポストの両立は不可能のはずなので大丈夫
                 sendNotification(repliedUserId, `@${currentUser.id}さんがあなたのポストを引用しました。`, `#post/${quotingPost.id}`);
             }
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 const mentionedId = parseInt(match[1]);
                 if (mentionedId !== currentUser.id && mentionedId !== repliedUserId) {
                     mentionedIds.add(mentionedId);
@@ -1145,7 +1180,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Edge Functionからの戻り値はdataの中にさらにdataプロパティがある場合がある
         const responseData = data.data || data;
         if (responseData.error) {
-             throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
+            throw new Error(`ファイルアップロードに失敗しました: ${responseData.error}`);
         }
 
         return responseData.fileId;
@@ -1185,8 +1220,8 @@ window.addEventListener('DOMContentLoaded', () => {
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
             a.remove();
+            setTimeout(() => window.URL.revokeObjectURL(url), 1000);
         } catch (e) {
             console.error('ダウンロードエラー:', e);
             alert('ファイルのダウンロードに失敗しました。');
@@ -1579,23 +1614,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // iframe要素を取得
         const iframe = adContainer.querySelector('iframe');
-        
-        // iframeの読み込みを待ってから、中に広告スクリプトを書き込む
-        iframe.onload = () => {
-            const iframeDoc = iframe.contentWindow.document;
-            iframeDoc.open();
-            // 広告スクリプトをiframeの中に直接書き込む
-            iframeDoc.write(`
-                <body style="margin:0; padding:0;">
-                    <!-- admax -->
-                    <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
-                    <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
-                    <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
-                    <!-- admax -->
-                </body>
-            `);
-            iframeDoc.close();
-        };
+
+        iframe.srcdoc = `
+            <body style="margin:0; padding:0;">
+                <!-- admax -->
+                <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
+                <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
+                <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
+                <!-- admax -->
+            </body>
+        `;
 
         // 広告ポスト全体のクリックイベントを止める
         adContainer.addEventListener('click', (e) => {
@@ -1649,9 +1677,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
 
         showScreen('explore-screen');
         const contentDiv = DOM.exploreContent;
@@ -1703,9 +1735,13 @@ window.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-input');
         const performSearch = () => {
             const query = searchInput.value.trim();
-            if (query) { window.location.hash = `#search/${encodeURIComponent(query)}`; }
+            if (query) {
+                window.location.hash = `#search/${encodeURIComponent(query)}`;
+            }
         };
-        searchInput.onkeydown = (e) => { if (e.key === 'Enter') performSearch(); };
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter') performSearch();
+        };
         
         showScreen('search-results-screen');
         const contentDiv = DOM.searchResultsContent;
@@ -2183,13 +2219,11 @@ window.addEventListener('DOMContentLoaded', () => {
             let posts = dm.post || [];
             posts = await filterBlockedPosts(posts);
             const allUserIdsInDm = new Set(dm.member);
-            const mentionRegex = /@(\d+)/g;
 
             posts.forEach(msg => {
                 if (msg.userid) allUserIdsInDm.add(msg.userid);
                 if (msg.content) {
-                    let match;
-                    while ((match = mentionRegex.exec(msg.content)) !== null) {
+                    for (const match of msg.content.matchAll(/@(\d+)/g)) {
                         allUserIdsInDm.add(parseInt(match[1]));
                     }
                 }
@@ -2340,7 +2374,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const profileHeader = document.getElementById('profile-header');
         const profileTabs = document.getElementById('profile-tabs');
         
-        document.querySelector('.frieze-notice')?.remove();
+        document.querySelector('.freeze-notice')?.remove();
         document.getElementById('profile-content').innerHTML = '';
         profileHeader.innerHTML = '<div class="spinner"></div>';
         profileTabs.innerHTML = '';
@@ -2364,11 +2398,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         <h2>${getEmoji(escapeHTML(user.name))}</h2>
                         <div class="user-id">#${user.id}</div>
                     </div>`;
-                const friezeNotice = document.createElement('div');
-                friezeNotice.className = 'frieze-notice';
-                friezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
+                const freezeNotice = document.createElement('div');
+                freezeNotice.className = 'freeze-notice';
+                freezeNotice.innerHTML = `このユーザーは<a href="rule" target="_blank" rel="noopener noreferrer">NyaXルール</a>に違反したため凍結されています。`;
                 profileTabs.innerHTML = '';
-                profileTabs.insertAdjacentElement('afterend', friezeNotice);
+                profileTabs.insertAdjacentElement('afterend', freezeNotice);
                 
                 showLoading(false);
                 return;
@@ -2381,15 +2415,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 currentUser.id !== user.id
             ) {
                 if (Array.isArray(currentUser.block) && currentUser.block.includes(user.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">あなたはこのユーザーをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
                 if (Array.isArray(user.block) && user.block.includes(currentUser.id)) {
-                    blockNoticeHtml += `<div class="frieze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
             }
             if (blockNoticeHtml) {
                 // 通知を生成
-                document.querySelectorAll('.frieze-notice').forEach(el => el.remove());
+                document.querySelectorAll('.freeze-notice').forEach(el => el.remove());
                 profileTabs.insertAdjacentHTML('afterend', blockNoticeHtml);
             }
 
@@ -2464,7 +2498,12 @@ window.addEventListener('DOMContentLoaded', () => {
                 `<button class="tab-button ${tab.className || ''} ${tab.key === subpage ? 'active' : ''}" data-tab="${tab.key}">${tab.name}</button>`
             ).join('');
 
-            profileTabs.querySelectorAll('.tab-button').forEach(button => { button.onclick = (e) => { e.stopPropagation(); loadProfileTabContent(user, button.dataset.tab); }; });
+            profileTabs.querySelectorAll('.tab-button').forEach(button => {
+                button.onclick = (e) => {
+                    e.stopPropagation();
+                    loadProfileTabContent(user, button.dataset.tab);
+                };
+            });
 
             await loadProfileTabContent(user, subpage);
 
@@ -2614,6 +2653,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
                 </fieldset>
+                <label for="setting-theme">テーマ設定</label>
+                <select id="setting-theme" style="width:100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="auto">端末設定</option>
+                    <option value="light">ライト</option>
+                    <option value="dark">ダーク</option>
+                </select>
                 
                 <button type="submit">設定を保存</button>
             </form>
@@ -2631,6 +2676,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const trust_safety = currentUser.settings?.safety || 'everyone';
         document.getElementById('setting-trust-safety').value = trust_safety;
+        
+        const theme = currentUser.settings?.theme || 'light';
+        document.getElementById('setting-theme').value = theme;
         
         const dangerZone = document.querySelector('.settings-danger-zone');
         let dangerZoneHTML = `
@@ -2838,13 +2886,16 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (options.tab === 'following') {
                             if (currentUser?.follow?.length > 0) {
                                 idQuery = idQuery.in('userid', currentUser.follow);
-                            } else { hasMoreItems = false; }
+                            } else {
+                                hasMoreItems = false;
+                            }
                         } else if (options.tab === 'announce') {
                             idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
-                        if (!options.userId) { hasMoreItems = false; }
-                        else {
+                        if (!options.userId) {
+                            hasMoreItems = false;
+                        } else {
                             idQuery = supabase.from('post_profile').select('id').eq('userid', options.userId);
                             if (options.subType === 'posts_only') { 
                                 idQuery = idQuery.is('reply_id', null);
@@ -2852,15 +2903,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                     showPinPost = true;
                                 }
                             }
-                            else if (options.subType === 'replies_only') { idQuery = idQuery.not('reply_id', 'is', null); }
+                            else if (options.subType === 'replies_only') {
+                                idQuery = idQuery.not('reply_id', 'is', null);
+                            }
                         }
                     } else if (type === 'likes' || type === 'stars') {
-                            const idList = options.ids || [];
-                            const reversedList = [...idList].reverse();
-                            postIdsToFetch = reversedList.slice(from, to + 1);
-                            if (postIdsToFetch.length < POSTS_PER_PAGE) {
-                                hasMoreItems = false;
-                            }
+                        const idList = options.ids || [];
+                        const reversedList = [...idList].reverse();
+                        postIdsToFetch = reversedList.slice(from, to + 1);
+                        if (postIdsToFetch.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
 
                     if (idQuery && hasMoreItems) {
@@ -2870,7 +2923,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (showPinPost && !postIdsToFetch.includes(options.pinId)) {
                             postIdsToFetch.push(options.pinId);
                         }
-                        if (idData.length < POSTS_PER_PAGE) { hasMoreItems = false; }
+                        if (idData.length < POSTS_PER_PAGE) {
+                            hasMoreItems = false;
+                        }
                     }
                     
                     if (postIdsToFetch.length > 0) {
@@ -3203,7 +3258,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     show_scid: form.querySelector('#setting-show-scid').checked,
                     default_timeline_tab: form.querySelector('#setting-default-timeline').value,
                     emoji: form.querySelector('#setting-emoji-kind').value,
-                    safety: form.querySelector('#setting-trust-safety').value
+                    safety: form.querySelector('#setting-trust-safety').value,
+                    theme: form.querySelector('#setting-theme').value
                 },
             };
 
@@ -3480,7 +3536,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
@@ -3496,7 +3551,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         svg: ICONS.nyax_logo
                     }
                 },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                skinTonePosition: 'none',
+                skin: '1'
             };
             const picker_modal = new EmojiMart.Picker(pickerOptions);
             picker.appendChild(picker_modal);
@@ -3765,8 +3822,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function sendSystemDmMessage(dmId, content) {
         const mentionRegex = /@(\d+)/g;
         const mentionedIds = new Set();
-        let match;
-        while ((match = mentionRegex.exec(content)) !== null) {
+        for (const match of content.matchAll(/@(\d+)/g)) {
             mentionedIds.add(parseInt(match[1]));
         }
         
@@ -3788,6 +3844,8 @@ window.addEventListener('DOMContentLoaded', () => {
     async function handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds) {
         const newContent = DOM.editPostModal.querySelector('#edit-post-textarea').value.trim();
         const editPostTextarea = DOM.editPostModal.querySelector('#edit-post-textarea');
+        if (!newContent) return alert('内容を入力するか、ファイルを添付してください。');
+        
         editPostTextarea.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'Enter') {
                 e.preventDefault();
@@ -3963,7 +4021,6 @@ window.addEventListener('DOMContentLoaded', () => {
     
                     picker.classList.add('hidden');
                 },
-                theme: "light",
                 set: "native",
                 searchPosition: "none",
                 locale: "ja",
@@ -3979,7 +4036,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         svg: ICONS.nyax_logo
                     }
                 },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags']
+                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                skinTonePosition: 'none',
+                skin: '1'
             };
             const picker_modal = new EmojiMart.Picker(pickerOptions);
             picker.appendChild(picker_modal);
@@ -4187,10 +4246,8 @@ window.addEventListener('DOMContentLoaded', () => {
         sendButton.disabled = true;
 
         try {
-            const mentionRegex = /@(\d+)/g;
             const mentionedIds = new Set();
-            let match;
-            while ((match = mentionRegex.exec(content)) !== null) {
+            for (const match of content.matchAll(/@(\d+)/g)) {
                 mentionedIds.add(parseInt(match[1]));
             }
             
@@ -4596,7 +4653,7 @@ window.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('hashchange', router);
     
     // 全ての準備が整った後、最後にセッションチェックを開始
-    DOM.friezeOverlay.classList.add('hidden');
+    DOM.freezeOverlay.classList.add('hidden');
     DOM.connectionErrorOverlay.classList.add('hidden');
     checkSession();
 });
