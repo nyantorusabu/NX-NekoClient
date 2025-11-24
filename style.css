@@ -34,7 +34,7 @@
     --d-text-color: #e8eaed;
     --d-secondary-text-color: #cbcbcb;
     --d-logo-color: #FFFFFF; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
-    --d-loading-color: rgba(255, 255, 255, 0.6);
+    --d-loading-color: rgba(0, 0, 0, 0.6);
     --d-widget-bg-color: #4d5156; /* プロフィールカードホバー時 */
     --d-emoji-mart: 40, 40, 40;
     --d-bw: #ffffff;
