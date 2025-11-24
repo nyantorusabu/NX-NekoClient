@@ -18,7 +18,7 @@
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
     --l-logo-color: black; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
-    --l-loading-color: rgba(255, 255, 255, 0.8);
+    --l-loading-color: rgba(255, 255, 255, 0.7);
     --l-widget-bg-color: #e7e8e8; /* プロフィールカードホバー時 */
     --l-emoji-mart: 255, 255, 255;
     --l-bw: #000000;
@@ -34,7 +34,7 @@
     --d-text-color: #e8eaed;
     --d-secondary-text-color: #cbcbcb;
     --d-logo-color: #FFFFFF; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
-    --d-loading-color: rgba(0, 0, 0, 0.6);
+    --d-loading-color: rgba(0, 0, 0, 0.7);
     --d-widget-bg-color: #4d5156; /* プロフィールカードホバー時 */
     --d-emoji-mart: 40, 40, 40;
     --d-bw: #ffffff;
@@ -1525,6 +1525,7 @@ em-emoji-picker {
 
 #settings-form input[type="checkbox"], #settings-form select{
     background-color: var(--main-bg-color);
+    color: var(--text-color)
 }
 
 #settings-form button[type="submit"] {
