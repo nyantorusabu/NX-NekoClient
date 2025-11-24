@@ -981,7 +981,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 picker.classList.add('hidden');
             },
             set: "native",
-            searchPosition: "none",
             locale: "ja",
             custom: [
                 {
@@ -995,7 +994,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     svg: ICONS.nyax_logo
                 }
             },
-            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+            categories: ['nyax'],
                 skinTonePosition: 'none',
                 skin: '1'
         };
@@ -3538,7 +3537,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     picker.classList.add('hidden');
                 },
                 set: "native",
-                searchPosition: "none",
                 locale: "ja",
                 custom: [
                     {
@@ -3552,7 +3550,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         svg: ICONS.nyax_logo
                     }
                 },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                categories: ['nyax'],
                 skinTonePosition: 'none',
                 skin: '1'
             };
@@ -4023,7 +4021,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     picker.classList.add('hidden');
                 },
                 set: "native",
-                searchPosition: "none",
                 locale: "ja",
                 custom: [
                     {
@@ -4037,7 +4034,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         svg: ICONS.nyax_logo
                     }
                 },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+                categories: ['nyax'],
                 skinTonePosition: 'none',
                 skin: '1'
             };
