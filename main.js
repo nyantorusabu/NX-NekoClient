@@ -2621,21 +2621,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 <label for="setting-me">自己紹介</label>
                 <textarea id="setting-me">${escapeHTML(currentUser.me || '')}</textarea>
-
-                <label for="setting-default-timeline">ホーム画面のデフォルトタブ</label>
-                <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                    <option value="all">すべて</option>
-                    <option value="foryou">おすすめ</option>
-                    <option value="following">フォロー中</option>
-                </select>
-
-                <label for"setting-emoji-kind">絵文字のフォント設定</label>
-                <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
-                    <option value="twemoji">Twemoji</option>
-                    <option value="emojione">Emoji One</option>
-                    <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
-                    <option value="default">デフォルト(端末絵文字)</option>
-                </select>
+                
+                <fieldset><legend>公開設定</legend>
+                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
+                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
+                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
+                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                </fieldset>
 
                 <label for="setting-trust-safety">ポスト/メッセージの表示範囲</label>
                 <select id="setting-trust-safety" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
@@ -2645,19 +2638,27 @@ window.addEventListener('DOMContentLoaded', () => {
                     <option value="more-trusted">より信頼できるユーザー(Reliable以上)のみ</option>
                     <option value="following">フォロー中のユーザーのみ</option>
                 </select>
-                
-                <fieldset><legend>公開設定</legend>
-                    <input type="checkbox" id="setting-show-like" ${currentUser.settings.show_like ? 'checked' : ''}><label for="setting-show-like">いいねしたポストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
-                    <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
-                    <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
-                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
-                </fieldset>
+
+                <label for="setting-default-timeline">ホーム画面のデフォルトタブ</label>
+                <select id="setting-default-timeline" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="all">すべて</option>
+                    <option value="foryou">おすすめ</option>
+                    <option value="following">フォロー中</option>
+                </select>
+
                 <label for="setting-theme">テーマ設定</label>
                 <select id="setting-theme" style="width:100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
                     <option value="auto">端末設定</option>
                     <option value="light">ライト</option>
                     <option value="dark">ダーク</option>
+                </select>
+
+                <label for"setting-emoji-kind">絵文字のフォント設定</label>
+                <select id="setting-emoji-kind" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;">
+                    <option value="twemoji">Twemoji</option>
+                    <option value="emojione">Emoji One</option>
+                    <!--<option value="notocoloremoji">Noto Color Emoji</option>-->
+                    <option value="default">デフォルト(端末絵文字)</option>
                 </select>
                 
                 <button type="submit">設定を保存</button>
