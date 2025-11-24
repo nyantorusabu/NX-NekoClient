@@ -53,7 +53,7 @@ body.light {
     --text-color: var(--l-text-color);
     --secondary-text-color: var(--l-secondary-text-color);
     --logo-color: var(--l-logo-color);
-    --loding-color: var(--l-loading-color);
+    --loading-color: var(--l-loading-color);
     --widget-bg-color: var(--l-widget-bg-color);
     --emoji-mart: var(--l-emoji-mart);
     --bw: var(--l-bw);
@@ -70,7 +70,7 @@ body.dark {
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
     --logo-color: var(--d-logo-color);
-    --loding-color: var(--d-loading-color);
+    --loading-color: var(--d-loading-color);
     --widget-bg-color: var(--d-widget-bg-color);
     --emoji-mart: var(--d-emoji-mart);
     --bw: var(--d-bw);
