@@ -1286,7 +1286,7 @@ body.dark .profile-follow-button {
 .follow-button-following:hover {
     background-color: #fce8ec;
     color: var(--like-color);
-    border-color: var(--like-color);
+    border-color: var(--like-color) !important;
 }
 
 /* 未ログイン時バナー */
