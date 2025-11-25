@@ -1254,11 +1254,14 @@ em-emoji-picker {
     padding: 0.5rem 1rem;
     border-radius: 9999px !important;
     /* !importantで形状を強制 */
-    border-color: var(--text-color);
     font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     white-space: nowrap;
+}
+
+body.dark .recommend-user button, .profile-follow-button {
+    border-color: none;
 }
 
 .follow-button-not-following {
