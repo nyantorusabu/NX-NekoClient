@@ -12,14 +12,17 @@
     --l-bg-color: #f9f9f9;
     --l-main-bg-color: white;
     --l-ad-bg-color: #f7f9f9;
-    --l-pg-bg-color: rgba(255, 255, 255, 0.85); /* ページヘッダーなど */
+    --l-pg-bg-color: rgba(255, 255, 255, 0.85);
+    /* ページヘッダーなど */
     --l-emoji-bg-color: none;
     --l-notification-bg-color: #e8f5fd;
     --l-text-color: #0f1419;
     --l-secondary-text-color: #536471;
-    --l-logo-color: black; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
+    --l-logo-color: black;
+    /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --l-loading-color: rgba(255, 255, 255, 0.7);
-    --l-widget-bg-color: #e7e8e8; /* プロフィールカードホバー時 */
+    --l-widget-bg-color: #e7e8e8;
+    /* プロフィールカードホバー時 */
     --l-emoji-mart: 255, 255, 255;
     --l-bw: #000000;
     --l-spin: rgba(0, 0, 0, 0.1);
@@ -28,14 +31,18 @@
     --d-bg-color: #2f3033;
     --d-main-bg-color: #1f1f1f;
     --d-ad-bg-color: #272929;
-    --d-pg-bg-color: rgba(30, 30, 30, 0.85); /* ページヘッダーなど */
-    --d-emoji-bg-color: #e8eaed; /* 絵文字の後ろに表示するための白背景　*/
+    --d-pg-bg-color: rgba(30, 30, 30, 0.85);
+    /* ページヘッダーなど */
+    --d-emoji-bg-color: #e8eaed;
+    /* 絵文字の後ろに表示するための白背景　*/
     --d-notification-bg-color: #5b6063;
     --d-text-color: #e8eaed;
     --d-secondary-text-color: #cbcbcb;
-    --d-logo-color: #FFFFFF; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
+    --d-logo-color: #FFFFFF;
+    /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
     --d-loading-color: rgba(0, 0, 0, 0.7);
-    --d-widget-bg-color: #4d5156; /* プロフィールカードホバー時 */
+    --d-widget-bg-color: #4d5156;
+    /* プロフィールカードホバー時 */
     --d-emoji-mart: 40, 40, 40;
     --d-bw: #ffffff;
     --d-spin: rgba(255, 255, 255, 0.1);
@@ -59,6 +66,7 @@ body.light {
     --bw: var(--l-bw);
     --spin: var(--l-spin);
 }
+
 body.dark {
     --border-color: var(--d-border-color);
     --bg-color: var(--d-bg-color);
@@ -76,6 +84,7 @@ body.dark {
     --bw: var(--d-bw);
     --spin: var(--d-spin);
 }
+
 /* 変数指定終わり */
 
 body {
@@ -86,7 +95,8 @@ body {
 }
 
 /* 入力欄のフォントをNoto Sans JPに統一 */
-input, textarea {
+input,
+textarea {
     font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -127,6 +137,7 @@ input, textarea {
     .nav-logo-img {
         width: 1.8rem;
     }
+
     #nav-logo {
         padding: 1rem;
         display: flex;
@@ -138,6 +149,7 @@ input, textarea {
     .nav-logo-img {
         display: none;
     }
+
     #nav-logo {
         display: none
     }
@@ -170,8 +182,10 @@ input, textarea {
 
 /* アイコンとバッジを囲むコンテナ */
 .nav-item-icon-container {
-    position: relative; /* バッジの位置の基準 */
-    display: flex; /* 中の要素をflexで制御 */
+    position: relative;
+    /* バッジの位置の基準 */
+    display: flex;
+    /* 中の要素をflexで制御 */
     align-items: center;
     justify-content: center;
     /* アイコンのサイズに合わせる */
@@ -180,7 +194,8 @@ input, textarea {
 }
 
 .nav-item svg {
-    width: 100%; /* コンテナいっぱいに広がる */
+    width: 100%;
+    /* コンテナいっぱいに広がる */
     height: 100%;
     fill: none;
     stroke: currentColor;
@@ -195,40 +210,50 @@ input, textarea {
 .nav-item.active {
     font-weight: 700;
 }
+
 .nav-item.active svg {
     fill: none;
     stroke-width: 2.5;
 }
+
 .nav-item[href="#"].active svg path {
     fill: currentColor;
     stroke: none;
 }
+
 .nav-item[href="#"].active svg rect {
     fill: white;
     stroke: none;
 }
+
 .nav-item[href="#explore"].active svg,
 .nav-item[href^="#dm"].active svg {
     stroke-width: 2.5;
 }
+
 .nav-item.active:not([href="#"]):not([href="#explore"]):not([href^="#dm"]) svg {
     fill: currentColor;
     stroke: none;
 }
+
 .nav-item[href="#settings"].active svg circle {
     stroke: none;
 }
+
 @media (prefers-color-scheme: dark) {
     .nav-item[href="#settings"].active svg circle {
         fill: black;
     }
 }
+
 body.light .nav-item[href="#settings"].active svg circle {
     fill: white;
 }
+
 body.dark .nav-item[href="#settings"].active svg circle {
     fill: black;
 }
+
 .nav-item-post {
     background-color: var(--primary-color);
     color: white;
@@ -245,7 +270,8 @@ body.dark .nav-item[href="#settings"].active svg circle {
 }
 
 .nav-item-post .nav-item-icon {
-    display: none; /* デフォルトではアイコンを非表示 */
+    display: none;
+    /* デフォルトではアイコンを非表示 */
 }
 
 #nav-menu-bottom {
@@ -259,22 +285,27 @@ body.dark .nav-item[href="#settings"].active svg circle {
     justify-content: flex-start;
     gap: 0.8rem;
 }
+
 .account-button img {
     width: 40px;
     height: 40px;
     border-radius: 50%;
 }
+
 .account-info {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
+
 .account-info .name {
     font-weight: 700;
 }
+
 .account-info .id {
     color: var(--secondary-text-color);
 }
+
 #login-button {
     width: 100%;
     justify-content: center;
@@ -310,9 +341,12 @@ body.dark .nav-item[href="#settings"].active svg circle {
 
 /* 中央メインコンテンツ */
 #main-content {
-    flex-grow: 1;     /* 利用可能なスペースを埋めるように広がる */
-    flex-shrink: 1;   /* スペースが足りない場合に縮むことを許可 */
-    min-width: 0;     /* flexアイテムがコンテンツ幅以下に縮むための定石 */
+    flex-grow: 1;
+    /* 利用可能なスペースを埋めるように広がる */
+    flex-shrink: 1;
+    /* スペースが足りない場合に縮むことを許可 */
+    min-width: 0;
+    /* flexアイテムがコンテンツ幅以下に縮むための定石 */
     border-left: 1px solid var(--border-color);
     border-right: 1px solid var(--border-color);
 }
@@ -328,13 +362,13 @@ body.dark .nav-item[href="#settings"].active svg circle {
 }
 
 /* Emoji Oneの画像設定 */
-img.emojione{
+img.emojione {
     width: 1.1rem;
     height: auto;
 }
 
 /* Twemojiの画像設定 */
-img.emoji{
+img.emoji {
     display: inline-block;
     width: 1.1rem;
     height: auto;
@@ -342,7 +376,7 @@ img.emoji{
 }
 
 /* JSでつけるNoto Color Emoji用設定 */
-.notocoloremoji{
+.notocoloremoji {
     font-family: 'Noto Sans JP', 'Noto Color Emoji', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -366,9 +400,11 @@ img.emoji{
     align-items: center;
     justify-content: center;
 }
+
 .header-back-btn:hover {
     background-color: var(--bg-color);
 }
+
 .header-back-btn svg {
     width: 20px;
     height: 20px;
@@ -422,17 +458,21 @@ img.emoji{
 .header-action-btn {
     padding: 0.5rem 1rem;
     border-radius: 9999px;
-    border: 1px solid var(--text-color); /* 黒い枠線 */
+    border: 1px solid var(--text-color);
+    /* 黒い枠線 */
     background: var(--main-bg-color);
-    color: var(--text-color); /* 黒い文字 */
+    color: var(--text-color);
+    /* 黒い文字 */
     font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s;
-    flex-shrink: 0; /* ボタンが縮まないようにする */
+    flex-shrink: 0;
+    /* ボタンが縮まないようにする */
 }
 
 .header-action-btn:hover {
-    background-color: var(--bg-color); /* ホバー時に薄いグレーに */
+    background-color: var(--bg-color);
+    /* ホバー時に薄いグレーに */
 }
 
 
@@ -444,12 +484,18 @@ img.emoji{
     z-index: 9;
     border-bottom: 1px solid var(--border-color);
 }
-.timeline-tabs { display: flex; }
+
+.timeline-tabs {
+    display: flex;
+}
+
 .post-form-sticky-container {
-    background-color: var(--main-bg-color); /* スクロール時に背景が透けないように */
+    background-color: var(--main-bg-color);
+    /* スクロール時に背景が透けないように */
     z-index: 8;
     border-bottom: 1px solid var(--border-color);
 }
+
 .timeline-tab-button {
     flex-grow: 1;
     padding: 1rem;
@@ -460,7 +506,7 @@ img.emoji{
     color: var(--secondary-text-color);
     font-weight: 500;
     position: relative;
-    
+
     display: flex;
     justify-content: center;
     align-items: center;
@@ -469,21 +515,45 @@ img.emoji{
 .timeline-tab-button:hover {
     background-color: var(--bg-color);
 }
-.timeline-tab-button.active::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 4px; background-color: var(--primary-color); border-radius: 9999px; }
-.timeline-tab-button.active { color: var(--text-color); font-weight: 700; }
+
+.timeline-tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background-color: var(--primary-color);
+    border-radius: 9999px;
+}
+
+.timeline-tab-button.active {
+    color: var(--text-color);
+    font-weight: 700;
+}
 
 /* ポストフォーム */
-.post-form { padding: 1rem; display: flex; gap: 0.5rem; }
+.post-form {
+    padding: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
 
 /* リアルタイム更新用ボタンのスタイル */
 .new-posts-indicator {
     position: sticky;
-    top: calc(56px + 50px); /* ヘッダー + タブの高さ */
-    z-index: 9; /* ポストフォームより手前に表示 */
+    top: calc(56px + 50px);
+    /* ヘッダー + タブの高さ */
+    z-index: 9;
+    /* ポストフォームより手前に表示 */
     text-align: center;
-    padding-bottom: 0.5rem; /* ボタンの下に少し余白 */
-    margin-bottom: -2.5rem; /* ボタンの高さ分、下の要素との距離を詰める */
+    padding-bottom: 0.5rem;
+    /* ボタンの下に少し余白 */
+    margin-bottom: -2.5rem;
+    /* ボタンの高さ分、下の要素との距離を詰める */
 }
+
 .new-posts-indicator button {
     background-color: var(--primary-color);
     color: white;
@@ -492,9 +562,10 @@ img.emoji{
     border-radius: 9999px;
     font-weight: bold;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     transition: background-color 0.2s;
 }
+
 .new-posts-indicator button:hover {
     background-color: var(--primary-hover-color);
 }
@@ -535,7 +606,7 @@ img.emoji{
     justify-content: space-between;
     align-items: center;
     padding-top: 0.5rem;
-    width:100%
+    width: 100%
 }
 
 .post-form-actions button {
@@ -553,7 +624,8 @@ img.emoji{
     cursor: not-allowed;
 }
 
-.attachment-button, .emoji-pic-button {
+.attachment-button,
+.emoji-pic-button {
     background: none !important;
     border: none;
     cursor: pointer;
@@ -564,7 +636,8 @@ img.emoji{
     transition: background-color 0.2s;
 }
 
-.attachment-button:hover, .emoji-pic-button:hover {
+.attachment-button:hover,
+.emoji-pic-button:hover {
     background-color: var(--bg-color);
 }
 
@@ -574,6 +647,7 @@ img.emoji{
     stroke: currentColor;
     fill: none;
 }
+
 .emoji-pic-button svg {
     width: 20px;
     height: 20px;
@@ -584,9 +658,11 @@ img.emoji{
 .float-left {
     float: left;
 }
+
 .float-right {
     float: right;
 }
+
 .float-clear {
     clear: both;
 }
@@ -602,7 +678,8 @@ img.emoji{
     position: relative;
 }
 
-.file-preview-item img, .file-preview-item video {
+.file-preview-item img,
+.file-preview-item video {
     max-width: 100px;
     max-height: 100px;
     border-radius: 8px;
@@ -612,15 +689,17 @@ img.emoji{
     position: absolute;
     top: -5px;
     right: -5px;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     color: white;
     border-radius: 50%;
     width: 20px;
     height: 20px;
     border: none;
     cursor: pointer;
-    font-size: 0.8rem; /* 変更なし */
-    line-height: 20px; /* 変更なし */
+    font-size: 0.8rem;
+    /* 変更なし */
+    line-height: 20px;
+    /* 変更なし */
     text-align: center;
 }
 
@@ -653,17 +732,22 @@ em-emoji-picker {
 
 /* 孫返信用のインデントスタイル */
 .grandchild-reply {
-    padding-left: calc(1rem + 48px + 0.5rem); /* 通常のpadding + アイコン幅 + gap */
+    padding-left: calc(1rem + 48px + 0.5rem);
+    /* 通常のpadding + アイコン幅 + gap */
 }
 
 /* 広告ポスト用のスタイル */
 .ad-post {
-    background-color: var(--ad-bg-color); /* 通常のポストと少し色を変える */
+    background-color: var(--ad-bg-color);
+    /* 通常のポストと少し色を変える */
 }
+
 .ad-post .post-author {
     color: var(--secondary-text-color);
-    font-weight: normal; /* 太字にしない */
+    font-weight: normal;
+    /* 太字にしない */
 }
+
 .ad-post .post-content {
     cursor: default;
     white-space: normal;
@@ -675,7 +759,8 @@ em-emoji-picker {
     height: 48px;
     border-radius: 50%;
     flex-shrink: 0;
-    object-fit: cover; /* アイコンが潰れるのを防ぐ */
+    object-fit: cover;
+    /* アイコンが潰れるのを防ぐ */
 }
 
 .post-main {
@@ -774,34 +859,46 @@ em-emoji-picker {
 .like-button:hover {
     color: var(--like-color);
 }
+
 .like-button.liked {
     color: var(--like-color);
-    font-weight: bold; /* いいね済みの数字を太字に */
+    font-weight: bold;
+    /* いいね済みの数字を太字に */
 }
+
 .like-button.liked svg {
-    fill: currentColor; /* いいね済みのアイコンを塗りつぶす */
+    fill: currentColor;
+    /* いいね済みのアイコンを塗りつぶす */
 }
 
 .star-button:hover {
     color: var(--star-color);
 }
+
 .star-button.starred {
     color: var(--star-color);
-    font-weight: bold; /* お気に入り済みの数字を太字に */
+    font-weight: bold;
+    /* お気に入り済みの数字を太字に */
 }
+
 .star-button.starred svg {
-    fill: currentColor; /* お気に入り済みのアイコンを塗りつぶす */
+    fill: currentColor;
+    /* お気に入り済みのアイコンを塗りつぶす */
 }
 
 /* ▼▼▼ .post-actions .icon を削除し、svgの指定に統合 ▼▼▼ */
 .post-actions button svg {
-    width: 1.25rem; /* サイズを微調整 */
+    width: 1.25rem;
+    /* サイズを微調整 */
     height: 1.25rem;
     vertical-align: middle;
-    fill: none; /* デフォルトは塗りつぶしなし */
-    stroke: currentColor; /* 枠線の色は親のcolorに連動 */
+    fill: none;
+    /* デフォルトは塗りつぶしなし */
+    stroke: currentColor;
+    /* 枠線の色は親のcolorに連動 */
     stroke-width: 2;
-    transition: fill 0.2s, stroke 0.2s; /* 色の遷移を滑らかに */
+    transition: fill 0.2s, stroke 0.2s;
+    /* 色の遷移を滑らかに */
 }
 
 
@@ -814,8 +911,10 @@ em-emoji-picker {
     cursor: pointer;
     font-size: 1.2rem;
     color: var(--secondary-text-color);
-    padding: 0.25rem; /* クリック領域を確保 */
-    z-index: 5;       /* 他の要素との重なり順を明確化 */
+    padding: 0.25rem;
+    /* クリック領域を確保 */
+    z-index: 5;
+    /* 他の要素との重なり順を明確化 */
 }
 
 /* ★★★ メニューの表示方法を根本から変更 ★★★ */
@@ -826,8 +925,9 @@ em-emoji-picker {
     background: var(--main-bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    z-index: 101; /* 修正: 20から101へ変更し、他のUIより手前に表示 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 101;
+    /* 修正: 20から101へ変更し、他のUIより手前に表示 */
     min-width: 150px;
     overflow: hidden;
     /* デフォルトで非表示にする */
@@ -876,7 +976,8 @@ em-emoji-picker {
 }
 
 .edit-modal-attachments .attachments-container {
-    pointer-events: none; /* 添付ファイルは編集不可のため操作を無効化 */
+    pointer-events: none;
+    /* 添付ファイルは編集不可のため操作を無効化 */
 }
 
 .post-menu .delete-btn {
@@ -893,6 +994,7 @@ em-emoji-picker {
     color: var(--primary-color);
     text-decoration: none;
 }
+
 .parent-post-container {
     padding-left: 0.9rem;
     border-left: 2px solid var(--border-color);
@@ -914,7 +1016,9 @@ em-emoji-picker {
     overflow: hidden;
 }
 
-.attachment-item img, .attachment-item video, .attachment-item audio {
+.attachment-item img,
+.attachment-item video,
+.attachment-item audio {
     max-height: 15em;
     max-width: 100%;
     display: block;
@@ -1010,6 +1114,7 @@ em-emoji-picker {
     justify-content: space-between;
     gap: 1rem;
 }
+
 /* ▲▲▲ 修正ここまで ▲▲▲ */
 
 .notification-item-content {
@@ -1020,7 +1125,7 @@ em-emoji-picker {
     background-color: var(--notification-bg-color);
     border-left: 4px solid var(--primary-color);
     /* padding-leftをwidget-itemのpaddingと合わせる */
-    padding-left: calc(1rem - 4px); 
+    padding-left: calc(1rem - 4px);
 }
 
 /* ▼▼▼ クラス名を修正 ▼▼▼ */
@@ -1035,6 +1140,7 @@ em-emoji-picker {
     cursor: pointer;
     flex-shrink: 0;
 }
+
 /* ▲▲▲ 修正ここまで ▲▲▲ */
 
 .notification-delete-btn:hover {
@@ -1043,15 +1149,32 @@ em-emoji-picker {
 
 /* 背景色のアニメーション定義 */
 @keyframes highlight-bg-fade {
-    0%, 50% { background-color: #e8f5fd; } /* 1.5秒間ハイライトを維持 */
-    100% { background-color: transparent; }
+
+    0%,
+    50% {
+        background-color: #e8f5fd;
+    }
+
+    /* 1.5秒間ハイライトを維持 */
+    100% {
+        background-color: transparent;
+    }
 }
 
 /* 縦線のアニメーション定義 */
 @keyframes highlight-border-fade {
-    0%, 50% { opacity: 1; } /* 1.5秒間ハイライトを維持 */
-    100% { opacity: 0; }
+
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    /* 1.5秒間ハイライトを維持 */
+    100% {
+        opacity: 0;
+    }
 }
+
 /* ▲▲▲ 追加ここまで ▲▲▲ */
 
 
@@ -1084,42 +1207,54 @@ em-emoji-picker {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.8rem; /* 要素間の隙間を追加 */
+    gap: 0.8rem;
+    /* 要素間の隙間を追加 */
 }
 
 /* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 /* ユーザー情報を含むリンク（aタグ）の挙動を定義 */
-.recommend-user > a {
-    min-width: 0; /* flexアイテムが自身のコンテンツ幅以下に縮むことを許可 */
-    flex-shrink: 1; /* 親コンテナが狭いときに縮むことを許可 */
-    overflow: hidden; /* はみ出し防止のため */
+.recommend-user>a {
+    min-width: 0;
+    /* flexアイテムが自身のコンテンツ幅以下に縮むことを許可 */
+    flex-shrink: 1;
+    /* 親コンテナが狭いときに縮むことを許可 */
+    overflow: hidden;
+    /* はみ出し防止のため */
 }
 
 /* ユーザー名とIDを囲むdiv */
-.recommend-user > a > div {
-    overflow: hidden; /* 中のspanがはみ出た場合に隠すため */
+.recommend-user>a>div {
+    overflow: hidden;
+    /* 中のspanがはみ出た場合に隠すため */
 }
 
 /* フォローボタンは縮まないようにする */
-.recommend-user > button {
+.recommend-user>button {
     flex-shrink: 0;
 }
+
 /* ▲▲▲ 追加ここまで ▲▲▲ */
 
 
 .recommend-user span {
     font-weight: 700;
     /* ▼▼▼ 以下の4行を追加 ▼▼▼ */
-    display: block;      /* ellipsisを効かせるためにblock要素にする */
-    white-space: nowrap; /* テキストを折り返さない */
-    overflow: hidden;    /* はみ出たテキストを隠す */
-    text-overflow: ellipsis; /* はみ出た部分を...で表示 */
+    display: block;
+    /* ellipsisを効かせるためにblock要素にする */
+    white-space: nowrap;
+    /* テキストを折り返さない */
+    overflow: hidden;
+    /* はみ出たテキストを隠す */
+    text-overflow: ellipsis;
+    /* はみ出た部分を...で表示 */
 }
 
-/* ★★★ フォローボタンの形状問題を解決 ★★★ */
-.recommend-user button, .profile-follow-button {
+.recommend-user button,
+.profile-follow-button {
     padding: 0.5rem 1rem;
-    border-radius: 9999px !important; /* !importantで形状を強制 */
+    border-radius: 9999px !important;
+    /* !importantで形状を強制 */
+    border-color: var(--text-color);
     font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
@@ -1133,7 +1268,6 @@ em-emoji-picker {
 
 .follow-button-not-following:hover {
     background-color: #272c30;
-    border-color: #272c30;
 }
 
 
@@ -1173,7 +1307,8 @@ em-emoji-picker {
 #banner-login-button {
     background: var(--primary-color);
     color: white;
-    border: 1px solid; /* 枠線を非表示に変更 */
+    border: 1px solid;
+    /* 枠線を非表示に変更 */
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
     border-radius: 9999px !important;
@@ -1189,9 +1324,11 @@ em-emoji-picker {
 
 /* 参加ボタン: 通常の青背景、白文字 */
 #banner-signup-button {
-    background: white; /* 通常の青に変更 */
+    background: white;
+    /* 通常の青に変更 */
     color: black;
-    border: none; /* 枠線を非表示に変更 */
+    border: none;
+    /* 枠線を非表示に変更 */
     margin-left: 1rem;
     padding: 0.6rem 1.2rem;
     border-radius: 9999px !important;
@@ -1202,7 +1339,8 @@ em-emoji-picker {
 }
 
 #banner-signup-button:hover {
-    background-color: #f0f0f0; /* ホバー色も対応 */
+    background-color: #f0f0f0;
+    /* ホバー色も対応 */
 }
 
 /* ポスト用モーダル */
@@ -1212,7 +1350,7 @@ em-emoji-picker {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -1262,7 +1400,7 @@ em-emoji-picker {
 #image-preview-modal .modal-close-btn {
     top: 2rem;
     right: 2rem;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     width: 32px;
     height: 32px;
     font-size: 1.5rem;
@@ -1282,7 +1420,8 @@ em-emoji-picker {
 }
 
 #profile-header .user-icon-large {
-    object-fit: cover; /* アイコンが潰れるのを防ぐ */
+    object-fit: cover;
+    /* アイコンが潰れるのを防ぐ */
     width: 128px;
     height: 128px;
     border-radius: 50%;
@@ -1297,26 +1436,31 @@ em-emoji-picker {
 #profile-header .dm-button {
     padding: 0.5rem;
     border-radius: 50%;
-    border: 1px solid var(--text-color); /* 枠線の色を黒に変更 */
+    border: 1px solid var(--text-color);
+    /* 枠線の色を黒に変更 */
     background: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-color);
 }
+
 #profile-header .dm-button:hover {
     background-color: var(--bg-color);
 }
+
 #profile-header .dm-button svg {
     width: 20px;
     height: 20px;
-    stroke: currentColor;
+    stroke: var(--text-color);
     fill: none;
 }
 
 #profile-header .profile-info {
     margin-top: 1rem;
 }
+
 #profile-header h2 {
     margin: 0;
 }
@@ -1339,16 +1483,20 @@ em-emoji-picker {
 
 /* ▼▼▼ このブロックを新規追加 ▼▼▼ */
 #profile-sub-tabs-container {
+
     /* サブメニューがない場合は非表示にする */
     &:empty {
         display: none;
     }
+
     /* メインのタブとの区別のための線 */
     border-bottom: 1px solid var(--border-color);
 }
+
 .profile-sub-tabs {
     display: flex;
 }
+
 /* ▲▲▲ 追加ここまで ▲▲▲ */
 
 .tab-button {
@@ -1388,15 +1536,19 @@ em-emoji-picker {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
 }
+
 /* プロフィール画面のフォロー/フォロワー統計のスタイル */
 #profile-header .user-stats a {
-    color: inherit; /* 通常時は周りのテキストと同じ色 */
-    text-decoration: none; /* 下線を消す */
+    color: inherit;
+    /* 通常時は周りのテキストと同じ色 */
+    text-decoration: none;
+    /* 下線を消す */
     transition: text-decoration 0.2s;
 }
 
 #profile-header .user-stats a:hover {
-    text-decoration: underline; /* ホバー時に下線を表示 */
+    text-decoration: underline;
+    /* ホバー時に下線を表示 */
 }
 
 /* プロフィール画面のフォローリスト専用サブメニューのスタイル */
@@ -1404,7 +1556,8 @@ em-emoji-picker {
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     /* [修正点] ヘッダーのpadding(1rem=16px * 2)とborder(1px)を考慮した正確なtop値 */
-    top: calc(1rem + 1.25rem + 1rem + 1px); /* ヘッダーの実際の高さに合わせる */
+    top: calc(1rem + 1.25rem + 1rem + 1px);
+    /* ヘッダーの実際の高さに合わせる */
     background-color: var(--pg-bg-color);
     backdrop-filter: blur(12px);
     z-index: 9;
@@ -1426,14 +1579,17 @@ em-emoji-picker {
 
 .media-grid-container {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3カラム表示 */
-    gap: 2px; /* グリッド間の隙間 */
+    grid-template-columns: repeat(3, 1fr);
+    /* 3カラム表示 */
+    gap: 2px;
+    /* グリッド間の隙間 */
 }
 
 .media-grid-item {
     position: relative;
     width: 100%;
-    aspect-ratio: 1 / 1; /* 正方形を維持 */
+    aspect-ratio: 1 / 1;
+    /* 正方形を維持 */
     background-color: var(--border-color);
 }
 
@@ -1444,13 +1600,15 @@ em-emoji-picker {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover; /* アスペクト比を維持したままコンテナを埋める */
+    object-fit: cover;
+    /* アスペクト比を維持したままコンテナを埋める */
     transition: filter 0.2s;
 }
 
 .media-grid-item:hover img,
 .media-grid-item:hover video {
-    filter: brightness(0.8); /* ホバー時に少し暗くする */
+    filter: brightness(0.8);
+    /* ホバー時に少し暗くする */
 }
 
 /* 設定画面 */
@@ -1497,7 +1655,8 @@ em-emoji-picker {
     border-color: var(--secondary-text-color);
 }
 
-#settings-form input[type="text"], #settings-form textarea {
+#settings-form input[type="text"],
+#settings-form textarea {
     width: 100%;
     padding: 0.8rem;
     background-color: var(--main-bg-color);
@@ -1523,7 +1682,8 @@ em-emoji-picker {
     font-weight: 400;
 }
 
-#settings-form input[type="checkbox"], #settings-form select{
+#settings-form input[type="checkbox"],
+#settings-form select {
     background-color: var(--main-bg-color);
     color: var(--text-color)
 }
@@ -1557,7 +1717,8 @@ em-emoji-picker {
     font-weight: 700;
     cursor: pointer;
     background: none;
-    border: 1px solid #fdd8e5; /* like-colorの薄い版 */
+    border: 1px solid #fdd8e5;
+    /* like-colorの薄い版 */
     color: var(--like-color);
     transition: background-color 0.2s;
     text-decoration-line: none;
@@ -1565,7 +1726,8 @@ em-emoji-picker {
 
 #settings-logout-btn:hover,
 #settings-showlog-btn:hover {
-    background-color: #fef0f4; /* like-colorのさらに薄い版 */
+    background-color: #fef0f4;
+    /* like-colorのさらに薄い版 */
 }
 
 #settings-account-switcher-btn {
@@ -1579,18 +1741,22 @@ em-emoji-picker {
     transition: background-color 0.2s, border-color 0.2s;
     margin-right: 0.5rem;
 }
+
 #settings-account-switcher-btn:hover {
     background-color: #e8f5fd;
     border-color: var(--primary-color);
 }
 
 #dm-list-container {
-    width: 100%; /* 幅を100%に */
-    border-right: none; /* 右の境界線を削除 */
+    width: 100%;
+    /* 幅を100%に */
+    border-right: none;
+    /* 右の境界線を削除 */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
 }
+
 .dm-new-message-btn {
     -webkit-appearance: none;
     appearance: none;
@@ -1605,9 +1771,11 @@ em-emoji-picker {
     cursor: pointer;
     transition: background-color 0.2s;
 }
+
 .dm-new-message-btn:hover {
     background-color: var(--bg-color);
 }
+
 .dm-list-item {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
@@ -1617,15 +1785,19 @@ em-emoji-picker {
     align-items: center;
     gap: 0.5rem;
 }
-.dm-list-item:hover, .dm-list-item.active {
+
+.dm-list-item:hover,
+.dm-list-item.active {
     background-color: var(--bg-color);
 }
+
 .dm-list-item-title {
     font-weight: bold;
     flex-grow: 1;
     white-space: normal;
     word-break: break-word;
 }
+
 .dm-manage-btn {
     background: none;
     border: none;
@@ -1634,13 +1806,16 @@ em-emoji-picker {
     border-radius: 50%;
     flex-shrink: 0;
 }
+
 .dm-manage-btn:hover {
     background-color: #e0e0e0;
 }
+
 #dm-conversation-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 57px); /* ヘッダー分を引く */
+    height: calc(100vh - 57px);
+    /* ヘッダー分を引く */
 }
 
 .dm-conversation-view {
@@ -1658,11 +1833,13 @@ em-emoji-picker {
     margin-bottom: 1rem;
     max-width: 90%;
 }
+
 .dm-message-container.sent {
     flex-direction: row-reverse;
     align-self: flex-end;
-    position: relative; 
+    position: relative;
 }
+
 .dm-message-container.sent .dm-message-menu-btn {
     opacity: 1;
 }
@@ -1696,20 +1873,27 @@ em-emoji-picker {
     bottom: auto;
     transform: none;
 }
+
 .dm-message-container.received {
-    align-self: flex-start; /* 左寄せ */
-    align-items: flex-end; /* アイコンとメッセージバブルの下端を揃える */
+    align-self: flex-start;
+    /* 左寄せ */
+    align-items: flex-end;
+    /* アイコンとメッセージバブルの下端を揃える */
 }
+
 .dm-message-icon {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     flex-shrink: 0;
-    align-self: flex-end; /* アイコンは常に下端に配置 */
+    align-self: flex-end;
+    /* アイコンは常に下端に配置 */
 }
+
 .dm-message-container.sent .dm-message-wrapper {
     align-items: flex-end;
 }
+
 .dm-message-container.received .dm-message-wrapper {
     align-items: flex-start;
 }
@@ -1720,6 +1904,7 @@ em-emoji-picker {
     display: flex;
     flex-direction: column;
 }
+
 .dm-message-meta {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
@@ -1727,9 +1912,11 @@ em-emoji-picker {
     padding: 0 0.5rem;
     width: max-content;
 }
+
 .dm-message-container.sent .dm-message-meta {
     text-align: right;
 }
+
 .dm-message {
     padding: 0.5rem 0.7rem;
     border-radius: 18px;
@@ -1740,30 +1927,37 @@ em-emoji-picker {
     word-break: break-word;
     font-size: 0.85rem;
 }
+
 .dm-message-container.sent .dm-message {
     background-color: var(--primary-color);
     color: white;
     border-bottom-right-radius: 4px;
 }
+
 .dm-message-container.sent .attachment-download-link {
     color: white;
     font-weight: 500;
 }
+
 .dm-message-container.received .attachment-download-link {
     color: var(--primary-color);
     font-weight: 500;
 }
+
 .attachment-download-link {
     text-decoration: none;
 }
+
 .attachment-download-link:hover {
     text-decoration: underline;
 }
+
 .dm-message-container.received .dm-message {
     background-color: var(--bg-color);
     color: var(--text-color);
     border-bottom-left-radius: 4px;
 }
+
 .dm-message-form {
     position: sticky;
     border-top: 1px solid var(--border-color);
@@ -1822,10 +2016,12 @@ em-emoji-picker {
     align-items: center;
     justify-content: center;
 }
+
 #dm-attachment-btn {
     background: none;
     color: var(--primary-color);
 }
+
 #dm-attachment-btn:hover {
     background-color: var(--bg-color);
 }
@@ -1833,6 +2029,7 @@ em-emoji-picker {
 .dm-message-form button:hover {
     background-color: var(--primary-hover-color);
 }
+
 #dm-attachment-btn:hover {
     background-color: #e8f5fd;
 }
@@ -1840,29 +2037,36 @@ em-emoji-picker {
 .dm-message-form button svg {
     width: 20px;
     height: 20px;
-    fill: none; /* デフォルトで塗りつぶしなし */
+    fill: none;
+    /* デフォルトで塗りつぶしなし */
     stroke: currentColor;
 }
+
 .dm-message-form #send-dm-btn svg {
     fill: none;
     stroke: white;
 }
+
 .dm-system-message {
     font-size: 0.8rem;
     color: var(--secondary-text-color);
     text-align: center;
     padding: 0.5rem;
-    align-self: center; /* Flexコンテナ内で中央に配置 */
+    align-self: center;
+    /* Flexコンテナ内で中央に配置 */
     margin-bottom: 1rem;
 }
+
 .dm-welcome-message {
     margin: auto;
     text-align: center;
     color: var(--secondary-text-color);
 }
+
 .dm-message a {
     text-decoration: none;
 }
+
 /* 共通: ホバー時に下線を表示 */
 .dm-message a:hover {
     text-decoration: underline;
@@ -1870,7 +2074,8 @@ em-emoji-picker {
 
 /* システムメッセージのリンク */
 .dm-system-message a {
-    color: inherit; /* 親要素の色を継承（色を変えない） */
+    color: inherit;
+    /* 親要素の色を継承（色を変えない） */
     font-weight: 500;
     text-decoration: none;
 }
@@ -1881,13 +2086,16 @@ em-emoji-picker {
 
 /* ユーザーアイコンと名前のリンク */
 .dm-user-link {
-    color: inherit !important; /* 強制的に色を継承 */
+    color: inherit !important;
+    /* 強制的に色を継承 */
     text-decoration: none !important;
-    line-height: 1; /* aタグ自体の余分な高さをなくす */
+    line-height: 1;
+    /* aタグ自体の余分な高さをなくす */
 }
+
 .dm-user-link:hover {
     text-decoration: underline !important;
-}   
+}
 
 /* 受信メッセージのリンク色 */
 .dm-message-container.received .dm-message a {
@@ -1896,7 +2104,8 @@ em-emoji-picker {
 
 /* 送信メッセージのリンク色 */
 .dm-message-container.sent .dm-message a {
-    color: white; /* ダウンロードリンクも白になる */
+    color: white;
+    /* ダウンロードリンクも白になる */
     font-weight: 500;
 }
 
@@ -1920,20 +2129,24 @@ em-emoji-picker {
     border: 1px solid var(--border-color);
     background: none;
 }
+
 #dm-manage-modal-content button:hover {
     background-color: var(--bg-color);
 }
+
 #dm-manage-modal-content #save-dm-title-btn {
     background-color: var(--primary-color);
     color: white;
     border: none;
 }
+
 #dm-manage-modal-content .remove-member-btn,
 #dm-manage-modal-content #leave-dm-btn,
 #dm-manage-modal-content #disband-dm-btn {
     color: var(--like-color);
     border-color: #fdd8e5;
 }
+
 #dm-manage-modal-content .remove-member-btn:hover,
 #dm-manage-modal-content #leave-dm-btn:hover,
 #dm-manage-modal-content #disband-dm-btn:hover {
@@ -1949,6 +2162,7 @@ em-emoji-picker {
     color: #8a6d3b;
     text-align: center;
 }
+
 .freeze-notice a {
     color: #8a6d3b;
     font-weight: bold;
@@ -1978,47 +2192,87 @@ em-emoji-picker {
     animation: spin 1s ease infinite;
 }
 
-.post-content, .dm-message {
+.post-content,
+.dm-message {
     line-height: 1.5;
     white-space: normal;
 }
 
-.post-content > *:first-child, .dm-message > *:first-child {
+.post-content>*:first-child,
+.dm-message>*:first-child {
     margin-top: 0 !important;
 }
-.post-content > *, .dm-message > * {
+
+.post-content>*,
+.dm-message>* {
     margin-bottom: 0 !important;
 }
-.post-content p, .dm-message p {
-    margin-top: 0.8em; /* pタグの上にだけマージンを設定 */
+
+.post-content p,
+.dm-message p {
+    margin-top: 0.8em;
+    /* pタグの上にだけマージンを設定 */
 }
+
 /* 連続するpタグはマージンを詰める */
-.post-content p + p, .dm-message p + p {
+.post-content p+p,
+.dm-message p+p {
     margin-top: 0.2em;
 }
 
 /* 見出し (h1-h6): 上下のマージンをリセットし、必要な間隔を再設定 */
-.post-content h1, .dm-message h1,
-.post-content h2, .dm-message h2,
-.post-content h3, .dm-message h3,
-.post-content h4, .dm-message h4,
-.post-content h5, .dm-message h5,
-.post-content h6, .dm-message h6 {
+.post-content h1,
+.dm-message h1,
+.post-content h2,
+.dm-message h2,
+.post-content h3,
+.dm-message h3,
+.post-content h4,
+.dm-message h4,
+.post-content h5,
+.dm-message h5,
+.post-content h6,
+.dm-message h6 {
     margin-top: 0.8em;
     margin-bottom: 0.4em;
     font-weight: bold;
     line-height: 1.2;
 }
-.post-content h1, .dm-message h1 { font-size: 2em; }
-.post-content h2, .dm-message h2 { font-size: 1.5em; }
-.post-content h3, .dm-message h3 { font-size: 1.17em; }
-.post-content h4, .dm-message h4 { font-size: 1em; }
-.post-content h5, .dm-message h5 { font-size: 0.83em; }
-.post-content h6, .dm-message h6 { font-size: 0.67em; }
+
+.post-content h1,
+.dm-message h1 {
+    font-size: 2em;
+}
+
+.post-content h2,
+.dm-message h2 {
+    font-size: 1.5em;
+}
+
+.post-content h3,
+.dm-message h3 {
+    font-size: 1.17em;
+}
+
+.post-content h4,
+.dm-message h4 {
+    font-size: 1em;
+}
+
+.post-content h5,
+.dm-message h5 {
+    font-size: 0.83em;
+}
+
+.post-content h6,
+.dm-message h6 {
+    font-size: 0.67em;
+}
 
 
 /* 引用 */
-.post-content blockquote, .dm-message blockquote {
+.post-content blockquote,
+.dm-message blockquote {
     margin-top: 0.8em;
     border-left: 4px solid rgba(29, 155, 240, 0.5);
     padding: 0.5em 1em;
@@ -2026,12 +2280,15 @@ em-emoji-picker {
     color: var(--secondary-text-color);
     border-radius: 0 8px 8px 0;
 }
-.post-content blockquote > *:first-child, .dm-message blockquote > *:first-child {
+
+.post-content blockquote>*:first-child,
+.dm-message blockquote>*:first-child {
     margin-top: 0 !important;
 }
 
 /* コードブロック */
-.post-content pre, .dm-message pre {
+.post-content pre,
+.dm-message pre {
     margin-top: 0.8em;
     position: relative;
     background-color: #2d2d2d;
@@ -2039,13 +2296,17 @@ em-emoji-picker {
     padding: 1em;
     border-radius: 8px;
     overflow-x: auto;
-    white-space: pre-wrap; /* コードブロック内でも折り返すように */
+    white-space: pre-wrap;
+    /* コードブロック内でも折り返すように */
     word-break: break-all;
 }
-.post-content pre code, .dm-message pre code {
+
+.post-content pre code,
+.dm-message pre code {
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 0.9em;
-    white-space: pre-wrap; /* コード内の折り返しを強制 */
+    white-space: pre-wrap;
+    /* コード内の折り返しを強制 */
 }
 
 /* インラインコード */
@@ -2055,9 +2316,12 @@ em-emoji-picker {
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 4px;
     padding: 0.1em 0.2em 0.1em 0.4em;
-    line-height: 1; /* 親要素の行間の影響を減らす */
+    line-height: 1;
+    /* 親要素の行間の影響を減らす */
 }
-.post-content .inline-code-wrapper code, .dm-message .inline-code-wrapper code {
+
+.post-content .inline-code-wrapper code,
+.dm-message .inline-code-wrapper code {
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 0.85em;
     padding: 0;
@@ -2075,21 +2339,26 @@ em-emoji-picker {
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 0.8em; /* テキスト表示用に調整 */
+    font-size: 0.8em;
+    /* テキスト表示用に調整 */
 }
+
 .copy-btn:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
+
 .copy-btn svg {
     width: 1em;
     height: 1em;
 }
+
 .markdown-copy-btn {
     position: absolute;
     top: 0.5em;
     right: 0.5em;
     padding: 0.3em 0.5em;
 }
+
 .markdown-copy-btn-inline {
     padding: 0.1em 0.3em;
     margin-left: 0.4em;
@@ -2097,30 +2366,40 @@ em-emoji-picker {
     background-color: rgba(0, 0, 0, 0.05);
     border-color: rgba(0, 0, 0, 0.1);
 }
+
 .markdown-copy-btn-inline:hover {
     background-color: rgba(0, 0, 0, 0.1);
 }
 
 /* アコーディオン */
-.post-content details, .dm-message details {
+.post-content details,
+.dm-message details {
     margin-top: 0.8em;
     padding: 0.5em 1em;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    white-space: pre-wrap; /* [修正点] details内の改行を有効にする */
+    white-space: pre-wrap;
+    /* [修正点] details内の改行を有効にする */
 }
-.post-content details > *, .dm-message details > * {
-    white-space: pre-wrap; /* 中の要素にも適用 */
+
+.post-content details>*,
+.dm-message details>* {
+    white-space: pre-wrap;
+    /* 中の要素にも適用 */
 }
-.post-content summary, .dm-message summary {
+
+.post-content summary,
+.dm-message summary {
     cursor: pointer;
     font-weight: bold;
     margin-bottom: 0.5em;
 }
 
 /* リスト */
-.post-content ul, .dm-message ul,
-.post-content ol, .dm-message ol {
+.post-content ul,
+.dm-message ul,
+.post-content ol,
+.dm-message ol {
     margin-top: 0.8em;
     padding-left: 2em;
 }
@@ -2134,6 +2413,7 @@ em-emoji-picker {
         transform: rotate(360deg);
     }
 }
+
 /* リポストインジケーター */
 .repost-indicator,
 .pinned-indicator {
@@ -2144,33 +2424,43 @@ em-emoji-picker {
     align-items: center;
     gap: 0.5em;
 }
+
 .repost-indicator svg,
 .pinned-indicator svg {
     width: 1em;
     height: 1em;
     stroke: currentColor;
 }
+
 .repost-indicator a {
     color: inherit;
     font-weight: bold;
     text-decoration: none;
 }
+
 .repost-indicator a:hover {
     text-decoration: underline;
 }
+
 .repost-indicator-icon {
     display: flex;
     align-items: center;
-    justify-content: flex-end; /* 右寄せ */
-    flex-basis: 48px; /* 通常のアイコン幅に合わせる */
-    padding-right: 0.5rem; /* post-mainとのgapを考慮 */
+    justify-content: flex-end;
+    /* 右寄せ */
+    flex-basis: 48px;
+    /* 通常のアイコン幅に合わせる */
+    padding-right: 0.5rem;
+    /* post-mainとのgapを考慮 */
 }
+
 .repost-indicator svg {
-    width: 1.5em; /* アイコンサイズを調整 */
+    width: 1.5em;
+    /* アイコンサイズを調整 */
     height: 1.5em;
     stroke: currentColor;
     flex-shrink: 0;
 }
+
 /* 引用ポストの入れ子コンテナ */
 .nested-repost-container {
     border: 1px solid var(--border-color);
@@ -2178,10 +2468,12 @@ em-emoji-picker {
     margin-top: 1rem;
     padding: 0.8rem;
 }
+
 .nested-repost-container .post {
     border: none;
     padding: 0;
 }
+
 /* 入れ子の中ではアクションボタンを非表示に */
 .nested-repost-container .post-actions {
     display: none;
@@ -2198,8 +2490,10 @@ em-emoji-picker {
 
 /* リポストボタン */
 .repost-button:hover {
-    color: #00ba7c; /* 緑色 */
+    color: #00ba7c;
+    /* 緑色 */
 }
+
 .trends-widget-container {
     border-top: 1px solid var(--border-color);
 }
@@ -2240,18 +2534,25 @@ em-emoji-picker {
 
 /* DM管理モーダルのメンバーリストにスクロールを適用 */
 #dm-member-list {
-    max-height: 200px; /* 例えば、最大高さを200pxに設定 */
-    overflow-y: auto;  /* 内容が最大高さを超えた場合のみ、縦方向のスクロールバーを表示 */
-    padding-right: 0.5rem; /* スクロールバーとコンテンツの間の余白を確保 */
-    box-sizing: border-box; /* paddingを含めて高さを計算 */
-    border-top: 1px solid var(--border-color); /* 上下の境界線を明確にする */
-    border-bottom: 1px solid var(--border-color); /* 上下の境界線を明確にする */
+    max-height: 200px;
+    /* 例えば、最大高さを200pxに設定 */
+    overflow-y: auto;
+    /* 内容が最大高さを超えた場合のみ、縦方向のスクロールバーを表示 */
+    padding-right: 0.5rem;
+    /* スクロールバーとコンテンツの間の余白を確保 */
+    box-sizing: border-box;
+    /* paddingを含めて高さを計算 */
+    border-top: 1px solid var(--border-color);
+    /* 上下の境界線を明確にする */
+    border-bottom: 1px solid var(--border-color);
+    /* 上下の境界線を明確にする */
     margin-top: 0.5rem;
 }
 
 #account-switcher-modal .modal-content {
     padding: 2rem 1rem 1.5rem;
 }
+
 #account-switcher-modal .modal-close-btn {
     top: 0.1rem;
     right: 0.2rem;
@@ -2261,11 +2562,13 @@ em-emoji-picker {
     z-index: 10;
     background: #888;
 }
+
 .account-switcher-list {
     margin: 1rem 0;
     padding: 0;
     list-style: none;
 }
+
 .account-switcher-item {
     display: flex;
     align-items: center;
@@ -2274,17 +2577,20 @@ em-emoji-picker {
     padding: 0.7rem 0.2rem;
     border-bottom: 1px solid var(--border-color);
 }
+
 .account-switcher-item .switcher-user-info {
     display: flex;
     align-items: center;
     gap: 0.6rem;
 }
+
 .account-switcher-item .switcher-user-icon {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     object-fit: cover;
 }
+
 .account-switcher-item .switcher-delete-btn {
     background: none;
     border: none;
@@ -2296,9 +2602,11 @@ em-emoji-picker {
     cursor: pointer;
     transition: background 0.2s;
 }
+
 .account-switcher-item .switcher-delete-btn:hover {
     background: #fae1e1;
 }
+
 .account-switcher-add-btn {
     width: 100%;
     background-color: var(--primary-color);
@@ -2311,12 +2619,15 @@ em-emoji-picker {
     font-size: 1.05rem;
     cursor: pointer;
 }
+
 .account-switcher-add-btn:hover {
     background-color: var(--primary-hover-color);
 }
+
 .account-switcher-item.active {
     background: var(--notification-bg-color);
 }
+
 .account-switcher-item:not(.active):hover {
     background: #f0f0f0;
     cursor: pointer;
@@ -2338,37 +2649,46 @@ em-emoji-picker {
     #left-nav {
         width: 88px;
     }
+
     #left-nav .nav-item {
         justify-content: center;
     }
+
     #left-nav .nav-item .nav-item-text {
         display: none;
     }
-    
+
     /* ▼▼▼ このブロックを新規追加 ▼▼▼ */
     /* ポストボタンのアイコン表示切り替え */
     .nav-item-post {
-        width: 52px; /* アイコンに合わせたサイズ */
+        width: 52px;
+        /* アイコンに合わせたサイズ */
         height: 52px;
         padding: 0;
     }
+
     .nav-item-post .nav-item-icon {
-        display: block; /* 縮小ビューではアイコンを表示 */
+        display: block;
+        /* 縮小ビューではアイコンを表示 */
     }
+
     .nav-item-post .nav-item-icon svg {
         fill: none;
         stroke: white;
         width: 1.5rem;
         height: 1.5rem;
     }
+
     .nav-item-post .nav-item-text {
-        display: none; /* 縮小ビューではテキストを非表示 */
+        display: none;
+        /* 縮小ビューではテキストを非表示 */
     }
 
     /* アカウントボタンのテキスト非表示 */
     #left-nav #account-button .account-info {
         display: none;
     }
+
     /* ▲▲▲ 追加ここまで ▲▲▲ */
 }
 
@@ -2377,6 +2697,7 @@ em-emoji-picker {
         flex-direction: column;
         padding-bottom: 50px;
     }
+
     #left-nav {
         position: fixed;
         bottom: 0;
@@ -2392,31 +2713,40 @@ em-emoji-picker {
         z-index: 100;
         padding: 0;
     }
+
     #left-nav .nav-item {
         flex: 1;
     }
+
     #nav-menu-top {
         flex-direction: row;
         justify-content: space-around;
         width: 100%;
     }
+
     .nav-item[href="#likes"],
     .nav-item[href="#stars"] {
         display: none;
     }
-    .nav-item-post, #nav-menu-bottom {
+
+    .nav-item-post,
+    #nav-menu-bottom {
         display: none;
     }
+
     #profile-tabs .tab-button.mobile-hidden {
         display: none;
     }
+
     .dm-message-form {
         bottom: 4em;
     }
+
     #main-content {
         border: none;
         width: 100%;
     }
+
     #login-banner {
         flex-direction: column;
         text-align: center;
