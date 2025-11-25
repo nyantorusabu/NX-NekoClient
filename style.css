@@ -1261,7 +1261,7 @@ em-emoji-picker {
 }
 
 body.dark .recommend-user button, .profile-follow-button {
-    border-color: none;
+    border-color: #000000;
 }
 
 .follow-button-not-following {
