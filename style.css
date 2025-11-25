@@ -1125,14 +1125,23 @@ em-emoji-picker {
     text-overflow: ellipsis; /* はみ出た部分を...で表示 */
 }
 
-/* ★★★ フォローボタンの形状問題を解決 ★★★ */
-.recommend-user button, .profile-follow-button {
+.recommend-user button,
+.profile-follow-button {
     padding: 0.5rem 1rem;
-    border-radius: 9999px !important; /* !importantで形状を強制 */
+    border-radius: 9999px !important;
+    /* !importantで形状を強制 */
     font-weight: 700;
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s, border-color 0.2s;
     white-space: nowrap;
+}
+
+body.dark .recommend-user button {
+    border: none;
+}
+
+body.dark .profile-follow-button {
+    border-color: var(--text-color);
 }
 
 .follow-button-not-following {
@@ -1142,7 +1151,6 @@ em-emoji-picker {
 
 .follow-button-not-following:hover {
     background-color: #272c30;
-    border-color: #272c30;
 }
 
 
@@ -1154,7 +1162,7 @@ em-emoji-picker {
 .follow-button-following:hover {
     background-color: #fce8ec;
     color: var(--like-color);
-    border-color: var(--like-color);
+    border-color: var(--like-color) !important;
 }
 
 /* 未ログイン時バナー */
@@ -1306,20 +1314,24 @@ em-emoji-picker {
 #profile-header .dm-button {
     padding: 0.5rem;
     border-radius: 50%;
-    border: 1px solid var(--text-color); /* 枠線の色を黒に変更 */
+    border: 1px solid var(--text-color);
+    /* 枠線の色を黒に変更 */
     background: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-color);
 }
+
 #profile-header .dm-button:hover {
     background-color: var(--bg-color);
 }
+
 #profile-header .dm-button svg {
     width: 20px;
     height: 20px;
-    stroke: currentColor;
+    stroke: var(--text-color);
     fill: none;
 }
 
