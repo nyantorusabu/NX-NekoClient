@@ -1260,8 +1260,12 @@ em-emoji-picker {
     white-space: nowrap;
 }
 
-body.dark .recommend-user button, .profile-follow-button {
-    border-color: #000000;
+body.dark .recommend-user button {
+    border: none;
+}
+
+body.dark .profile-follow-button {
+    border-color: var(--text-color);
 }
 
 .follow-button-not-following {
