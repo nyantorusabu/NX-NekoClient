@@ -153,7 +153,7 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         
         // icon_dataがなければ、デフォルトのScratchアバターURLを返す
-        return `https://trampoline.turbowarp.org/avatars/by-username/${user.scid}`;
+        return `https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/getScratchUserIcon?id=${user.scid}`;
     }
 
     async function renderDmMessage(msg) {
