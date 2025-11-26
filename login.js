@@ -42,9 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (!response.ok || data.error) {
-                window.turnstile.reset();
-                tToken = '';
-                getCodeBtn.disabled = true;
                 throw new Error(data.error || 'コードの生成に失敗しました。');
             }
 
@@ -88,15 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (!response.ok || data.error) {
-                window.turnstile.reset();
-                tToken = '';
-                verifyCommentBtn.disabled = true;
                 throw new Error(data.error || '認証に失敗しました。');
             }
 
             const { error: sessionError } = await supabase.auth.setSession({
                 access_token: data.jwt,
-                refresh_token: data.jwt, // refresh_tokenも同じjwtで問題ありません
+                refresh_token: data.jwt,
             });
             if (sessionError) throw new Error('セッションの設定に失敗しました。');
             
