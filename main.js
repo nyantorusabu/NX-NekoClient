@@ -488,7 +488,6 @@ window.addEventListener('DOMContentLoaded', () => {
             if (!error && updatedUser) {
                 currentUser.notice = updatedUser.notice;
                 currentUser.notice_count = updatedUser.notice_count;
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
             }
             currentUser.notice_count_fetched_recently = true;
             setTimeout(() => { if (currentUser) currentUser.notice_count_fetched_recently = false; }, 10000);
@@ -1795,9 +1794,6 @@ window.addEventListener('DOMContentLoaded', () => {
                             console.error("Failed to reset notice_count:", error);
                             currentUser.notice_count = previousCount;
                             updateNavAndSidebars();
-                        } else {
-                            // 成功したらローカルストレージも更新
-                            localStorage.setItem('currentUser', JSON.stringify(currentUser));
                         }
                     });
             }

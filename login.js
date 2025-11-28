@@ -79,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'verifyComment', 
                     username: scratchUsername, 
                     code: verificationCodeElem.textContent,
-                    // 'new: true' は不要なので削除しました
                 })
             });
             const data = await response.json();
