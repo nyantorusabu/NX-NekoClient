@@ -3678,8 +3678,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (error) {
             alert('権限の譲渡に失敗しました。');
         } else {
-            sendNotification(userIdToHost, `@${currentUser.id}さんから管理者権限を受け取りました。`);
+            sendNotification(userIdToHost, `@${currentUser.id}さんから管理者権限を受け取りました。`, `#dm/${dmId}`);
             alert('権限を譲渡しました。');
+            openDmManageModal(dmId); // モーダルを再描画
         }
     }
 
