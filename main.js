@@ -3549,7 +3549,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 dm.member.map(async (id) => allUsersCache[id] || (await supabase.from('user').select('id, name').eq('id', id).single()).data)
             );
             
-            let html = `<div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;"><h3>DM管理</h3>`;
+            let html = `<div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;"><h3>メッセージ管理</h3>`;
 
             if (isHost) {
                 html += `
@@ -3564,7 +3564,10 @@ window.addEventListener('DOMContentLoaded', () => {
                             ${memberDetails.map(m => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
                                     <span>${getEmoji(escapeHTML(m.name))} (#${m.id}) ${m.id === dm.host_id ? '(ホスト)' : ''}</span>
-                                    ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">削除</button>` : ''}
+                                    <div id="dm-modal-btn">
+                                        ${m.id !== dm.host_id ? `<button class="sethost-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">管理者権限を譲渡</button>` : ''}
+                                        ${m.id !== dm.host_id ? `<button class="remove-member-btn" data-user-id="${m.id}" data-user-name="${escapeHTML(m.name)}">削除</button>` : ''}
+                                    </div>
                                 </div>`).join('')}
                         </div>
                     </div>
@@ -3573,7 +3576,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         <input type="text" id="dm-add-member-search" placeholder="ユーザー名またはIDで検索" style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px;">
                         <div id="dm-add-member-results" style="margin-top: 0.5rem; max-height: 150px; overflow-y: auto;"></div>
                     </div>
-                    <hr>
                     <button id="disband-dm-btn" style="align-self: flex-end;">DMを解散</button>
                 `;
             } else {
@@ -3594,6 +3596,12 @@ window.addEventListener('DOMContentLoaded', () => {
                     const userId = parseInt(btn.dataset.userId);
                     const userName = btn.dataset.userName;
                     btn.onclick = () => handleRemoveDmMember(dmId, userId, userName);
+                });
+
+                document.querySelectorAll('.sethost-member-btn').forEach(btn => {
+                    const userId = parseInt(btn.dataset.userId);
+                    const userName = btn.dataset.userName;
+                    btn.onclick = () => handleSetHostDmMember(dmId, userId, userName);
                 });
                 
                 const searchInput = document.getElementById('dm-add-member-search');
@@ -3639,12 +3647,12 @@ window.addEventListener('DOMContentLoaded', () => {
         } else {
             alert('タイトルを更新しました。');
             DOM.dmManageModal.classList.add('hidden');
-            showDmScreen(dmId);
+            openDmManageModal(dmId); // モーダルを再描画
         }
     }
 
     async function handleRemoveDmMember(dmId, userIdToRemove, userNameToRemove) {
-        if (!confirm(`${userNameToRemove}さんをDMから削除しますか？`)) return;
+        if (!confirm(`${userNameToRemove}さんをDMから削除しますか?`)) return;
 
         const { data: dm } = await supabase.from('dm').select('member').eq('id', dmId).single();
         const updatedMembers = dm.member.filter(id => id !== userIdToRemove);
@@ -3657,6 +3665,21 @@ window.addEventListener('DOMContentLoaded', () => {
             sendNotification(userIdToRemove, `@${currentUser.id}さんによってDMから削除されました。`);
             alert('メンバーを削除しました。');
             openDmManageModal(dmId); // モーダルを再描画
+        }
+    }
+
+    async function handleSetHostDmMember(dmId, userIdToHost, userNameToHost) {
+        if (!confirm(`${userNameToHost}さんに管理者権限を譲渡しますか?`)) return;
+
+        // わんちゃん失敗するけど管理者権限無いとシステムメッセージ送れないので先に送信
+        await sendSystemDmMessage(dmId, `@${currentUser.id}さんが@${userIdToHost}さんに管理者権限を譲渡しました`);
+
+        const { error } = await supabase.from('dm').update({ host_id: userIdToHost }).eq('id', dmId);
+        if (error) {
+            alert('権限の譲渡に失敗しました。');
+        } else {
+            sendNotification(userIdToHost, `@${currentUser.id}さんから管理者権限を受け取りました。`);
+            alert('権限を譲渡しました。');
         }
     }
 
