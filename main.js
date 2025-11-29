@@ -16,6 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let currentDmChannel = null;
     let lastRenderedMessageId = null;
     let allUsersCache = new Map(); // オブジェクトからMapに変更
+    let TrustCache = [];
 
     const contributors = fetch("contributors.json").then(res => res.json());
 
@@ -363,25 +364,24 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function getUserTrustRank(id, single = true) {
-        if (!currentUser.TrustCache) currentUser.TrustCache = [];
         let ids = [];
         if (single) {
-            const cache = currentUser.TrustCache.find(u => u.id === id);
+            const cache = TrustCache.find(u => u.id === id);
             if (cache) return cache;
             ids = [id];
         } else {
-            const cachedIds = currentUser.TrustCache.map(u => u.id);
+            const cachedIds = TrustCache.map(u => u.id);
             ids = id.filter(i => !cachedIds.includes(i));
         };
         if (ids.length > 0) {
             const { data: trustData, error } = await supabase.rpc('get_trust_ranks', { user_ids: ids });
             if (error || !trustData) return null;
             for (trl of trustData) {
-                if (!currentUser.TrustCache.find(u => u.id === trl.id)) currentUser.TrustCache.push(trl);
+                if (!TrustCache.find(u => u.id === trl.id)) TrustCache.push(trl);
             }
         }
-        if (single) return currentUser.TrustCache.find(u => u.id === id);
-        return currentUser.TrustCache.filter(u => id.includes(u.id));
+        if (single) return TrustCache.find(u => u.id === id);
+        return TrustCache.filter(u => id.includes(u.id));
     }
 
     async function MakeTrustLabel(id, single = true) {
