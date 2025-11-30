@@ -1850,7 +1850,6 @@ window.addEventListener('DOMContentLoaded', () => {
                         const normalized = localString.replace(/\//g, "/").replace(/ /, " ");
                         localMsg = localMsg.replace(match[1], normalized);
                     }
-                    console.log(localMsg);
 
                     content.innerHTML = formatPostContent(localMsg, allUsersCache);
                     
