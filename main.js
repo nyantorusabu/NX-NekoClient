@@ -1828,7 +1828,31 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const content = document.createElement('div');
                     content.className = 'notification-item-content';
-                    content.innerHTML = formatPostContent(notification.message, allUsersCache);
+                    
+                    // ブラウザに合わせて通知の時刻を修正
+                    let localMsg = notification.message;
+                    const match = localMsg.match(/(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})/);
+
+                    if (match) {
+                        const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                        const utcDate = new Date(match[1] + "Z");
+
+                        const localString = utcDate.toLocaleString("ja-JP", {
+                            timeZone: userTZ,
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit"
+                        });
+
+                        const normalized = localString.replace(/\//g, "/").replace(/ /, " ");
+                        localMsg = localMsg.replace(match[1], normalized);
+                    }
+                    console.log(localMsg);
+
+                    content.innerHTML = formatPostContent(localMsg, allUsersCache);
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'notification-delete-btn';
