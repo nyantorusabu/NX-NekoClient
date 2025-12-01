@@ -27,6 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const POSTS_PER_PAGE = 15;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let emoji_picker_theme = "light";
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -408,8 +409,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             },
             categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
-                skinTonePosition: 'none',
-                skin: '1'
+            skinTonePosition: 'none',
+            skin: '1',
+            theme: emoji_picker_theme
         };
         const picker_modal = new EmojiMart.Picker(pickerOptions);
         picker.appendChild(picker_modal);
@@ -448,25 +450,27 @@ window.addEventListener('DOMContentLoaded', () => {
             if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
+                emoji_picker_theme = "dark";
             }
             else if (currentUser.settings?.theme == 'auto'){
                 if (isDarkmode) {
                     document.body.classList.remove('light');
                     document.body.classList.add('dark');
+                    emoji_picker_theme = "dark";
                 } else {
                     document.body.classList.add('light');
                     document.body.classList.remove('dark');
-                    emojiTheme = 'light';
+                    emoji_picker_theme = 'light';
                 }
             } else {
                 document.body.classList.add('light');
                 document.body.classList.remove('dark');
-                emojiTheme = 'light';
+                emoji_picker_theme = 'light';
             }
         } else {
             document.body.classList.add('light');
             document.body.classList.remove('dark');
-            emojiTheme = 'light';
+            emoji_picker_theme = 'light';
         }
 
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
