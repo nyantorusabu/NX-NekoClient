@@ -1906,8 +1906,9 @@ window.addEventListener('DOMContentLoaded', () => {
             let metrics, metricsMap;
 
             const metricsPromise = (async () => {
-                const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
-                metricsMap = new Map((metricsData ?? []).map(c => [c.post_id, c]));
+                const { data: metricsData, error } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
+                if (error || !metricsData) return;
+                metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
 
                 if (mainPost.reply_to_post) {
                     metrics = metricsMap.get(mainPost.reply_to_post.id);
@@ -2885,8 +2886,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const metricsPromise = (async () => {
                         // RPCで一括取得
-                        const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
-                        const metricsMap = new Map((metricsData ?? []).map(c => [c.post_id, c]));
+                        const { data: metricsData, error } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
+                        if (error || !metricsData) return;
+                        const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
                         
                         for (const post of posts) {
                             const targetId = post.repost_to && !post.content && post.reposted_post
