@@ -1521,10 +1521,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 (async () => { // 遅延読み込みロジック
                     await metricsPromise;
 
-                    const replyCount = actionTargetPost.reply_count || METRICS_FALLBACK;
-                    const likeCount = actionTargetPost.like_count || METRICS_FALLBACK;
-                    const starCount = actionTargetPost.star_count || METRICS_FALLBACK;
-                    const repostCount = actionTargetPost.repost_count || METRICS_FALLBACK;
+                    const replyCount = actionTargetPost.reply_count ?? METRICS_FALLBACK;
+                    const likeCount = actionTargetPost.like_count ?? METRICS_FALLBACK;
+                    const starCount = actionTargetPost.star_count ?? METRICS_FALLBACK;
+                    const repostCount = actionTargetPost.repost_count ?? METRICS_FALLBACK;
 
                     replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
                     likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
