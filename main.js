@@ -3,6 +3,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNTM0MTIsImV4cCI6MjA2ODgyOTQxMn0.v5tAGcd0K4VW9yR1CZYVjMYHLhWJXN7Tz5j9DNf1CQE';
     
+    const METRICS_FALLBACK = "?";
+
     const { createClient } = window.supabase;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -28,6 +30,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const POSTS_PER_PAGE = 15;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let emoji_picker_theme = "light";
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -279,7 +282,7 @@ window.addEventListener('DOMContentLoaded', () => {
             processed = getEmoji(processed);
 
             // 4. ハッシュタグとメンションを置換
-            const hashtagRegex = /#([a-zA-Z0-9\u3040-\u30FF\u4E00-\u9FFF_!?.-]+)/g;
+            const hashtagRegex = /#([^<>/@#\s]+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${getEmoji(tagName)}</a>`;
             });
@@ -408,6 +411,93 @@ window.addEventListener('DOMContentLoaded', () => {
         else return false;
     }
 
+    async function emoji_picker_create(container){
+        // ここからEmoji Mart
+        let _custom_emoji = await custom_emoji;
+        let custom = [];
+        let value_e;
+        for (let i = 0; i < _custom_emoji.length; i++){
+            value_e = _custom_emoji[i];
+            custom.push({
+                id: value_e.id,
+                name: value_e.name,
+                keywords: [
+                    value_e.id,
+                    value_e.name,
+                    "NyaXEmoji"
+                ],
+                skins: [
+                    {
+                        src: `emoji/${value_e.id}.svg`
+                    }
+                ],
+            });
+        }
+
+        const picker = container.querySelector('#emoji-picker');
+        const pic_button = container.querySelector('.emoji-pic-button');
+        const pickerOptions = {
+            onEmojiSelect: (emoji) => {
+                let textarea = container.querySelector('textarea');
+                const text_start = textarea.selectionStart;
+                const text_end = textarea.selectionEnd;
+                const text = textarea.value;
+                
+                let moji;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
+                else moji = emoji.native;
+
+                textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
+                textarea.focus();
+                textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
+
+                picker.classList.add('hidden');
+            },
+            set: "native",
+            locale: "ja",
+            custom: [
+                {
+                    id: 'nyax',
+                    name: 'NyaXEmoji',
+                    emojis: custom
+                }
+            ],
+            categoryIcons: {
+                nyax: {
+                    svg: ICONS.nyax_logo
+                }
+            },
+            categories: ['nyax'],
+            skinTonePosition: 'none',
+            skin: '1',
+            theme: emoji_picker_theme
+        };
+        const picker_modal = new EmojiMart.Picker(pickerOptions);
+        picker.appendChild(picker_modal);
+
+        pic_button.addEventListener('click', () => {
+            picker.classList.toggle('hidden');
+
+            if(!picker.classList.contains('hidden')) {
+                const buttonRect = pic_button.getBoundingClientRect();
+                const pickerWidth = 320;
+                const pickerHeight = 400;
+                let left = buttonRect.left;
+                let top = buttonRect.top;
+
+                if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
+                if (left < 8) left = 8;
+                if (top < 8) top = buttonRect.buttom + 8;
+
+                picker.style.left = `${left}px`;
+                picker.style.top = `${top + 50}px`;
+            }
+        });
+        
+        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
+        // ここまでEmoji Mart
+    }
+
     // --- 5. ルーティングと画面管理 ---
     async function router() {
         showLoading(true);
@@ -419,25 +509,27 @@ window.addEventListener('DOMContentLoaded', () => {
             if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
+                emoji_picker_theme = "dark";
             }
             else if (currentUser.settings?.theme == 'auto'){
                 if (isDarkmode) {
                     document.body.classList.remove('light');
                     document.body.classList.add('dark');
+                    emoji_picker_theme = "dark";
                 } else {
                     document.body.classList.add('light');
                     document.body.classList.remove('dark');
-                    emojiTheme = 'light';
+                    emoji_picker_theme = 'light';
                 }
             } else {
                 document.body.classList.add('light');
                 document.body.classList.remove('dark');
-                emojiTheme = 'light';
+                emoji_picker_theme = 'light';
             }
         } else {
             document.body.classList.add('light');
             document.body.classList.remove('dark');
-            emojiTheme = 'light';
+            emoji_picker_theme = 'light';
         }
 
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
@@ -938,89 +1030,7 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
     async function attachPostFormListeners(container) {
-        // ここからEmoji Mart
-        let _custom_emoji = await custom_emoji;
-        let custom = [];
-        let value_e;
-        for (let i = 0; i < _custom_emoji.length; i++){
-            value_e = _custom_emoji[i];
-            custom.push({
-                id: value_e.id,
-                name: value_e.name,
-                keywords: [
-                    value_e.id,
-                    value_e.name,
-                    "NyaXEmoji"
-                ],
-                skins: [
-                    {
-                        src: `emoji/${value_e.id}.svg`
-                    }
-                ],
-            });
-        }
-
-        const picker = container.querySelector('#emoji-picker');
-        const pic_button = container.querySelector('.emoji-pic-button');
-        const pickerOptions = {
-            onEmojiSelect: (emoji) => {
-                let textarea = container.querySelector('textarea');
-                const text_start = textarea.selectionStart;
-                const text_end = textarea.selectionEnd;
-                const text = textarea.value;
-                
-                let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                else moji = emoji.native;
-
-                textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                textarea.focus();
-                textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-
-                picker.classList.add('hidden');
-            },
-            set: "native",
-            locale: "ja",
-            custom: [
-                {
-                    id: 'nyax',
-                    name: 'NyaXEmoji',
-                    emojis: custom
-                }
-            ],
-            categoryIcons: {
-                nyax: {
-                    svg: ICONS.nyax_logo
-                }
-            },
-            categories: ['nyax'],
-                skinTonePosition: 'none',
-                skin: '1'
-        };
-        const picker_modal = new EmojiMart.Picker(pickerOptions);
-        picker.appendChild(picker_modal);
-
-        pic_button.addEventListener('click', () => {
-            picker.classList.toggle('hidden');
-
-            if(!picker.classList.contains('hidden')) {
-                const buttonRect = pic_button.getBoundingClientRect();
-                const pickerWidth = 320;
-                const pickerHeight = 400;
-                let left = buttonRect.left;
-                let top = buttonRect.top;
-
-                if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                if (left < 8) left = 8;
-                if (top < 8) top = buttonRect.buttom + 8;
-
-                picker.style.left = `${left}px`;
-                picker.style.top = `${top + 50}px`;
-            }
-        });
-        
-        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
-        // ここまでEmoji Mart
+        await emoji_picker_create(container);
         
         container.querySelector('.attachment-button').addEventListener('click', () => {
             container.querySelector('#file-input').click();
@@ -1572,10 +1582,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 (async () => { // 遅延読み込みロジック
                     await metricsPromise;
 
-                    const replyCount = actionTargetPost.reply_count || 0;
-                    const likeCount = actionTargetPost.like_count || 0;
-                    const starCount = actionTargetPost.star_count || 0;
-                    const repostCount = actionTargetPost.repost_count || 0;
+                    const replyCount = actionTargetPost.reply_count ?? METRICS_FALLBACK;
+                    const likeCount = actionTargetPost.like_count ?? METRICS_FALLBACK;
+                    const starCount = actionTargetPost.star_count ?? METRICS_FALLBACK;
+                    const repostCount = actionTargetPost.repost_count ?? METRICS_FALLBACK;
 
                     replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount} Replies</span>`;
                     likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount} Likes</span>`;
@@ -1957,28 +1967,29 @@ window.addEventListener('DOMContentLoaded', () => {
             let metrics, metricsMap;
 
             const metricsPromise = (async () => {
-                const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
+                const { data: metricsData, error } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
+                if (error || !metricsData) return;
                 metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
 
                 if (mainPost.reply_to_post) {
                     metrics = metricsMap.get(mainPost.reply_to_post.id);
-                    mainPost.reply_to_post.reply_count = metrics.reply_count || 0;
-                    mainPost.reply_to_post.like_count = metrics.like_count || 0;
-                    mainPost.reply_to_post.star_count = metrics.star_count || 0;
-                    mainPost.reply_to_post.repost_count = metrics.repost_count || 0;
+                    mainPost.reply_to_post.reply_count = metrics.reply_count;
+                    mainPost.reply_to_post.like_count = metrics.like_count;
+                    mainPost.reply_to_post.star_count = metrics.star_count;
+                    mainPost.reply_to_post.repost_count = metrics.repost_count;
                 }
                 if (mainPost.reposted_post) {
                     metrics = metricsMap.get(mainPost.reposted_post.id);
-                    mainPost.reposted_post.reply_count = metrics.reply_count || 0;
-                    mainPost.reposted_post.like_count = metrics.like_count || 0;
-                    mainPost.reposted_post.star_count = metrics.star_count || 0;
-                    mainPost.reposted_post.repost_count = metrics.repost_count || 0;
+                    mainPost.reposted_post.reply_count = metrics.reply_count;
+                    mainPost.reposted_post.like_count = metrics.like_count;
+                    mainPost.reposted_post.star_count = metrics.star_count;
+                    mainPost.reposted_post.repost_count = metrics.repost_count;
                 }
                 metrics = metricsMap.get(mainPost.id)
-                mainPost.reply_count = metrics.reply_count || 0;
-                mainPost.like_count = metrics.like_count || 0;
-                mainPost.star_count = metrics.star_count || 0;
-                mainPost.repost_count = metrics.repost_count || 0;
+                mainPost.reply_count = metrics.reply_count;
+                mainPost.like_count = metrics.like_count;
+                mainPost.star_count = metrics.star_count;
+                mainPost.repost_count = metrics.repost_count;
             })();
             
             contentDiv.innerHTML = '';
@@ -2053,9 +2064,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         await metricsPromise;
                         metrics = metricsMap.get(reply.id);
                         postForRender.reply_count = metrics.reply_count
-                        postForRender.like_count = metrics.like_count || 0;
-                        postForRender.star_count = metrics.star_count || 0;
-                        postForRender.repost_count = metrics.repost_count || 0;
+                        postForRender.like_count = metrics.like_count;
+                        postForRender.star_count = metrics.star_count;
+                        postForRender.repost_count = metrics.repost_count;
                     })();
                     
                     const authorForRender = {
@@ -2445,6 +2456,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="noopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
+                    <div class="profile-joined" aria-label="アカウント作成日">
+                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="profile-joined-text">${
+                        (() => {
+                            const d = new Date(user.time);
+                            const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+                            const y = jst.getFullYear();
+                            const m = jst.getMonth() + 1;
+                            return `${y}年${m}月よりNyaXを利用しています`;
+                        })()
+                    }</span>
+                    </div>
                     <div class="user-stats">
                         <a href="#profile/${user.id}/following"><strong>${user.follow?.length || 0}</strong> フォロー中</a>
                         <a href="#profile/${user.id}/followers" id="follower-count"><strong>${followerCount}</strong> フォロワー</a>
@@ -2949,7 +2977,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const metricsPromise = (async () => {
                         // RPCで一括取得
-                        const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
+                        const { data: metricsData, error } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
+                        if (error || !metricsData) return;
                         const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
                         
                         for (const post of posts) {
@@ -2963,27 +2992,14 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ? post.reposted_post
                                 : post;
                             if (targetPostForCounts) {
-                                targetPostForCounts.like_count = metrics.like_count || 0;
-                                targetPostForCounts.star_count = metrics.star_count || 0;
-                                targetPostForCounts.reply_count = metrics.reply_count || 0;
-                                targetPostForCounts.repost_count = metrics.repost_count || 0;
+                                targetPostForCounts.like_count = metrics.like_count;
+                                targetPostForCounts.star_count = metrics.star_count;
+                                targetPostForCounts.reply_count = metrics.reply_count;
+                                targetPostForCounts.repost_count = metrics.repost_count;
                             }
                         }
-                    })().catch(error => { // 読み込み失敗時のフォールバック、メトリクス欄は「?」と表示される
+                    })().catch(error => {
                         console.error("ポストメトリクスの読み込みに失敗:", error);
-
-                        for (const post of posts) {
-                    
-                            const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
-                                ? post.reposted_post
-                                : post;
-                            if (targetPostForCounts) {
-                                targetPostForCounts.like_count = "?";
-                                targetPostForCounts.star_count = "?";
-                                targetPostForCounts.reply_count = "?";
-                                targetPostForCounts.repost_count = "?";
-                            }
-                        }
                     });
                 
                     // 全投稿のcontent内のメンションをキャッシュ
@@ -3491,87 +3507,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // ここからEmoji Mart
-            let _custom_emoji = await custom_emoji;
-            let custom = [];
-            let value_e;
-            for (let i = 0; i < _custom_emoji.length; i++){
-                value_e = _custom_emoji[i];
-                custom.push({
-                    id: value_e.id,
-                    name: value_e.name,
-                    keywords: [
-                        value_e.id,
-                        value_e.name,
-                        "NyaXEmoji"
-                    ],
-                    skins: [
-                        {
-                            src: `emoji/${value_e.id}.svg`
-                        }
-                    ],
-                });
-            }
-    
-            const picker = DOM.editPostModal.querySelector('#emoji-picker');
-            const pic_button = DOM.editPostModal.querySelector('.emoji-pic-button');
-            const pickerOptions = {
-                onEmojiSelect: (emoji) => {
-                    let textarea = DOM.editPostModal.querySelector('textarea');
-                    const text_start = textarea.selectionStart;
-                    const text_end = textarea.selectionEnd;
-                    const text = textarea.value;
-                    
-                    let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                    else moji = emoji.native;
-    
-                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                    textarea.focus();
-                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-    
-                    picker.classList.add('hidden');
-                },
-                set: "native",
-                locale: "ja",
-                custom: [
-                    {
-                        id: 'nyax',
-                        name: 'NyaXEmoji',
-                        emojis: custom
-                    }
-                ],
-                categoryIcons: {
-                    nyax: {
-                        svg: ICONS.nyax_logo
-                    }
-                },
-                categories: ['nyax'],
-                skinTonePosition: 'none',
-                skin: '1'
-            };
-            const picker_modal = new EmojiMart.Picker(pickerOptions);
-            picker.appendChild(picker_modal);
-    
-            pic_button.addEventListener('click', () => {
-                picker.classList.toggle('hidden');
-    
-                if(!picker.classList.contains('hidden')) {
-                    const buttonRect = pic_button.getBoundingClientRect();
-                    const pickerWidth = 320;
-                    const pickerHeight = 400;
-                    let left = buttonRect.left;
-                    let top = buttonRect.top;
-    
-                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                    if (left < 8) left = 8;
-                    if (top < 8) top = buttonRect.buttom + 8;
-    
-                    picker.style.left = `${left}px`;
-                    picker.style.top = `${top + 50}px`;
-                }
-            });
-            // ここまでEmoji Mart
+            await emoji_picker_create(DOM.editPostModalContent);
             
             DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId, currentAttachments, filesToAdd, Array.from(filesToDelete));
             DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
@@ -3999,87 +3935,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
 
-            // ここからEmoji Mart
-            let _custom_emoji = await custom_emoji;
-            let custom = [];
-            let value_e;
-            for (let i = 0; i < _custom_emoji.length; i++){
-                value_e = _custom_emoji[i];
-                custom.push({
-                    id: value_e.id,
-                    name: value_e.name,
-                    keywords: [
-                        value_e.id,
-                        value_e.name,
-                        "NyaXEmoji"
-                    ],
-                    skins: [
-                        {
-                            src: `emoji/${value_e.id}.svg`
-                        }
-                    ],
-                });
-            }
-    
-            const picker = DOM.editDmMessageModal.querySelector('#emoji-picker');
-            const pic_button = DOM.editDmMessageModal.querySelector('.emoji-pic-button');
-            const pickerOptions = {
-                onEmojiSelect: (emoji) => {
-                    let textarea = DOM.editDmMessageModal.querySelector('textarea');
-                    const text_start = textarea.selectionStart;
-                    const text_end = textarea.selectionEnd;
-                    const text = textarea.value;
-                    
-                    let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                    else moji = emoji.native;
-    
-                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                    textarea.focus();
-                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-    
-                    picker.classList.add('hidden');
-                },
-                set: "native",
-                locale: "ja",
-                custom: [
-                    {
-                        id: 'nyax',
-                        name: 'NyaXEmoji',
-                        emojis: custom
-                    }
-                ],
-                categoryIcons: {
-                    nyax: {
-                        svg: ICONS.nyax_logo
-                    }
-                },
-                categories: ['nyax'],
-                skinTonePosition: 'none',
-                skin: '1'
-            };
-            const picker_modal = new EmojiMart.Picker(pickerOptions);
-            picker.appendChild(picker_modal);
-    
-            pic_button.addEventListener('click', () => {
-                picker.classList.toggle('hidden');
-    
-                if(!picker.classList.contains('hidden')) {
-                    const buttonRect = pic_button.getBoundingClientRect();
-                    const pickerWidth = 320;
-                    const pickerHeight = 400;
-                    let left = buttonRect.left;
-                    let top = buttonRect.top;
-    
-                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                    if (left < 8) left = 8;
-                    if (top < 8) top = buttonRect.buttom + 8;
-    
-                    picker.style.left = `${left}px`;
-                    picker.style.top = `${top + 50}px`;
-                }
-            });
-            // ここまでEmoji Mart
+            await emoji_picker_create(DOM.editDmMessageModalContent);
             
             updatePreview();
 
