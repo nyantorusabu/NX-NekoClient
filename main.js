@@ -281,7 +281,7 @@ window.addEventListener('DOMContentLoaded', () => {
             processed = getEmoji(processed);
 
             // 4. ハッシュタグとメンションを置換
-            const hashtagRegex = /#([a-zA-Z0-9\u3040-\u30FF\u4E00-\u9FFF_!?.-]+)/g;
+            const hashtagRegex = /#([^<>/@#\s]+)/g;
             processed = processed.replace(hashtagRegex, (match, tagName) => {
                 return `<a href="#search/${encodeURIComponent(tagName)}" onclick="event.stopPropagation()">#${getEmoji(tagName)}</a>`;
             });
