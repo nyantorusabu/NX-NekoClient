@@ -2393,6 +2393,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
+                    <div class="profile-joined" aria-label="アカウント作成日">
+                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="profile-joined-text">${
+                        (() => {
+                            const d = new Date(user.time);
+                            const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+                            const y = jst.getFullYear();
+                            const m = jst.getMonth() + 1;
+                            return `${y}年${m}月よりNyaXを利用しています`;
+                        })()
+                    }</span>
+                    </div>
                     <div class="user-stats">
                         <a href="#profile/${user.id}/following"><strong>${user.follow?.length || 0}</strong> フォロー中</a>
                         <a href="#profile/${user.id}/followers" id="follower-count"><strong>${followerCount}</strong> フォロワー</a>
