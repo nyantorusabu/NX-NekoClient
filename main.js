@@ -29,6 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const POSTS_PER_PAGE = 15;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let emoji_picker_theme = "light";
 
      // --- 2. アイコンSVG定義 ---
     const ICONS = {
@@ -352,6 +353,94 @@ window.addEventListener('DOMContentLoaded', () => {
         else return false;
     }
 
+    async function emoji_picker_create(container){
+        // ここからEmoji Mart
+        let _custom_emoji = await custom_emoji;
+        let custom = [];
+        let value_e;
+        for (let i = 0; i < _custom_emoji.length; i++){
+            value_e = _custom_emoji[i];
+            custom.push({
+                id: value_e.id,
+                name: value_e.name,
+                keywords: [
+                    value_e.id,
+                    value_e.name,
+                    "NyaXEmoji"
+                ],
+                skins: [
+                    {
+                        src: `emoji/${value_e.id}.svg`
+                    }
+                ],
+            });
+        }
+
+        const picker = container.querySelector('#emoji-picker');
+        const pic_button = container.querySelector('.emoji-pic-button');
+        const pickerOptions = {
+            onEmojiSelect: (emoji) => {
+                let textarea = container.querySelector('textarea');
+                const text_start = textarea.selectionStart;
+                const text_end = textarea.selectionEnd;
+                const text = textarea.value;
+                
+                let moji;
+                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
+                else moji = emoji.native;
+
+                textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
+                textarea.focus();
+                textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
+
+                picker.classList.add('hidden');
+            },
+            set: "native",
+            searchPosition: "none",
+            locale: "ja",
+            custom: [
+                {
+                    id: 'nyax',
+                    name: 'NyaXEmoji',
+                    emojis: custom
+                }
+            ],
+            categoryIcons: {
+                nyax: {
+                    svg: ICONS.nyax_logo
+                }
+            },
+            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
+            skinTonePosition: 'none',
+            skin: '1',
+            theme: emoji_picker_theme
+        };
+        const picker_modal = new EmojiMart.Picker(pickerOptions);
+        picker.appendChild(picker_modal);
+
+        pic_button.addEventListener('click', () => {
+            picker.classList.toggle('hidden');
+
+            if(!picker.classList.contains('hidden')) {
+                const buttonRect = pic_button.getBoundingClientRect();
+                const pickerWidth = 320;
+                const pickerHeight = 400;
+                let left = buttonRect.left;
+                let top = buttonRect.top;
+
+                if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
+                if (left < 8) left = 8;
+                if (top < 8) top = buttonRect.buttom + 8;
+
+                picker.style.left = `${left}px`;
+                picker.style.top = `${top + 50}px`;
+            }
+        });
+        
+        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
+        // ここまでEmoji Mart
+    }
+
     // --- 5. ルーティングと画面管理 ---
     async function router() {
         showLoading(true);
@@ -363,25 +452,27 @@ window.addEventListener('DOMContentLoaded', () => {
             if (currentUser.settings?.theme == 'dark'){
                 document.body.classList.remove('light');
                 document.body.classList.add('dark');
+                emoji_picker_theme = "dark";
             }
             else if (currentUser.settings?.theme == 'auto'){
                 if (isDarkmode) {
                     document.body.classList.remove('light');
                     document.body.classList.add('dark');
+                    emoji_picker_theme = "dark";
                 } else {
                     document.body.classList.add('light');
                     document.body.classList.remove('dark');
-                    emojiTheme = 'light';
+                    emoji_picker_theme = 'light';
                 }
             } else {
                 document.body.classList.add('light');
                 document.body.classList.remove('dark');
-                emojiTheme = 'light';
+                emoji_picker_theme = 'light';
             }
         } else {
             document.body.classList.add('light');
             document.body.classList.remove('dark');
-            emojiTheme = 'light';
+            emoji_picker_theme = 'light';
         }
 
         if (currentDmChannel) supabase.removeChannel(currentDmChannel);
@@ -887,90 +978,7 @@ window.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
     async function attachPostFormListeners(container) {
-        // ここからEmoji Mart
-        let _custom_emoji = await custom_emoji;
-        let custom = [];
-        let value_e;
-        for (let i = 0; i < _custom_emoji.length; i++){
-            value_e = _custom_emoji[i];
-            custom.push({
-                id: value_e.id,
-                name: value_e.name,
-                keywords: [
-                    value_e.id,
-                    value_e.name,
-                    "NyaXEmoji"
-                ],
-                skins: [
-                    {
-                        src: `emoji/${value_e.id}.svg`
-                    }
-                ],
-            });
-        }
-
-        const picker = container.querySelector('#emoji-picker');
-        const pic_button = container.querySelector('.emoji-pic-button');
-        const pickerOptions = {
-            onEmojiSelect: (emoji) => {
-                let textarea = container.querySelector('textarea');
-                const text_start = textarea.selectionStart;
-                const text_end = textarea.selectionEnd;
-                const text = textarea.value;
-                
-                let moji;
-                if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                else moji = emoji.native;
-
-                textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                textarea.focus();
-                textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-
-                picker.classList.add('hidden');
-            },
-            set: "native",
-            searchPosition: "none",
-            locale: "ja",
-            custom: [
-                {
-                    id: 'nyax',
-                    name: 'NyaXEmoji',
-                    emojis: custom
-                }
-            ],
-            categoryIcons: {
-                nyax: {
-                    svg: ICONS.nyax_logo
-                }
-            },
-            categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
-                skinTonePosition: 'none',
-                skin: '1'
-        };
-        const picker_modal = new EmojiMart.Picker(pickerOptions);
-        picker.appendChild(picker_modal);
-
-        pic_button.addEventListener('click', () => {
-            picker.classList.toggle('hidden');
-
-            if(!picker.classList.contains('hidden')) {
-                const buttonRect = pic_button.getBoundingClientRect();
-                const pickerWidth = 320;
-                const pickerHeight = 400;
-                let left = buttonRect.left;
-                let top = buttonRect.top;
-
-                if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                if (left < 8) left = 8;
-                if (top < 8) top = buttonRect.buttom + 8;
-
-                picker.style.left = `${left}px`;
-                picker.style.top = `${top + 50}px`;
-            }
-        });
-        
-        container.querySelector('textarea').addEventListener('focus', () => picker.classList.add('hidden'));
-        // ここまでEmoji Mart
+        await emoji_picker_create(container);
         
         container.querySelector('.attachment-button').addEventListener('click', () => {
             container.querySelector('#file-input').click();
@@ -3428,88 +3436,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // ここからEmoji Mart
-            let _custom_emoji = await custom_emoji;
-            let custom = [];
-            let value_e;
-            for (let i = 0; i < _custom_emoji.length; i++){
-                value_e = _custom_emoji[i];
-                custom.push({
-                    id: value_e.id,
-                    name: value_e.name,
-                    keywords: [
-                        value_e.id,
-                        value_e.name,
-                        "NyaXEmoji"
-                    ],
-                    skins: [
-                        {
-                            src: `emoji/${value_e.id}.svg`
-                        }
-                    ],
-                });
-            }
-    
-            const picker = DOM.editPostModal.querySelector('#emoji-picker');
-            const pic_button = DOM.editPostModal.querySelector('.emoji-pic-button');
-            const pickerOptions = {
-                onEmojiSelect: (emoji) => {
-                    let textarea = DOM.editPostModal.querySelector('textarea');
-                    const text_start = textarea.selectionStart;
-                    const text_end = textarea.selectionEnd;
-                    const text = textarea.value;
-                    
-                    let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                    else moji = emoji.native;
-    
-                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                    textarea.focus();
-                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-    
-                    picker.classList.add('hidden');
-                },
-                set: "native",
-                searchPosition: "none",
-                locale: "ja",
-                custom: [
-                    {
-                        id: 'nyax',
-                        name: 'NyaXEmoji',
-                        emojis: custom
-                    }
-                ],
-                categoryIcons: {
-                    nyax: {
-                        svg: ICONS.nyax_logo
-                    }
-                },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
-                skinTonePosition: 'none',
-                skin: '1'
-            };
-            const picker_modal = new EmojiMart.Picker(pickerOptions);
-            picker.appendChild(picker_modal);
-    
-            pic_button.addEventListener('click', () => {
-                picker.classList.toggle('hidden');
-    
-                if(!picker.classList.contains('hidden')) {
-                    const buttonRect = pic_button.getBoundingClientRect();
-                    const pickerWidth = 320;
-                    const pickerHeight = 400;
-                    let left = buttonRect.left;
-                    let top = buttonRect.top;
-    
-                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                    if (left < 8) left = 8;
-                    if (top < 8) top = buttonRect.buttom + 8;
-    
-                    picker.style.left = `${left}px`;
-                    picker.style.top = `${top + 50}px`;
-                }
-            });
-            // ここまでEmoji Mart
+            await emoji_picker_create(DOM.editPostModalContent);
             
             DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId, currentAttachments, filesToAdd, Array.from(filesToDelete));
             DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
@@ -3937,88 +3864,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>`;
 
-            // ここからEmoji Mart
-            let _custom_emoji = await custom_emoji;
-            let custom = [];
-            let value_e;
-            for (let i = 0; i < _custom_emoji.length; i++){
-                value_e = _custom_emoji[i];
-                custom.push({
-                    id: value_e.id,
-                    name: value_e.name,
-                    keywords: [
-                        value_e.id,
-                        value_e.name,
-                        "NyaXEmoji"
-                    ],
-                    skins: [
-                        {
-                            src: `emoji/${value_e.id}.svg`
-                        }
-                    ],
-                });
-            }
-    
-            const picker = DOM.editDmMessageModal.querySelector('#emoji-picker');
-            const pic_button = DOM.editDmMessageModal.querySelector('.emoji-pic-button');
-            const pickerOptions = {
-                onEmojiSelect: (emoji) => {
-                    let textarea = DOM.editDmMessageModal.querySelector('textarea');
-                    const text_start = textarea.selectionStart;
-                    const text_end = textarea.selectionEnd;
-                    const text = textarea.value;
-                    
-                    let moji;
-                    if(emoji.keywords.includes("NyaXEmoji")) moji = `${isNotBlank(text.slice(text_start - 1, text_start)) ? " " : ""}_${emoji.id}_${(isNotBlank(text.slice(text_end, text_end + 1)) || text.slice(text_end, text_end + 1) == '') ? " " : ""}`;
-                    else moji = emoji.native;
-    
-                    textarea.value = text.slice(0, text_start) + moji + text.slice(text_end);
-                    textarea.focus();
-                    textarea.setSelectionRange(text_start + moji.length, text_start + moji.length);
-    
-                    picker.classList.add('hidden');
-                },
-                set: "native",
-                searchPosition: "none",
-                locale: "ja",
-                custom: [
-                    {
-                        id: 'nyax',
-                        name: 'NyaXEmoji',
-                        emojis: custom
-                    }
-                ],
-                categoryIcons: {
-                    nyax: {
-                        svg: ICONS.nyax_logo
-                    }
-                },
-                categories: ['frequent', 'nyax', 'people', 'nature', 'foods', 'activity', 'places', 'objects', 'symbols', 'flags'],
-                skinTonePosition: 'none',
-                skin: '1'
-            };
-            const picker_modal = new EmojiMart.Picker(pickerOptions);
-            picker.appendChild(picker_modal);
-    
-            pic_button.addEventListener('click', () => {
-                picker.classList.toggle('hidden');
-    
-                if(!picker.classList.contains('hidden')) {
-                    const buttonRect = pic_button.getBoundingClientRect();
-                    const pickerWidth = 320;
-                    const pickerHeight = 400;
-                    let left = buttonRect.left;
-                    let top = buttonRect.top;
-    
-                    if (left + pickerWidth > window.innerWidth) left = window.innerWidth - pickerWidth - 8;
-                    if (left < 8) left = 8;
-                    if (top < 8) top = buttonRect.buttom + 8;
-    
-                    picker.style.left = `${left}px`;
-                    picker.style.top = `${top + 50}px`;
-                }
-            });
-            // ここまでEmoji Mart
+            await emoji_picker_create(DOM.editDmMessageModalContent);
             
             updatePreview();
 
