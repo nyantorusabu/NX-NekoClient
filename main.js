@@ -3,6 +3,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://mnvdpvsivqqbzbtjtpws.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1udmRwdnNpdnFxYnpidGp0cHdzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNTM0MTIsImV4cCI6MjA2ODgyOTQxMn0.v5tAGcd0K4VW9yR1CZYVjMYHLhWJXN7Tz5j9DNf1CQE';
     
+    const METRICS_FALLBACK = "?";
+
     const { createClient } = window.supabase;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1519,10 +1521,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 (async () => { // 遅延読み込みロジック
                     await metricsPromise;
 
-                    const replyCount = actionTargetPost.reply_count || 0;
-                    const likeCount = actionTargetPost.like_count || 0;
-                    const starCount = actionTargetPost.star_count || 0;
-                    const repostCount = actionTargetPost.repost_count || 0;
+                    const replyCount = actionTargetPost.reply_count ?? METRICS_FALLBACK;
+                    const likeCount = actionTargetPost.like_count ?? METRICS_FALLBACK;
+                    const starCount = actionTargetPost.star_count ?? METRICS_FALLBACK;
+                    const repostCount = actionTargetPost.repost_count ?? METRICS_FALLBACK;
 
                     replyBtn.innerHTML = `${ICONS.reply} <span>${replyCount}</span>`;
                     likeBtn.innerHTML = `${ICONS.likes} <span>${likeCount}</span>`;
@@ -1828,30 +1830,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     const content = document.createElement('div');
                     content.className = 'notification-item-content';
-                    
-                    // ブラウザに合わせて通知の時刻を修正
-                    let localMsg = notification.message;
-                    const match = localMsg.match(/(\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2})/);
-
-                    if (match) {
-                        const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                        const utcDate = new Date(match[1] + "Z");
-
-                        const localString = utcDate.toLocaleString("ja-JP", {
-                            timeZone: userTZ,
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit"
-                        });
-
-                        const normalized = localString.replace(/\//g, "/").replace(/ /, " ");
-                        localMsg = localMsg.replace(match[1], normalized);
-                    }
-
-                    content.innerHTML = formatPostContent(localMsg, allUsersCache);
+                    content.innerHTML = formatPostContent(notification.message, allUsersCache);
                     
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'notification-delete-btn';
@@ -1928,27 +1907,27 @@ window.addEventListener('DOMContentLoaded', () => {
 
             const metricsPromise = (async () => {
                 const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsArray });
-                metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+                metricsMap = new Map((metricsData ?? []).map(c => [c.post_id, c]));
 
                 if (mainPost.reply_to_post) {
                     metrics = metricsMap.get(mainPost.reply_to_post.id);
-                    mainPost.reply_to_post.reply_count = metrics.reply_count || 0;
-                    mainPost.reply_to_post.like_count = metrics.like_count || 0;
-                    mainPost.reply_to_post.star_count = metrics.star_count || 0;
-                    mainPost.reply_to_post.repost_count = metrics.repost_count || 0;
+                    mainPost.reply_to_post.reply_count = metrics.reply_count;
+                    mainPost.reply_to_post.like_count = metrics.like_count;
+                    mainPost.reply_to_post.star_count = metrics.star_count;
+                    mainPost.reply_to_post.repost_count = metrics.repost_count;
                 }
                 if (mainPost.reposted_post) {
                     metrics = metricsMap.get(mainPost.reposted_post.id);
-                    mainPost.reposted_post.reply_count = metrics.reply_count || 0;
-                    mainPost.reposted_post.like_count = metrics.like_count || 0;
-                    mainPost.reposted_post.star_count = metrics.star_count || 0;
-                    mainPost.reposted_post.repost_count = metrics.repost_count || 0;
+                    mainPost.reposted_post.reply_count = metrics.reply_count;
+                    mainPost.reposted_post.like_count = metrics.like_count;
+                    mainPost.reposted_post.star_count = metrics.star_count;
+                    mainPost.reposted_post.repost_count = metrics.repost_count;
                 }
                 metrics = metricsMap.get(mainPost.id)
-                mainPost.reply_count = metrics.reply_count || 0;
-                mainPost.like_count = metrics.like_count || 0;
-                mainPost.star_count = metrics.star_count || 0;
-                mainPost.repost_count = metrics.repost_count || 0;
+                mainPost.reply_count = metrics.reply_count;
+                mainPost.like_count = metrics.like_count;
+                mainPost.star_count = metrics.star_count;
+                mainPost.repost_count = metrics.repost_count;
             })();
             
             contentDiv.innerHTML = '';
@@ -2023,9 +2002,9 @@ window.addEventListener('DOMContentLoaded', () => {
                         await metricsPromise;
                         metrics = metricsMap.get(reply.id);
                         postForRender.reply_count = metrics.reply_count
-                        postForRender.like_count = metrics.like_count || 0;
-                        postForRender.star_count = metrics.star_count || 0;
-                        postForRender.repost_count = metrics.repost_count || 0;
+                        postForRender.like_count = metrics.like_count;
+                        postForRender.star_count = metrics.star_count;
+                        postForRender.repost_count = metrics.repost_count;
                     })();
                     
                     const authorForRender = {
@@ -2414,6 +2393,23 @@ window.addEventListener('DOMContentLoaded', () => {
                     </h2>
                     <div class="user-id">#${user.id} ${user.settings.show_scid ? `(<a href="https://scratch.mit.edu/users/${user.scid}" class="scidlink" targer="_blank" rel="nopener noreferrer">@${user.scid}</a>)` : ''}</div>
                     <p class="user-me">${userMeHtml}</p>
+                    <div class="profile-joined" aria-label="アカウント作成日">
+                    <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span class="profile-joined-text">${
+                        (() => {
+                            const d = new Date(user.time);
+                            const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+                            const y = jst.getFullYear();
+                            const m = jst.getMonth() + 1;
+                            return `${y}年${m}月よりNyaXを利用しています`;
+                        })()
+                    }</span>
+                    </div>
                     <div class="user-stats">
                         <a href="#profile/${user.id}/following"><strong>${user.follow?.length || 0}</strong> フォロー中</a>
                         <a href="#profile/${user.id}/followers" id="follower-count"><strong>${followerCount}</strong> フォロワー</a>
@@ -2907,7 +2903,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     const metricsPromise = (async () => {
                         // RPCで一括取得
                         const { data: metricsData } = await supabase.rpc('get_post_metrics', { post_ids: postIdsForCounts });
-                        const metricsMap = new Map(metricsData.map(c => [c.post_id, c]));
+                        const metricsMap = new Map((metricsData ?? []).map(c => [c.post_id, c]));
                         
                         for (const post of posts) {
                             const targetId = post.repost_to && !post.content && post.reposted_post
@@ -2920,27 +2916,14 @@ window.addEventListener('DOMContentLoaded', () => {
                                 ? post.reposted_post
                                 : post;
                             if (targetPostForCounts) {
-                                targetPostForCounts.like_count = metrics.like_count || 0;
-                                targetPostForCounts.star_count = metrics.star_count || 0;
-                                targetPostForCounts.reply_count = metrics.reply_count || 0;
-                                targetPostForCounts.repost_count = metrics.repost_count || 0;
+                                targetPostForCounts.like_count = metrics.like_count;
+                                targetPostForCounts.star_count = metrics.star_count;
+                                targetPostForCounts.reply_count = metrics.reply_count;
+                                targetPostForCounts.repost_count = metrics.repost_count;
                             }
                         }
-                    })().catch(error => { // 読み込み失敗時のフォールバック、メトリクス欄は「?」と表示される
+                    })().catch(error => {
                         console.error("ポストメトリクスの読み込みに失敗:", error);
-
-                        for (const post of posts) {
-                    
-                            const targetPostForCounts = post.repost_to && !post.content && post.reposted_post
-                                ? post.reposted_post
-                                : post;
-                            if (targetPostForCounts) {
-                                targetPostForCounts.like_count = "?";
-                                targetPostForCounts.star_count = "?";
-                                targetPostForCounts.reply_count = "?";
-                                targetPostForCounts.repost_count = "?";
-                            }
-                        }
                     });
                 
                     // 全投稿のcontent内のメンションをキャッシュ
