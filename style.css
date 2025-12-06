@@ -2687,6 +2687,24 @@ body.dark .profile-follow-button {
     vertical-align: text-bottom;
 }
 
+
+/* ワンクッション */
+.post-mask-alert {
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    background-color: var(--main-bg-color);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    transition: background-color 0.2s, border-color 0.2s;
+    margin-right: 0.5rem;
+}
+.post-mask-alert:hover {
+    background-color: var(--light-primary-color);
+    border-color: var(--primary-color);
+}
+
 /* レスポンシブ */
 @media (max-width: 1100px) {
     #right-sidebar {

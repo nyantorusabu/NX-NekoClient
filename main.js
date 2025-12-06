@@ -1464,8 +1464,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (post.content) {
             const postContent = document.createElement('div');
             postContent.className = 'post-content';
-            // 唯一のinnerHTML使用箇所。必ずサニタイズ済みの結果を渡す
             postContent.innerHTML = formatPostContent(post.content, userCache);
+            // markが有効の場合contentをhidden化しpost-alertを表示
+            if (post.mask) {
+                postContent.classList.add('hidden');
+                const postAlert = document.createElement('button');
+                postAlert.className = 'post-mask-alert';
+                postAlert.innerText = 'このポストにはワンクッションが付与されています'
+                postMain.appendChild(postAlert)
+            }
             postMain.appendChild(postContent);
         }
 
@@ -1473,6 +1480,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
             attachmentsContainer.className = 'attachments-container';
+            // markが有効の場合attachmentsもhidden化
+            if (post.mask) {
+                attachmentsContainer.classList.add('hidden');
+            }
             if (isNested) {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'attachment-item';
@@ -3419,6 +3430,18 @@ window.addEventListener('DOMContentLoaded', () => {
             button.disabled = false;
         }
     };
+    window.handleShowMaskedPost = async (button) => {
+        button.disabled = true;
+
+        const postMain = button.parentElement;
+        const postContent = postMain.querySelector('.post-content');
+        const postAttach = postMain.querySelector('.attachments-container');
+
+        if (postAttach) postAttach.classList.remove('hidden');
+        if (postContent) postContent.classList.remove('hidden');
+        
+        button.remove();
+    };
     window.handleFollowToggle = async (targetUserId, button) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
@@ -4457,6 +4480,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 window.location.hash = `#post/${actionTargetPostId}`;
                 return;
             }
+
+            const postAlertButton = target.closest('.post-mask-alert');
+            if (postAlertButton) { window.handleShowMaskedPost(postAlertButton); return; }
         }
         
         // --- 5. その他のグローバルなクリック処理 ---
