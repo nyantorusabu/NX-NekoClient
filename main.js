@@ -3566,8 +3566,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 updatePreview();
             };
 
-            DOM.editPostModal.querySelector('.post-mask-button').onclick = (e) => {
-                e.target.classList.toggle('active');
+            DOM.editPostModal.querySelector('.post-mask-button').onclick = () => {
+                DOM.editPostModal.querySelector('.post-mask-button').classList.toggle('active');
             }
 
             DOM.editPostModal.querySelector('.file-preview-container').onclick = (e) => {
