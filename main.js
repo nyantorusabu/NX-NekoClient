@@ -3553,6 +3553,13 @@ window.addEventListener('DOMContentLoaded', () => {
             
             DOM.editPostModal.querySelector('#update-post-button').onclick = () => handleUpdatePost(postId, currentAttachments, filesToAdd, Array.from(filesToDelete));
             DOM.editPostModal.querySelector('.modal-close-btn').onclick = () => DOM.editPostModal.classList.add('hidden');
+
+            DOM.editPostModal.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    DOM.editPostModal.querySelector('#update-post-button').click();
+                }
+            });
             
             DOM.editPostModal.querySelector('.attachment-button').onclick = () => {
                 DOM.editPostModal.querySelector('#edit-file-input').click();
@@ -3843,13 +3850,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const maskActive = DOM.editPostModal.querySelector('.post-mask-button').classList.contains('active');
         const editPostTextarea = DOM.editPostModal.querySelector('#edit-post-textarea');
         if (!newContent) return alert('内容を入力するか、ファイルを添付してください。');
-        
-        editPostTextarea.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') {
-                e.preventDefault();
-                handleUpdatePost(postId, originalAttachments, filesToAdd, filesToDeleteIds);
-            }
-        });
+
         const button = DOM.editPostModal.querySelector('#update-post-button');
         button.disabled = true; button.textContent = '保存中...';
         showLoading(true);
