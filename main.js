@@ -975,11 +975,12 @@ window.addEventListener('DOMContentLoaded', () => {
             if (fetchError) throw fetchError;
 
             // content, reply_id, attachments は null を指定
-            const { error: rpcError } = await supabase.rpc('create_post', {
+            const { error: rpcError } = await supabase.rpc('create_post_new', {
                 p_content: null,
                 p_reply_id: null,
                 p_repost_to: postId,
-                p_attachments: null
+                p_attachments: null,
+                p_mask: false
             });
 
             if (rpcError) {
@@ -1121,7 +1122,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // 2. 新しいRPC関数を呼び出してポストをDBに保存
-            const { data: newPost, error: rpcError } = await supabase.rpc('create_post', {
+            const { data: newPost, error: rpcError } = await supabase.rpc('create_post_new', {
                 p_content: content,
                 p_reply_id: replyingTo?.id || null,
                 p_repost_to: quotingPost?.id || null,
