@@ -673,9 +673,12 @@ img.emoji {
     fill: var(--text-color);
 }
 
+.post-mask-button svg {
+    stroke: var(--text-color);
+}
+
 .post-mask-button.active svg {
     stroke: var(--primary-color);
-    fill: none;
 }
 
 .float-left {
