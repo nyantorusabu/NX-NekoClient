@@ -1422,24 +1422,35 @@ window.addEventListener('DOMContentLoaded', () => {
             postHeader.appendChild(menu);
         }
         postMain.appendChild(postHeader);
-
+        
+        if (post.content) {
+            const postContent = document.createElement('div');
+            postContent.className = 'post-content';
+            
+            // maskが有効の場合contentをhidden化&頭に!があればそれだけ表示
+            if (post.mask) {
+                postContent.classList.add('hidden');
+                if (post.content.startsWith('!')) {
+                    const masktitle = document.createElement('div');
+                    masktitle.className = 'post-mask-title';
+                    masktitle.innerHTML = formatPostContent(post.content.split('\n')[0].slice(1), userCache);
+                    postMain.appendChild(masktitle);
+                    postContent.innerHTML = formatPostContent(post.content.slice(1), userCache);
+                } else {
+                    postContent.innerHTML = formatPostContent(post.content, userCache);
+                }
+            } else {
+                postContent.innerHTML = formatPostContent(post.content, userCache);
+            }
+            postMain.appendChild(postContent);
+        }
+        
         // maskが有効の場合表示ボタンを追加
         if (post.mask) {
             const postAlert = document.createElement('button');
             postAlert.className = 'post-mask-alert';
             postAlert.innerText = 'このポストにはワンクッションが付与されています'
             postMain.appendChild(postAlert)
-        }
-        
-        if (post.content) {
-            const postContent = document.createElement('div');
-            postContent.className = 'post-content';
-            postContent.innerHTML = formatPostContent(post.content, userCache);
-            // maskが有効の場合contentをhidden化
-            if (post.mask) {
-                postContent.classList.add('hidden');
-            }
-            postMain.appendChild(postContent);
         }
 
         // 添付ファイル
@@ -3382,12 +3393,14 @@ window.addEventListener('DOMContentLoaded', () => {
         button.disabled = true;
 
         const postMain = button.parentElement;
+        const postMaskTitle = postMain.querySelector('.post-mask-title');
         const postContent = postMain.querySelector('.post-content');
         const postAttach = postMain.querySelector('.attachments-container');
 
         if (postAttach) postAttach.classList.remove('hidden');
         if (postContent) postContent.classList.remove('hidden');
 
+        if (postMaskTitle) postMaskTitle.remove();
         button.remove();
     };
     window.handleFollowToggle = async (targetUserId, button) => {
