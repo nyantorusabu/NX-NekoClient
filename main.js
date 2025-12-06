@@ -3491,7 +3491,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function openEditPostModal(postId) {
         showLoading(true);
         try {
-            const { data: post, error } = await supabase.from('post').select('content, attachments').eq('id', postId).single();
+            const { data: post, error } = await supabase.from('post').select('content, mask, attachments').eq('id', postId).single();
             if (error || !post) throw new Error('ポスト情報の取得に失敗しました。');
             
             let currentAttachments = post.attachments || [];
