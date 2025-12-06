@@ -1422,18 +1422,22 @@ window.addEventListener('DOMContentLoaded', () => {
             postHeader.appendChild(menu);
         }
         postMain.appendChild(postHeader);
+
+        // maskが有効の場合表示ボタンを追加
+        if (post.mask) {
+            const postAlert = document.createElement('button');
+            postAlert.className = 'post-mask-alert';
+            postAlert.innerText = 'このポストにはワンクッションが付与されています'
+            postMain.appendChild(postAlert)
+        }
         
         if (post.content) {
             const postContent = document.createElement('div');
             postContent.className = 'post-content';
             postContent.innerHTML = formatPostContent(post.content, userCache);
-            // markが有効の場合contentをhidden化しpost-alertを表示
+            // maskが有効の場合contentをhidden化
             if (post.mask) {
                 postContent.classList.add('hidden');
-                const postAlert = document.createElement('button');
-                postAlert.className = 'post-mask-alert';
-                postAlert.innerText = 'このポストにはワンクッションが付与されています'
-                postMain.appendChild(postAlert)
             }
             postMain.appendChild(postContent);
         }
@@ -1442,7 +1446,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (post.attachments && post.attachments.length > 0) {
             const attachmentsContainer = document.createElement('div');
             attachmentsContainer.className = 'attachments-container';
-            // markが有効の場合attachmentsもhidden化
+            // maskが有効の場合attachmentsもhidden化
             if (post.mask) {
                 attachmentsContainer.classList.add('hidden');
             }
