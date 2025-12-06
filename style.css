@@ -635,6 +635,10 @@ img.emoji {
     color: white;
 }
 
+.post-form-actions #post-submit-button:hover {
+    background-color: var(--primary-hover-color);
+}
+
 .attachment-button,
 .emoji-pic-button,
 .post-mask-button {
@@ -649,23 +653,29 @@ img.emoji {
 }
 
 .attachment-button:hover,
-.emoji-pic-button:hover
+.emoji-pic-button:hover,
 .post-mask-button:hover {
     background-color: var(--bg-color);
 }
 
-.attachment-button svg {
+.post-form-actions svg {
     width: 20px;
     height: 20px;
+}
+
+.attachment-button svg {
     stroke: var(--text-color);
     fill: none;
 }
 
 .emoji-pic-button svg {
-    width: 20px;
-    height: 20px;
     stroke: none;
     fill: var(--text-color);
+}
+
+.post-mask-button.active svg {
+    stroke: var(--primary-color);
+    fill: none;
 }
 
 .float-left {
