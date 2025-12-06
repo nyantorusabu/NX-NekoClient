@@ -3566,7 +3566,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 updatePreview();
             };
 
-            DOM editPostModal.querySelector('.post-mask-button').onclick = (e) => {
+            DOM.editPostModal.querySelector('.post-mask-button').onclick = (e) => {
                 e.target.classList.toggle('active');
             }
 
