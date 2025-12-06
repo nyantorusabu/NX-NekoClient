@@ -3439,7 +3439,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         if (postAttach) postAttach.classList.remove('hidden');
         if (postContent) postContent.classList.remove('hidden');
-        
+
         button.remove();
     };
     window.handleFollowToggle = async (targetUserId, button) => {
@@ -4476,13 +4476,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 });
                 return;
             }
+
+            const postAlertButton = target.closest('.post-mask-alert');
+            if (postAlertButton) { window.handleShowMaskedPost(postAlertButton); return; }
+
             if (!target.closest('a') && !target.closest('.post-menu-btn') && !target.closest('.attachment-item')) {
                 window.location.hash = `#post/${actionTargetPostId}`;
                 return;
             }
-
-            const postAlertButton = target.closest('.post-mask-alert');
-            if (postAlertButton) { window.handleShowMaskedPost(postAlertButton); return; }
         }
         
         // --- 5. その他のグローバルなクリック処理 ---
