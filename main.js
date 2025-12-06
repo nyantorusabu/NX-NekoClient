@@ -1092,11 +1092,7 @@ window.addEventListener('DOMContentLoaded', () => {
     function handlePostMask(container) {
         const button = container.querySelector('.post-mask-button');
 
-        if (button.classList.contains('active')) {
-            button.classList.remove('active');
-        } else {
-            button.classList.add('active');
-        }
+        button.classList.toggle('active');
     }
 
     async function handlePostSubmit(container) {
@@ -3569,6 +3565,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 filesToAdd.push(...Array.from(e.target.files));
                 updatePreview();
             };
+
+            DOM editPostModal.querySelector('.post-mask-button').onclick = (e) => {
+                e.target.classList.toggle('active');
+            }
 
             DOM.editPostModal.querySelector('.file-preview-container').onclick = (e) => {
                 if (e.target.classList.contains('file-preview-remove')) {
