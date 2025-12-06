@@ -206,7 +206,7 @@ textarea {
     /* コンテナいっぱいに広がる */
     height: 100%;
     fill: none;
-    stroke: currentColor;
+    stroke: var(--text-color);
     stroke-width: 2;
     transition: stroke-width 0.2s, fill 0.2s;
 }
@@ -225,7 +225,7 @@ textarea {
 }
 
 .nav-item[href="#"].active svg path {
-    fill: currentColor;
+    fill: var(--text-color);
     stroke: none;
 }
 
@@ -240,7 +240,7 @@ textarea {
 }
 
 .nav-item.active:not([href="#"]):not([href="#explore"]):not([href^="#dm"]) svg {
-    fill: currentColor;
+    fill: var(--text-color);
     stroke: none;
 }
 
@@ -617,12 +617,10 @@ img.emoji {
     width: 100%
 }
 
-.post-form-actions button {
+.post-form-actions {
     padding: 0.5rem 1rem;
     border-radius: 9999px;
     border: none;
-    background-color: var(--primary-color);
-    color: white;
     font-weight: 700;
     cursor: pointer;
 }
@@ -632,27 +630,34 @@ img.emoji {
     cursor: not-allowed;
 }
 
+.post-form-actions #post-submit-button {
+    background-color: var(--primary-color);
+    color: white;
+}
+
 .attachment-button,
-.emoji-pic-button {
-    background: none !important;
+.emoji-pic-button,
+.post-mask-button {
+    background: none;
     border: none;
     cursor: pointer;
     padding: 0.5rem;
-    color: var(--text-color) !important;
+    color: var(--text-color);
     line-height: 1;
     border-radius: 50%;
     transition: background-color 0.2s;
 }
 
 .attachment-button:hover,
-.emoji-pic-button:hover {
+.emoji-pic-button:hover
+.post-mask-button:hover {
     background-color: var(--bg-color);
 }
 
 .attachment-button svg {
     width: 20px;
     height: 20px;
-    stroke: currentColor;
+    stroke: var(--text-color);
     fill: none;
 }
 
@@ -660,7 +665,7 @@ img.emoji {
     width: 20px;
     height: 20px;
     stroke: none;
-    fill: currentColor;
+    fill: var(--text-color);
 }
 
 .float-left {
@@ -855,7 +860,7 @@ em-emoji-picker {
     height: 1.25rem;
     vertical-align: middle;
     fill: none;
-    stroke: currentColor;
+    stroke: var(--text-color);
     stroke-width: 2;
     transition: fill 0.2s, stroke 0.2s, color 0.2s;
 }
@@ -875,7 +880,7 @@ em-emoji-picker {
 }
 
 .like-button.liked svg {
-    fill: currentColor;
+    fill: var(--text-color);
     /* いいね済みのアイコンを塗りつぶす */
 }
 
@@ -890,7 +895,7 @@ em-emoji-picker {
 }
 
 .star-button.starred svg {
-    fill: currentColor;
+    fill: var(--text-color);
     /* お気に入り済みのアイコンを塗りつぶす */
 }
 
@@ -902,7 +907,7 @@ em-emoji-picker {
     vertical-align: middle;
     fill: none;
     /* デフォルトは塗りつぶしなし */
-    stroke: currentColor;
+    stroke: var(--text-color);
     /* 枠線の色は親のcolorに連動 */
     stroke-width: 2;
     transition: fill 0.2s, stroke 0.2s;
@@ -2072,7 +2077,7 @@ body.dark .profile-follow-button {
     height: 20px;
     fill: none;
     /* デフォルトで塗りつぶしなし */
-    stroke: currentColor;
+    stroke: var(--text-color);
 }
 
 .dm-message-form #send-dm-btn svg {
@@ -2478,7 +2483,7 @@ body.dark .profile-follow-button {
 .pinned-indicator svg {
     width: 1em;
     height: 1em;
-    stroke: currentColor;
+    stroke: var(--text-color);
 }
 
 .repost-indicator a {
@@ -2506,7 +2511,7 @@ body.dark .profile-follow-button {
     width: 1.5em;
     /* アイコンサイズを調整 */
     height: 1.5em;
-    stroke: currentColor;
+    stroke: var(--text-color);
     flex-shrink: 0;
 }
 
