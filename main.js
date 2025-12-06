@@ -923,7 +923,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (fetchError) throw fetchError;
 
             // content, reply_id, attachments は null を指定
-            const { error: rpcError } = await supabase.rpc('create_post', {
+            const { error: rpcError } = await supabase.rpc('create_post_new', {
                 p_content: null,
                 p_reply_id: null,
                 p_repost_to: postId,
