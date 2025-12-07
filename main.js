@@ -3394,11 +3394,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const postMain = button.parentElement;
         const postMaskTitle = postMain.querySelector('.post-mask-title');
-        const postContent = postMain.querySelector('.post-content');
-        const postAttach = postMain.querySelector('.attachments-container');
-        
+
         if (postMaskTitle) postMaskTitle.remove();
         button.remove();
+
+        const postContent = postMain.querySelector('.post-content');
+        const postAttach = postMain.querySelector('.attachments-container');
 
         if (postAttach) postAttach.classList.remove('hidden');
         if (postContent) postContent.classList.remove('hidden');
