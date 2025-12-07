@@ -1432,7 +1432,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 postContent.classList.add('hidden');
                 if (post.content.startsWith('!')) {
                     const masktitle = document.createElement('div');
-                    masktitle.className = 'post-mask-title';
+                    masktitle.className = 'post-content post-mask-title';
                     masktitle.innerHTML = formatPostContent(post.content.split('\n')[0].slice(1), userCache);
                     postMain.appendChild(masktitle);
                     postContent.innerHTML = formatPostContent(post.content.slice(1), userCache);
@@ -3396,12 +3396,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const postMaskTitle = postMain.querySelector('.post-mask-title');
         const postContent = postMain.querySelector('.post-content');
         const postAttach = postMain.querySelector('.attachments-container');
+        
+        if (postMaskTitle) postMaskTitle.remove();
+        button.remove();
 
         if (postAttach) postAttach.classList.remove('hidden');
         if (postContent) postContent.classList.remove('hidden');
-
-        if (postMaskTitle) postMaskTitle.remove();
-        button.remove();
+        
+        
     };
     window.handleFollowToggle = async (targetUserId, button) => {
         if (!currentUser) return alert("ログインが必要です。");
