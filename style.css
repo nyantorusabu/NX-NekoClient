@@ -759,7 +759,7 @@ em-emoji-picker {
     cursor: pointer;
 }
 
-.post-content .post-mask-title {
+.post-content.post-mask-title {
     margin-bottom: auto;
 }
 
