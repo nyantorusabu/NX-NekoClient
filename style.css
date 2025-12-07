@@ -759,6 +759,10 @@ em-emoji-picker {
     cursor: pointer;
 }
 
+.post-content .post-mask-alert {
+    margin-bottom: auto;
+}
+
 .user-me {
     line-break: anywhere;
 }
