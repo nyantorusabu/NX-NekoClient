@@ -32,7 +32,7 @@
     --d-ad-bg-color: #272929;
     --d-pg-bg-color: rgba(30, 30, 30, 0.85); /* ページヘッダーなど */
     --d-emoji-bg-color: #e8eaed; /* 絵文字の後ろに表示するための白背景　*/
-    --d-notification-bg-color: #5b6063;
+    --d-notification-bg-color: #073450;
     --d-text-color: #e8eaed;
     --d-secondary-text-color: #cbcbcb;
     --d-logo-color: #FFFFFF; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
@@ -72,7 +72,7 @@ body.dark {
     --ad-bg-color: var(--d-ad-bg-color);
     --pg-bg-color: var(--d-pg-bg-color);
     --emoji-bg-color: var(--d-emoji-bg-color);
-    --notification-bg-color: var(--s-notification-bg-color);
+    --notification-bg-color: var(--d-notification-bg-color);
     --text-color: var(--d-text-color);
     --secondary-text-color: var(--d-secondary-text-color);
     --logo-color: var(--d-logo-color);
@@ -1279,15 +1279,15 @@ body.dark .profile-follow-button {
 
 .modal-close-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.1rem;
+    right: 0.2rem;
     background: #888;
     color: white;
     border-radius: 50%;
-    width: 24px;
-    height: 24px;
+    width: 1.5rem;
+    height: 1.5rem;
     border: none;
-    font-size: 1rem;
+    font-size: 1.5rem;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -2342,15 +2342,6 @@ body.dark .profile-follow-button {
 #account-switcher-modal .modal-content {
     padding: 2rem 1rem 1.5rem;
 }
-#account-switcher-modal .modal-close-btn {
-    top: 0.1rem;
-    right: 0.2rem;
-    width: 25px;
-    height: 25px;
-    font-size: 1.5rem;
-    z-index: 10;
-    background: #888;
-}
 .account-switcher-list {
     margin: 1rem 0;
     padding: 0;
@@ -2363,6 +2354,7 @@ body.dark .profile-follow-button {
     gap: 1rem;
     padding: 0.7rem 0.2rem;
     border-bottom: 1px solid var(--border-color);
+    transition: background 0.2s;
 }
 .account-switcher-item .switcher-user-info {
     display: flex;
@@ -2376,9 +2368,9 @@ body.dark .profile-follow-button {
     object-fit: cover;
 }
 .account-switcher-item .switcher-delete-btn {
-    background: none;
+    background: var(--main-bg-color);
     border: none;
-    color: #e74c3c;
+    color: var(--like-color);
     font-size: 1.2rem;
     border-radius: 50%;
     width: 28px;
@@ -2387,7 +2379,7 @@ body.dark .profile-follow-button {
     transition: background 0.2s;
 }
 .account-switcher-item .switcher-delete-btn:hover {
-    background: #fae1e1;
+    background: var(--danger-color);
 }
 .account-switcher-add-btn {
     width: 100%;
@@ -2408,7 +2400,7 @@ body.dark .profile-follow-button {
     background: var(--notification-bg-color);
 }
 .account-switcher-item:not(.active):hover {
-    background: #f0f0f0;
+    background: var(--widget-bg-color);
     cursor: pointer;
 }
 /* ワンクッション */
