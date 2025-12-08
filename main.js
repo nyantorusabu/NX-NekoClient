@@ -26,7 +26,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
-    const POSTS_PER_PAGE = 15;
+    const POSTS_PER_PAGE = 30;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
     let emoji_picker_theme = "light";
@@ -2421,6 +2421,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 profileTabs.insertAdjacentHTML('afterend', blockNoticeHtml);
             }
 
+            // 諸々の取得
+            if (currentUser.admin) {
+                const { data: status, error: statusError } = await supabase.rpc('get_status', { p_id: userId }).single();
+                user.shadow = statusError ? false : status.shadow;
+                user.trust = statusError ? false : status.trust;
+            }
+
             const { data: postCount, error: postCountError } = await supabase.rpc('get_user_post_count', { p_user_id: userId });
             user.postCount = postCountError ? 0 : postCount;
             
@@ -2856,6 +2863,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 let posts = [];
                 let hasMoreItems = true;
                 let showPinPost = false;
+                let doprofile = false;
 
                 if ((type === 'timeline' && options.tab === 'foryou') || type === 'search') {
                     // --- ケースA: SQL関数側でページネーションを行う ---
@@ -2892,6 +2900,7 @@ window.addEventListener('DOMContentLoaded', () => {
                             idQuery = supabase.from('post').select('id').eq('userid', 1624).ilike('content', '%#NXAnnounce%').is('reply_id', null).order('time', { ascending: false });
                         }
                     } else if (type === 'profile_posts') {
+                        doprofile = true;
                         if (!options.userId) {
                             hasMoreItems = false;
                         } else {
@@ -2928,7 +2937,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     if (postIdsToFetch.length > 0) {
-                        const { data: hydratedPosts, error: hydratedError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: postIdsToFetch });
+                        const { data: hydratedPosts, error: hydratedError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: postIdsToFetch, p_profile: doprofile });
                         if (hydratedError) throw hydratedError;
                         const idOrderMap = new Map(postIdsToFetch.map((id, index) => [id, index]));
                         posts = hydratedPosts.sort((a, b) => idOrderMap.get(a.id) - idOrderMap.get(b.id));
@@ -4213,6 +4222,15 @@ window.addEventListener('DOMContentLoaded', () => {
             sendNoticeBtn.textContent = '通知を送信';
             sendNoticeBtn.onclick = () => adminSendNotice(targetUser.id);
     
+            const trustBtn = document.createElement('button');
+            trustBtn.textContent = 'TSの付与/剥奪';
+            trustBtn.onclick = () => adminChangeTrust(targetUser);
+
+            const shadowBtn = document.createElement('button');
+            shadowBtn.textContent = targetUser.shadow ? '検索除外を解除' : '検索除外';
+            shadowBtn.className = 'delete-btn';
+            shadowBtn.onclick = () => adminToggleShadow(targetUser);
+
             const freezeBtn = document.createElement('button');
             freezeBtn.textContent = 'アカウントを凍結';
             freezeBtn.className = 'delete-btn';
@@ -4220,6 +4238,8 @@ window.addEventListener('DOMContentLoaded', () => {
     
             menu.appendChild(verifyBtn);
             menu.appendChild(sendNoticeBtn);
+            menu.appendChild(trustBtn);
+            menu.appendChild(shadowBtn);
             menu.appendChild(freezeBtn);
         }
     
@@ -4239,7 +4259,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const newVerifyStatus = !targetUser.verify;
         const actionText = newVerifyStatus ? '認証' : '認証の取り消し';
         
-        if (confirm(`本当にこのユーザーの${actionText}を行いますか？`)) {
+        if (confirm(`本当にこのユーザーの${actionText}を行いますか?`)) {
             const { error } = await supabase
                 .from('user')
                 .update({ verify: newVerifyStatus })
@@ -4248,7 +4268,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (error) {
                 alert(`${actionText}に失敗しました: ${error.message}`);
             } else {
-                alert(`ユーザーの${actionText}が完了しました。ページをリロードします。`);
+                alert(`ユーザーの${actionText}が完了しました。\nページをリロードします。`);
                 window.location.reload();
             }
         }
@@ -4262,6 +4282,45 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    async function adminChangeTrust(targetUser) {
+        const message = prompt(`このユーザーの現在のTrustScore: ${targetUser.trust}\n付与/剥奪する量を入力してください`);
+        if (message) {
+            if (typeof message !== 'number') {
+                alert('エラー: TrustScoreには数値のみが許可されています');
+                return;
+            }
+            const { error } = await supabase.rpc('admin_set_status', {
+                p_id: targetUser.id,
+                p_trust: message
+            });
+            if (error) {
+                alert(`TrustScoreの変更に失敗しました: ${error.message}`);
+            } else {
+                alert(`TrustScodeの変更が完了しました。\nページをリロードします。`);
+                window.location.reload();
+            }
+        }
+    }
+
+    async function adminToggleShadow(targetUser) {
+        const newShadowStatus = !targetUser.shadow;
+        const actionText = newShadowStatus ? '有効' : '無効';
+        
+        if (confirm(`本当にこのユーザーの検索除外を${actionText}にしますか?`)) {
+            const { error } = await supabase.rpc('admin_set_status', {
+                p_id: targetUser.id,
+                p_shadow: newShadowStatus
+            });
+
+            if (error) {
+                alert(`${actionText}に失敗しました: ${error.message}`);
+            } else {
+                alert(`ユーザーの検索除外の${actionText}化が完了しました。\nページをリロードします。`);
+                window.location.reload();
+            }
+        }
+    }
+
     async function adminFreezeAccount(targetUserId) {
         const reason = prompt("アカウントの凍結理由を入力してください (必須):");
         if (reason && reason.trim()) {
@@ -4270,7 +4329,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (error) {
                     alert(`凍結に失敗しました: ${error.message}`);
                 } else {
-                    alert('アカウントを凍結しました。ページをリロードします。');
+                    alert('アカウントを凍結しました。\nページをリロードします。');
                     window.location.reload();
                 }
             }
