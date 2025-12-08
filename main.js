@@ -1993,7 +1993,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            const { data: mainPost, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId] }).single();
+            const { data: mainPost, error: postError } = await supabase.rpc('get_hydrated_posts', { p_post_ids: [postId], p_profile: true }).single();
             if (postError || !mainPost) throw postError || new Error('ポストの取得に失敗しました。');
             
             const { data: allRepliesRaw, error: repliesError } = await supabase.rpc('get_all_replies', { root_post_id: postId });
