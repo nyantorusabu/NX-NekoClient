@@ -2938,13 +2938,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         ? { query: options.query, page_size: POSTS_PER_PAGE, page_num: currentPagination.page }
                         : { p_user_id: currentUser?.id || null, page_size: POSTS_PER_PAGE, page_num: currentPagination.page };
 
-                    const { data: rpcResult, error } = await supabase.rpc(rpcName, rpcParams);
+                    const { data: rpcResult, error } = await supabase.rpc(rpcName, rpcParams).single();
                     if (error) throw error;
                     
-                    posts = rpcResult || [];
-                    if (posts.length < POSTS_PER_PAGE) {
-                        hasMoreItems = false;
-                    }
+                    posts = rpcResult.posts || [];
+                    hasMoreItems = rpcResult.has_next || false;
 
                 } else {
                     // --- ケースB: JS側でIDを取得し、ページネーションする ---
