@@ -2097,7 +2097,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const repliesToRender = flatReplyList.slice(from, to);
 
                 // キャッシュ
-                getUserTrustRank(repliesToRender.map(r => r.author_id ));
+                getUserTrustRank(repliesToRender.map(r => r.author_id ), false);
 
                 for (const reply of repliesToRender) {
                     const postForRender = { 
