@@ -4285,7 +4285,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function adminChangeTrust(targetUser) {
         const message = prompt(`このユーザーの現在のTrustScore: ${targetUser.trust}\n付与/剥奪する量を入力してください`);
         if (message) {
-            if (typeof message !== 'number') {
+            if (isNaN(message)) {
                 alert('エラー: TrustScoreには数値のみが許可されています');
                 return;
             }
