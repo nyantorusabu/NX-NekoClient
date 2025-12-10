@@ -2432,7 +2432,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // 諸々の取得
-            if (currentUser.admin) {
+            if (currentUser?.admin) {
                 const { data: status, error: statusError } = await supabase.rpc('get_status', { p_id: userId }).single();
                 user.shadow = statusError ? false : status.shadow;
                 user.trust = statusError ? false : status.trust;
