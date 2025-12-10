@@ -26,7 +26,9 @@ window.addEventListener('DOMContentLoaded', () => {
     let isLoadingMore = false;
     let postLoadObserver;
     let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
+    let POST_COUNT = 0;
     const POSTS_PER_PAGE = 30;
+    const AdPOST_PER_POSTS = 20;
 
     let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
     let emoji_picker_theme = "light";
@@ -1204,6 +1206,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const { isNested = false, isDirectReply = false, userCache = new Map(), metricsPromise, isPinned = false} = options;
 
         if (!post) return null;
+
+        POST_COUNT += 1;
         
         const displayAuthor = author || post.author;
         if (!displayAuthor) return null;
@@ -2084,6 +2088,12 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (reply.reply_id !== postId) { postEl.classList.add('grandchild-reply'); }
                         repliesContainer.appendChild(postEl);
                     }
+
+                    if (POST_COUNT >= AdPOST_PER_POSTS) {
+                        POST_COUNT = 0;
+                        const adPostEl = createAdPostHTML();
+                        if (adPostEl) repliesContainer.appendChild(adPostEl);
+                    }
                 }
 
                 pagination.page++;
@@ -2947,11 +2957,6 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (posts && posts.length > 0) {
                     posts = filterBlockedPosts(posts);
                 
-                    if (currentPagination.page > 0) {
-                        const adPostEl = createAdPostHTML();
-                        if (adPostEl) currentTrigger.before(adPostEl);
-                    }
-                
                     // 集計用ID（Repostは元投稿ID）
                     const postIdsForCounts = posts
                         .map(p => (p.repost_to && !p.content && p.reposted_post) ? p.reposted_post.id : p.id)
@@ -2999,6 +3004,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (showPinPost && post.id === options.pinId) continue; // ピン留めポストはすでに表示済みのためスキップ
                         const postEl = await renderPost(post, post.author, { userCache: allUsersCache, metricsPromise });
                         if (postEl) currentTrigger.before(postEl);
+                        if (POST_COUNT >= AdPOST_PER_POSTS) {
+                            POST_COUNT = 0;
+                            const adPostEl = createAdPostHTML();
+                            if (adPostEl) currentTrigger.before(adPostEl);
+                        }
                     }
                 }
                 
