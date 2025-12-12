@@ -2528,9 +2528,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         (() => {
                             const d = new Date(user.time);
                             const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-                            const y = jst.getFullYear();
-                            const m = jst.getMonth() + 1;
-                            return `${y}年${m}月よりNyaXを利用しています`;
+                            const year = jst.getFullYear();
+                            const month = jst.getMonth() + 1;
+                            const day = jst.getDate();
+                            return `${year}年${month}月${day}日よりNyaXを利用しています`;
                         })()
                     }</span>
                     </div>
