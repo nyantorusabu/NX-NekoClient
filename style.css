@@ -2714,22 +2714,22 @@ body.dark .profile-follow-button {
     vertical-align: text-bottom;
 }
 
-
-/* ワンクッション */
-.post-mask-alert {
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    background-color: var(--main-bg-color);
-    border: 1px solid var(--primary-color);
+.tag-post-button {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    padding: 1rem;
+    font-weight: bold;
+    font-size: 1rem;
     color: var(--primary-color);
-    transition: background-color 0.2s, border-color 0.2s;
-    margin-right: 0.5rem;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--main-bg-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
-.post-mask-alert:hover {
-    background-color: var(--light-primary-color);
-    border-color: var(--primary-color);
+.tag-post-button:hover {
+    background-color: var(--bg-color);
 }
 
 /* レスポンシブ */
