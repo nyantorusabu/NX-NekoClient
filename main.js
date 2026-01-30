@@ -2866,6 +2866,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
                     <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                    <input type="checkbox" id="setting-lock" ${currentUser.settings.lock ? 'checked' : ''}><label for="setting-show-like">ポストを非公開にする(β)</label><br>
                 </fieldset>
 
                 <label for="setting-trust-safety">ポスト/メッセージの表示範囲</label>
@@ -3485,6 +3486,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 name: form.querySelector('#setting-username').value.trim(),
                 me: form.querySelector('#setting-me').value.trim(),
                 settings: {
+                    lock: form.querySelector('#setting-lock').checked,
                     show_like: form.querySelector('#setting-show-like').checked,
                     show_follow: form.querySelector('#setting-show-follow').checked,
                     show_follower: form.querySelector('#setting-show-follower').checked,
