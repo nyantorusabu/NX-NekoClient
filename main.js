@@ -2865,7 +2865,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     <input type="checkbox" id="setting-show-follow" ${currentUser.settings.show_follow ? 'checked' : ''}><label for="setting-show-follow">フォローしている人を公開する</label><br>
                     <input type="checkbox" id="setting-show-follower" ${currentUser.settings.show_follower ? 'checked' : ''}><label for="setting-show-follower">フォロワーリストを公開する</label><br>
                     <input type="checkbox" id="setting-show-star" ${currentUser.settings.show_star ? 'checked' : ''}><label for="setting-show-star">お気に入りを公開する</label><br>
-                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label>
+                    <input type="checkbox" id="setting-show-scid" ${currentUser.settings.show_scid ? 'checked' : ''}><label for="setting-show-scid">Scratchアカウント名を公開する</label><br>
                     <input type="checkbox" id="setting-lock" ${currentUser.settings.lock ? 'checked' : ''}><label for="setting-show-like">ポストを非公開にする(β)</label><br>
                 </fieldset>
 
