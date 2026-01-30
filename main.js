@@ -392,7 +392,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     async function MakeTrustLabel(id, single = true) {
-        if (!currentUser.settings?.show_trust_label) return '';
+        if (!currentUser?.settings?.show_trust_label) return '';
         let ids = [];
         if (single) {
             ids = [id];
@@ -2867,6 +2867,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     <option value="all">すべて</option>
                     <option value="foryou">おすすめ</option>
                     <option value="following">フォロー中</option>
+                </select>
+                
                 <fieldset><legend>TrustRank(β)</legend>
                     <input type="checkbox" id="setting-show-tlabel" ${currentUser.settings.show_trust_label ? 'checked' : ''}><label for="setting-show-tlabel">ユーザーのTrustRankを表示</label><br>
                 </fieldset>
