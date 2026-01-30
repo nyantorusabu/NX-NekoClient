@@ -228,15 +228,24 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function updateFollowButtonState(buttonElement, isFollowing) {
+    function updateFollowButtonState(buttonElement, isFollowing, isLock = false) {
         buttonElement.classList.remove('follow-button-not-following', 'follow-button-following');
         if (isFollowing) {
-            buttonElement.textContent = 'フォロー中';
             buttonElement.classList.add('follow-button-following');
+            if (isLock) {
+                buttonElement.textContent = '承認待ち';
+                buttonElement.onmouseleave = () => { buttonElement.textContent = '承認待ち'; };
+            } else {
+                buttonElement.textContent = 'フォロー中';
+                buttonElement.onmouseleave = () => { buttonElement.textContent = 'フォロー中'; };
+            }
             buttonElement.onmouseenter = () => { buttonElement.textContent = 'フォロー解除'; };
-            buttonElement.onmouseleave = () => { buttonElement.textContent = 'フォロー中'; };
         } else {
-            buttonElement.textContent = 'フォロー';
+            if (isLock) {
+                buttonElement.textContent = 'フォローリクエスト';
+            } else {
+                buttonElement.textContent = 'フォロー';
+            }
             buttonElement.classList.add('follow-button-not-following');
             buttonElement.onmouseenter = null;
             buttonElement.onmouseleave = null;
@@ -2584,6 +2593,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 showLoading(false);
                 return;
             }
+            const { data: is_lock, error: LockError } = await supabase.rpc('is_lock', { target_user_id: userId });
+            user.lock = LockError ? false : is_lock;
 
             if (user.frieze) {
                 document.getElementById('page-title-main').innerHTML = getEmoji(escapeHTML(user.name));
@@ -2617,6 +2628,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
                 if (Array.isArray(user.block) && user.block.includes(currentUser.id)) {
                     blockNoticeHtml += `<div class="freeze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
+                }
+                if (user.lock) {
+                    blockNoticeHtml += `<div class="freeze-notice">このユーザーのポストは非表示です。表示するにはフォローリクエストを送信してください。</div>`;
                 }
             }
             if (blockNoticeHtml) {
@@ -2693,9 +2707,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     // フォローボタン
                     const followButton = document.createElement('button');
                     const isFollowing = currentUser.follow?.includes(userId);
-                    updateFollowButtonState(followButton, isFollowing);
+                    updateFollowButtonState(followButton, isFollowing, user.lock);
                     followButton.classList.add('profile-follow-button');
-                    followButton.onclick = () => window.handleFollowToggle(userId, followButton);
+                    followButton.onclick = () => window.handleFollowToggle(userId, followButton, user.lock);
                     actionsContainer.appendChild(followButton);
 
                     const menuButton = document.createElement('button');
@@ -3644,7 +3658,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
         
     };
-    window.handleFollowToggle = async (targetUserId, button) => {
+    window.handleFollowToggle = async (targetUserId, button, isLock) => {
         if (!currentUser) return alert("ログインが必要です。");
         button.disabled = true;
     
@@ -3658,7 +3672,7 @@ window.addEventListener('DOMContentLoaded', () => {
             const isFollowing = data.following;
             currentUser.follow = data.updated_follows;
     
-            updateFollowButtonState(button, isFollowing);
+            updateFollowButtonState(button, isFollowing, isLock);
     
             // フォロワー数を再取得（既存RPC呼び出しを継続利用）
             const followerCountSpan = document.querySelector('#follower-count strong');
