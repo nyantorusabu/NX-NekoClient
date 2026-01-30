@@ -2631,7 +2631,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     blockNoticeHtml += `<div class="freeze-notice">このユーザーはあなたをブロックしています。ポスト/メッセージは表示されません。</div>`;
                 }
                 if (user.lock) {
-                    blockNoticeHtml += `<div class="freeze-notice">このユーザーのポストは非表示です。表示するにはフォローリクエストを送信してください。</div>`;
+                    blockNoticeHtml += `<div class="freeze-notice">このユーザーはポストを非公開に設定しています。表示するにはフォローリクエストを送信してください。</div>`;
                 }
             }
             if (blockNoticeHtml) {
