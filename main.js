@@ -2595,7 +2595,7 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             const { data: is_lock, error: LockError } = await supabase.rpc('is_lock', { target_user_id: userId });
             user.lock = LockError ? false : is_lock;
-            await ensureMentionedUsersCached(user.me);
+            await ensureMentionedUsersCached([user.me]);
 
             if (user.frieze) {
                 document.getElementById('page-title-main').innerHTML = getEmoji(escapeHTML(user.name));
