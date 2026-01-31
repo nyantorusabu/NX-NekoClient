@@ -1849,37 +1849,40 @@ window.addEventListener('DOMContentLoaded', () => {
 		postHeader.appendChild(postTime);
 
 		// ポストメニューボタン
-		if (
-			currentUser &&
-			!isNested &&
-			(currentUser.id === post.userid || currentUser.admin)
-		) {
+		if (currentUser && !isNested) {
 			const menuBtn = document.createElement('button');
 			menuBtn.className = 'post-menu-btn';
 			menuBtn.innerHTML = '…';
 			const menu = document.createElement('div');
 			menu.className = 'post-menu';
 
-			const pinBtn = document.createElement('button');
-			pinBtn.className = 'pin-btn';
-			if (!currentUser.pin || currentUser.pin !== post.id) {
-				pinBtn.textContent = 'ピン留め';
-			} else {
-				pinBtn.textContent = 'ピン留めを解除';
-			}
-			menu.appendChild(pinBtn);
+			const copyBtn = document.createElement('button');
+			editBtn.className = 'copy-btn';
+			editBtn.textContent = 'URLをコピー';
+			menu.appendChild(copyBtn);
 
-			if (!post.repost_to || post.content) {
-				const editBtn = document.createElement('button');
-				editBtn.className = 'edit-btn';
-				editBtn.textContent = '編集';
-				menu.appendChild(editBtn);
-			}
+			if (currentUser.id === post.userid || currentUser.admin) {
+				const pinBtn = document.createElement('button');
+				pinBtn.className = 'pin-btn';
+				if (!currentUser.pin || currentUser.pin !== post.id) {
+					pinBtn.textContent = 'ピン留め';
+				} else {
+					pinBtn.textContent = 'ピン留めを解除';
+				}
+				menu.appendChild(pinBtn);
 
-			const deleteBtn = document.createElement('button');
-			deleteBtn.className = 'delete-btn';
-			deleteBtn.textContent = '削除';
-			menu.appendChild(deleteBtn);
+				if (!post.repost_to || post.content) {
+					const editBtn = document.createElement('button');
+					editBtn.className = 'edit-btn';
+					editBtn.textContent = '編集';
+					menu.appendChild(editBtn);
+				}
+
+				const deleteBtn = document.createElement('button');
+				deleteBtn.className = 'delete-btn';
+				deleteBtn.textContent = '削除';
+				menu.appendChild(deleteBtn);
+			}
 
 			postHeader.appendChild(menuBtn);
 			postHeader.appendChild(menu);
@@ -4329,7 +4332,15 @@ window.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	// --- 11. ユーザーアクション (変更なし) ---
+	// --- 11. ユーザーアクション ---
+	window.handleReplyClick = async (postId, button) => {
+		await navigator.clipboard.writeText(
+			`${window.location.origin}/#post/${postId}`,
+		);
+		if (button) {
+			button.innerText = `コピーしました!`;
+		}
+	};
 	window.pinPost = async (postId) => {
 		let cmessage, emessage;
 
@@ -5926,6 +5937,12 @@ window.addEventListener('DOMContentLoaded', () => {
 			const timelinePostId = postElement.dataset.postId;
 			const actionTargetPostId =
 				postElement.dataset.actionTargetId || timelinePostId;
+
+			const copyButton = target.closest('.copy-btn');
+			if (copyButton) {
+				window.copyPost(timelinePostId);
+				return;
+			}
 
 			const editButton = target.closest('.edit-btn');
 			if (editButton) {
