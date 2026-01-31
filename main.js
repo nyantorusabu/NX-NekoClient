@@ -1857,8 +1857,8 @@ window.addEventListener('DOMContentLoaded', () => {
 			menu.className = 'post-menu';
 
 			const copyBtn = document.createElement('button');
-			editBtn.className = 'copy-btn';
-			editBtn.textContent = 'URLをコピー';
+			copyBtn.className = 'copy-btn';
+			copyBtn.textContent = 'URLをコピー';
 			menu.appendChild(copyBtn);
 
 			if (currentUser.id === post.userid || currentUser.admin) {
@@ -5940,7 +5940,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 			const copyButton = target.closest('.copy-btn');
 			if (copyButton) {
-				window.copyPost(timelinePostId);
+				window.copyPost(timelinePostId, copyButton);
 				return;
 			}
 
