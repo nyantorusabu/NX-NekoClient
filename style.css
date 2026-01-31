@@ -977,7 +977,7 @@ em-emoji-picker {
 	border-radius: 8px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	z-index: 101;
-	max-width: 150px;
+	width: 11rem;
 	overflow: hidden;
 	visibility: hidden;
 	opacity: 0;
