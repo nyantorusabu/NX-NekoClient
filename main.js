@@ -3253,7 +3253,7 @@ window.addEventListener('DOMContentLoaded', () => {
 					menuButton.innerHTML = '…';
 					menuButton.onclick = (e) => {
 						e.stopPropagation();
-						openProfileMenu(e.currentTarget, user); // 新しい関数（下記）に変更
+						openProfileMenu(user);
 					};
 					actionsContainer.appendChild(menuButton);
 				}
@@ -5540,7 +5540,7 @@ window.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
-	function openProfileMenu(button, targetUser) {
+	function openProfileMenu(targetUser) {
 		document.getElementById('profile-menu')?.remove();
 
 		const menu = document.createElement('div');
@@ -5611,12 +5611,11 @@ window.addEventListener('DOMContentLoaded', () => {
 			menu.appendChild(freezeBtn);
 		}
 
-		document.body.appendChild(menu);
-		const btnRect = button.getBoundingClientRect();
-		menu.style.position = 'absolute';
-		menu.style.top = `${window.scrollY + btnRect.bottom}px`;
-		menu.style.left = `${window.scrollX + btnRect.left}px`;
+		menu.style.top = `auto`;
 		menu.style.right = 'auto';
+		menu.style.transform = 'translateY(3rem)';
+		const acts = document.getElementById('profile-actions');
+		acts.appendChild(menu);
 
 		setTimeout(() => {
 			document.addEventListener('click', () => menu.remove(), {
