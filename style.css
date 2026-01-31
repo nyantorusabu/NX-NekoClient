@@ -943,21 +943,16 @@ em-emoji-picker {
 	/* お気に入り済みのアイコンを塗りつぶす */
 }
 
-/* ▼▼▼ .post-actions .icon を削除し、svgの指定に統合 ▼▼▼ */
 .post-actions button svg {
 	width: 1.25rem;
-	/* サイズを微調整 */
 	height: 1.25rem;
 	vertical-align: middle;
 	fill: none;
-	/* デフォルトは塗りつぶしなし */
 	stroke: currentColor;
-	/* 枠線の色は親のcolorに連動 */
 	stroke-width: 2;
 	transition:
 		fill 0.2s,
 		stroke 0.2s;
-	/* 色の遷移を滑らかに */
 }
 
 .post-menu-btn {
@@ -970,12 +965,9 @@ em-emoji-picker {
 	font-size: 1.2rem;
 	color: var(--secondary-text-color);
 	padding: 0.25rem;
-	/* クリック領域を確保 */
 	z-index: 5;
-	/* 他の要素との重なり順を明確化 */
 }
 
-/* ★★★ メニューの表示方法を根本から変更 ★★★ */
 .post-menu {
 	position: absolute;
 	right: 0;
@@ -985,10 +977,8 @@ em-emoji-picker {
 	border-radius: 8px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	z-index: 101;
-	/* 修正: 20から101へ変更し、他のUIより手前に表示 */
-	min-width: 150px;
+	max-width: 150px;
 	overflow: hidden;
-	/* デフォルトで非表示にする */
 	visibility: hidden;
 	opacity: 0;
 	transition:
@@ -1267,8 +1257,6 @@ em-emoji-picker {
 	/* 要素間の隙間を追加 */
 }
 
-/* ▼▼▼ このブロックを新規追加 ▼▼▼ */
-/* ユーザー情報を含むリンク（aタグ）の挙動を定義 */
 .recommend-user > a {
 	min-width: 0;
 	/* flexアイテムが自身のコンテンツ幅以下に縮むことを許可 */
@@ -1289,11 +1277,8 @@ em-emoji-picker {
 	flex-shrink: 0;
 }
 
-/* ▲▲▲ 追加ここまで ▲▲▲ */
-
 .recommend-user span {
 	font-weight: 700;
-	/* ▼▼▼ 以下の4行を追加 ▼▼▼ */
 	display: block;
 	/* ellipsisを効かせるためにblock要素にする */
 	white-space: nowrap;
