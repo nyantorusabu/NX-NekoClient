@@ -1856,10 +1856,10 @@ window.addEventListener('DOMContentLoaded', () => {
 			const menu = document.createElement('div');
 			menu.className = 'post-menu';
 
-			const copyBtn = document.createElement('button');
-			copyBtn.className = 'copy-btn';
-			copyBtn.textContent = 'URLをコピー';
-			menu.appendChild(copyBtn);
+			const shareBtn = document.createElement('button');
+			shareBtn.className = 'share-btn';
+			shareBtn.textContent = 'URLをコピー';
+			menu.appendChild(shareBtn);
 
 			if (currentUser.id === post.userid || currentUser.admin) {
 				const pinBtn = document.createElement('button');
@@ -5938,9 +5938,9 @@ window.addEventListener('DOMContentLoaded', () => {
 			const actionTargetPostId =
 				postElement.dataset.actionTargetId || timelinePostId;
 
-			const copyButton = target.closest('.copy-btn');
-			if (copyButton) {
-				window.copyPost(timelinePostId, copyButton);
+			const shareButton = target.closest('.share-btn');
+			if (shareButton) {
+				window.copyPost(timelinePostId, shareButton);
 				return;
 			}
 
