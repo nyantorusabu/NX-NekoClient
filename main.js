@@ -4333,7 +4333,7 @@ window.addEventListener('DOMContentLoaded', () => {
 	}
 
 	// --- 11. ユーザーアクション ---
-	window.handleReplyClick = async (postId, button) => {
+	window.copyPost = async (postId, button) => {
 		await navigator.clipboard.writeText(
 			`${window.location.origin}/#post/${postId}`,
 		);
