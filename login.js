@@ -48,9 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				},
 			);
 			const data = await response.json();
-			if (!response.ok || data.error) {
+			if (!response.ok || data.error)
 				throw new Error(data.error || 'コードの生成に失敗しました。');
-			}
 
 			verificationCodeElem.textContent = data.code;
 			profileLink.href = `https://scratch.mit.edu/users/${scratchUsername}/#comments`;
@@ -95,9 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				},
 			);
 			const data = await response.json();
-			if (!response.ok || data.error) {
+			if (!response.ok || data.error)
 				throw new Error(data.error || '認証に失敗しました。');
-			}
 
 			const { error: sessionError } = await supabase.auth.setSession({
 				access_token: data.jwt,

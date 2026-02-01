@@ -855,6 +855,19 @@ window.addEventListener('DOMContentLoaded', () => {
 		DOM.navMenuTop
 			.querySelector('.nav-item-post')
 			?.addEventListener('click', () => openPostModal());
+		const PostButton = document.getElementsByClassName('nav-item-post')[0];
+		if (PostButton) {
+			if (
+				window.matchMedia('(max-width:680px)').matches &&
+				location.hash.startsWith('#dm')
+			) {
+				if (!PostButton.classList.contains('hidden')) {
+					PostButton.classList.add('hidden');
+				}
+			} else if (PostButton.classList.contains('hidden')) {
+				PostButton.classList.remove('hidden');
+			}
+		}
 		loadRightSidebar();
 	}
 
@@ -1776,33 +1789,33 @@ window.addEventListener('DOMContentLoaded', () => {
 			pinnedDiv.className = 'pinned-indicator';
 			pinnedDiv.innerHTML = `${ICONS.pin} <span>ピン留めされたポスト</span>`;
 			postMain.appendChild(pinnedDiv);
-		} else {
-			if (!isDirectReply) {
-				if (post.reply_to_post && post.reply_to_post.author) {
-					// (インジケーターを生成するDOM操作は変更なし)
-					const replyDiv = document.createElement('div');
-					replyDiv.className = 'replying-to';
-					const replyAuthorLink = document.createElement('a');
-					replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
-					replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
-					const replyText = document.createElement('span');
-					replyText.textContent = ` さんに返信`;
-					replyDiv.appendChild(replyAuthorLink);
-					replyDiv.appendChild(replyText);
-					postMain.appendChild(replyDiv);
-				} else if (post.reply_to_user_id && post.reply_to_user_name) {
-					// (インジケーターを生成するDOM操作は変更なし)
-					const replyDiv = document.createElement('div');
-					replyDiv.className = 'replying-to';
-					const replyAuthorLink = document.createElement('a');
-					replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
-					replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
-					const replyText = document.createElement('span');
-					replyText.textContent = ` さんに返信`;
-					replyDiv.appendChild(replyAuthorLink);
-					replyDiv.appendChild(replyText);
-					postMain.appendChild(replyDiv);
-				}
+		} else if (!isDirectReply) {
+			if (post.reply_to_post && post.reply_to_post.author) {
+				// (インジケーターを生成するDOM操作は変更なし)
+				const replyDiv = document.createElement('div');
+				replyDiv.className = 'replying-to';
+				const replyAuthorLink = document.createElement('a');
+				replyAuthorLink.href = `#profile/${post.reply_to_post.author.id}`;
+				replyAuthorLink.textContent = `@${post.reply_to_post.author.name}`;
+				replyAuthorLink.innerHTML = getEmoji(replyAuthorLink.innerHTML); // Emoji Oneの変換
+				const replyText = document.createElement('span');
+				replyText.textContent = ` さんに返信`;
+				replyDiv.appendChild(replyAuthorLink);
+				replyDiv.appendChild(replyText);
+				postMain.appendChild(replyDiv);
+			} else if (post.reply_to_user_id && post.reply_to_user_name) {
+				// (インジケーターを生成するDOM操作は変更なし)
+				const replyDiv = document.createElement('div');
+				replyDiv.className = 'replying-to';
+				const replyAuthorLink = document.createElement('a');
+				replyAuthorLink.href = `#profile/${post.reply_to_user_id}`;
+				replyAuthorLink.textContent = `@${post.reply_to_user_name}`;
+				replyAuthorLink.innerHTML = getEmoji(replyAuthorLink.innerHTML); // Emoji Oneの変換
+				const replyText = document.createElement('span');
+				replyText.textContent = ` さんに返信`;
+				replyDiv.appendChild(replyAuthorLink);
+				replyDiv.appendChild(replyText);
+				postMain.appendChild(replyDiv);
 			}
 		}
 
@@ -3919,12 +3932,6 @@ window.addEventListener('DOMContentLoaded', () => {
 						false,
 					);
 
-					// 全投稿者のTrustRankをキャッシュ
-					await getUserTrustRank(
-						posts.map((post) => post.userid),
-						false,
-					);
-
 					if (showPinPost) {
 						const pinPost = posts.find(
 							(p) => p.id === options.pinId,
@@ -5576,7 +5583,7 @@ window.addEventListener('DOMContentLoaded', () => {
 			menu.appendChild(blockBtn);
 		}
 
-		// 管理者のみのメニュー
+		// NyaXTeamのみのメニュー
 		if (currentUser.admin) {
 			const verifyBtn = document.createElement('button');
 			verifyBtn.textContent = targetUser.verify
