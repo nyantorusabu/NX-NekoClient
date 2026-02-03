@@ -32,7 +32,7 @@ window.addEventListener('DOMContentLoaded', () => {
 	let currentPagination = { page: 0, hasMore: true, type: null, options: {} };
 	let POST_COUNT = 0;
 	const POSTS_PER_PAGE = 30;
-	const AdPOST_PER_POSTS = 20;
+	const AdPOST_PER_POSTS = 30;
 
 	let isDarkmode = window.matchMedia('(prefers-color-scheme: dark)').matches;
 	let emoji_picker_theme = 'light';
@@ -2123,24 +2123,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     <span class="post-author">[広告]</span>
                 </div>
                 <div class="post-content">
-                    <iframe scrolling="no" frameborder="0" style="width:300px; height:250px; border:0; overflow:hidden;"></iframe>
+                    <p>広告は新機能の準備のため停止中です。</p>
                 </div>
             </div>
         `;
-
-		// iframe要素を取得
-		const iframe = adContainer.querySelector('iframe');
-
-		iframe.srcdoc = `
-            <body style="margin:0; padding:0;">
-                <!-- admax -->
-                <div class="admax-ads" data-admax-id="0bd891d69fb4e13cd644500a25fc1f46" style="display:inline-block;width:300px;height:250px;"></div>
-                <script type="text/javascript">(admaxads = window.admaxads || []).push({admax_id: "0bd891d69fb4e13cd644500a25fc1f46",type: "banner"});</script>
-                <script type="text/javascript" charset="utf-8" src="https://adm.shinobi.jp/st/t.js" async></script>
-                <!-- admax -->
-            </body>
-        `;
-
 		// 広告ポスト全体のクリックイベントを止める
 		adContainer.addEventListener(
 			'click',
