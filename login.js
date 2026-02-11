@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		try {
 			const response = await fetch(
-				'https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler',
+				'https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/nyax_auth',
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		try {
 			const response = await fetch(
-				'https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/scratch-auth-handler',
+				'https://mnvdpvsivqqbzbtjtpws.supabase.co/functions/v1/nyax_auth',
 				{
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				throw new Error(data.error || '認証に失敗しました。');
 
 			const { error: sessionError } = await supabase.auth.setSession({
-				access_token: data.jwt,
-				refresh_token: data.jwt,
+				access_token: data.access_token,
+				refresh_token: data.refresh_token,
 			});
 			if (sessionError)
 				throw new Error('セッションの設定に失敗しました。');
