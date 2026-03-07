@@ -26,15 +26,15 @@
 	--l-light-primary-color: #cce6ff;
 	--l-danger-color: #fef0f4;
 	/* ダークモード色設定 */
-	--d-border-color: #313335;
-	--d-bg-color: #2f3033;
-	--d-main-bg-color: #1f1f1f;
+	--d-border-color: #2F363D;
+	--d-bg-color: #18191D;
+	--d-main-bg-color: #1C1D21;
 	--d-ad-bg-color: #272929;
-	--d-pg-bg-color: rgba(30, 30, 30, 0.85); /* ページヘッダーなど */
+	--d-pg-bg-color: rgb(33 35 41 / 85%); /* ページヘッダーなど */
 	--d-emoji-bg-color: #e8eaed; /* 絵文字の後ろに表示するための白背景　*/
 	--d-notification-bg-color: #073450;
-	--d-text-color: #e8eaed;
-	--d-secondary-text-color: #cbcbcb;
+	--d-text-color: #ffffff;
+	--d-secondary-text-color: #ffffff;
 	--d-logo-color: #ffffff; /* ロゴ表示用に使っているが背景色と真逆の色を使う時に指定されることもある */
 	--d-loading-color: rgba(0, 0, 0, 0.7);
 	--d-widget-bg-color: #4d5156; /* プロフィールカードホバー時 */
@@ -1020,22 +1020,22 @@ em-emoji-picker {
 }
 
 #right-sidebar-links-container {
-	font-size: 14px;
-	display: inline;
+    font-size: 14px;
+    display: inline;
 }
 
 .link {
-	text-decoration: none;
-	color: #808090;
-	padding: 1px 8px 1px 8px;
+    text-decoration: none;
+    color: #808090;
+    padding: 1px 8px 1px 8px;
 }
 
-.link:not(.discord) {
-	border-right: #808090 1.5px solid;
+.link:not(:last-child) {
+    border-right: #808090 1.5px solid;
 }
 
 .link:hover {
-	text-decoration: underline;
+    text-decoration: underline;
 }
 
 .sidebar-widget {
